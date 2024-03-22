@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "*.projbuild": "cmake",
+        "*.tpp": "cpp"
+    }
+}
