@@ -5,7 +5,6 @@
 PowersSY6970 PMU;
 uint32_t cycleInterval;
 
-
 void setup(void)
 {
     Serial.begin(115200);

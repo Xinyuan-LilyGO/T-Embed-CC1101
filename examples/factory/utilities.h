@@ -8,7 +8,7 @@
 
 // IIC addr
 #define BOARD_I2C_ADDR_1 0x24
-#define BOARD_I2C_ADDR_2 0x55
+#define BOARD_I2C_ADDR_2 0x55  // PMU
 #define BOARD_I2C_ADDR_3 0x6b
 
 // --------- SPI ---------

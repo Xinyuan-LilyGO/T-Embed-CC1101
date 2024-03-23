@@ -1,6 +1,10 @@
 {
     "files.associations": {
         "*.projbuild": "cmake",
-        "*.tpp": "cpp"
+        "*.tpp": "cpp",
+        "lv_examples.h": "c",
+        "lv_port_disp.h": "c",
+        "tft_espi.h": "c",
+        "lv_demos.h": "c"
     }
 }
