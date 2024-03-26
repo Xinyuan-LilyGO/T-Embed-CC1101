@@ -8,13 +8,12 @@
  *********************/
 #include "lv_port_indev.h"
 #include "lvgl.h"
+#include "utilities.h"
 
 /*********************
  *      DEFINES
  *********************/
-#define ENCODER_INA 4
-#define ENCODER_INB 5
-#define ENCODER_KEY 0
+
 /**********************
  *      TYPEDEFS
  **********************/
@@ -76,7 +75,7 @@ void lv_port_indev_init(void)
 /*------------------
  * Encoder
  * -----------------*/
-
+volatile bool indev_encoder_enabled = true;
 /*Initialize your keypad*/
 static void encoder_init(void)
 {
@@ -93,22 +92,18 @@ static void encoder_read(lv_indev_drv_t * indev_drv, lv_indev_data_t * data)
     int new_pos = encoder.getPosition();
     int encoder_dir = (int16_t)encoder.getDirection();
 
-    if(encoder_dir != 0){
-        data->enc_diff = encoder_dir;
+    if(indev_encoder_enabled){
+        if(encoder_dir != 0){
+            data->enc_diff = -encoder_dir;
+        }
+
+        if (digitalRead(ENCODER_KEY) == LOW) {
+            data->state = LV_INDEV_STATE_PR;
+        } else if (digitalRead(ENCODER_KEY) == HIGH) { 
+            data->state = LV_INDEV_STATE_REL;
+        }
     }
-
-    if (digitalRead(ENCODER_KEY) == LOW) {
-        data->state = LV_INDEV_STATE_PR;
-    } else if (digitalRead(ENCODER_KEY) == HIGH) { 
-        data->state = LV_INDEV_STATE_REL;
-    }
-
-    Serial.printf("enc_diff:%d, sta:%d\n",data->enc_diff, data->state);
-    // encoder_diff += 0;
-    // encoder_state = LV_INDEV_STATE_REL;
-
-    // data->enc_diff = encoder_diff;
-    // data->state = encoder_state;
+    // Serial.printf("enc_diff:%d, sta:%d\n",data->enc_diff, data->state);
 }
 
 /*Call this function in an interrupt to process encoder events (turn, press)*/
@@ -116,6 +111,11 @@ static void encoder_handler(void)
 {
     /*Your code comes here*/
     encoder.tick();
+}
+
+void indev_enabled(bool en)
+{
+    indev_encoder_enabled = en;
 }
 
 

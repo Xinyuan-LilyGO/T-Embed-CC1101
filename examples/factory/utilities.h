@@ -2,6 +2,14 @@
 
 #pragma once
 
+// --------- DISPLAY ---------
+// About LCD definition in the file: lib/TFT_eSPI/User_Setups/Setup214_LilyGo_T_Embed_PN532.h
+
+// --------- ENCODER ---------
+#define ENCODER_INA 4
+#define ENCODER_INB 5
+#define ENCODER_KEY 0
+
 // --------- IIC ---------
 #define BOARD_I2C_SDA  8
 #define BOARD_I2C_SCL  18

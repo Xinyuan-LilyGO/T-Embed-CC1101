@@ -1,6 +1,8 @@
 
 #include "utilities.h"
 #include <XPowersLib.h>
+#include "ui.h"
+
 
 PowersSY6970 PMU;
 uint32_t cycleInterval;
@@ -54,10 +56,14 @@ void setup(void)
     // To obtain voltage data, the ADC must be enabled first
     PMU.enableADCMeasure();
 
+    // ui display
+    ui_entry();
 }
 
 void loop(void)
 {
+    lv_timer_handler();
+
      // SY6970 When VBUS is input, the battery voltage detection will not take effect
     if (millis() > cycleInterval) {
 
