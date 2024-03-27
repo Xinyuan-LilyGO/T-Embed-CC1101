@@ -54,6 +54,4 @@ void loop(void)
     tft.drawString("MNOPQRSTUVWXYZ[\\]^_`", 0, 32, 2);
     tft.drawString("abcdefghijklmnopqrstuvw", 0, 48, 2);
     delay(1000);
-
-
 }

@@ -2,6 +2,10 @@
 
 #pragma once
 
+// WS2812
+#define WS2812_NUM_LEDS 8
+#define WS2812_DATA_PIN 14
+
 // --------- DISPLAY ---------
 // About LCD definition in the file: lib/TFT_eSPI/User_Setups/Setup214_LilyGo_T_Embed_PN532.h
 

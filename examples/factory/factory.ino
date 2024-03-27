@@ -3,7 +3,6 @@
 #include <XPowersLib.h>
 #include "ui.h"
 
-
 PowersSY6970 PMU;
 uint32_t cycleInterval;
 
@@ -55,7 +54,8 @@ void setup(void)
 
     // To obtain voltage data, the ADC must be enabled first
     PMU.enableADCMeasure();
-
+    
+    ws2812_init();
     // ui display
     ui_entry();
 }
