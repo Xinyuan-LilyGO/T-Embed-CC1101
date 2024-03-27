@@ -19,9 +19,9 @@
 #define BOARD_I2C_SCL  18
 
 // IIC addr
-#define BOARD_I2C_ADDR_1 0x24
+#define BOARD_I2C_ADDR_1 0x24  // 
 #define BOARD_I2C_ADDR_2 0x55  // PMU
-#define BOARD_I2C_ADDR_3 0x6b
+#define BOARD_I2C_ADDR_3 0x6b  // 
 
 // --------- SPI ---------
 #define BOARD_SPI_SCK  11
