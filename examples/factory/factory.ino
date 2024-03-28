@@ -41,7 +41,10 @@ void setup(void)
         Serial.println("No I2C devices found");
     }
 
-    // bool result =  PMU.init(Wire, BOARD_I2C_SDA, BOARD_I2C_SCL, BOARD_I2C_ADDR_3);
+    // SPI init
+    SPI.begin(BOARD_SPI_SCK, BOARD_SPI_MISO, BOARD_SPI_MOSI, -1);
+
+    // bool result =  PMU.init(Wire, BOARD_I2C_SDA, BOARD_I2C_SCL, BOARD_I2C_ADDR_2);
 
     // if (result == false) {
     //     while (1) {
@@ -61,6 +64,8 @@ void setup(void)
     // // To obtain voltage data, the ADC must be enabled first
     // PMU.enableADCMeasure();
     
+    lora_init();
+    
     ws2812_init();
     // ui display
     ui_entry();
@@ -70,7 +75,7 @@ void loop(void)
 {
     lv_timer_handler();
 
-    //  // SY6970 When VBUS is input, the battery voltage detection will not take effect
+    // SY6970 When VBUS is input, the battery voltage detection will not take effect
     // if (millis() > cycleInterval) {
 
     //     Serial.println("Sats        VBUS    VBAT   SYS    VbusStatus      String   ChargeStatus     String      TargetVoltage       ChargeCurrent       Precharge       NTCStatus           String");

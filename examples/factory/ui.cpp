@@ -26,7 +26,7 @@ static void scr0_btn_event_cb(lv_event_t * e)
         switch (fouce_item)
         {
             case 0: switch_scr0_anim(SCREEN2_ID); break; // name_buf[0]: Battery
-            case 1: switch_scr0_anim(SCREEN1_ID); break; // name_buf[1]: WS2812
+            case 1: switch_scr0_anim(SCREEN1_ID); ws2812_effect_task(); break; // name_buf[1]: WS2812
             case 2: switch_scr0_anim(SCREEN2_ID); break;
             case 3: switch_scr0_anim(SCREEN2_ID); break;
             case 4: switch_scr0_anim(SCREEN2_ID); break;
@@ -61,25 +61,6 @@ static void scr0_btn_event_cb(lv_event_t * e)
     }
 }
 
-static void anim0_x_cb(void * var, int32_t v) {
-    lv_obj_set_x((lv_obj_t *)var, v);
-    indev_enabled(false);
-}
-
-static void anim0_x1_cb(void * var, int32_t v) {
-    lv_obj_set_x((lv_obj_t *)var, v);
-    indev_enabled(false);
-}
-
-static void anim0_ready_cb(struct _lv_anim_t *a){
-    indev_enabled(true);
-}
-
-static void switch_scr_anim_ready_cb(struct _lv_anim_t *a){
-    indev_enabled(true);
-    scr_mgr_switch((int)a->user_data, false);
-}
-
 void entry0_anim(void)
 {
     lv_anim_t a;
@@ -88,14 +69,22 @@ void entry0_anim(void)
     lv_anim_set_values(&a, DISPALY_WIDTH*0.6, 0);
     lv_anim_set_time(&a, 400);
     lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
-    lv_anim_set_exec_cb(&a, anim0_x_cb);
-    lv_anim_set_ready_cb(&a, anim0_ready_cb);
+    lv_anim_set_exec_cb(&a, [](void * var, int32_t v){
+        lv_obj_set_x((lv_obj_t *)var, v);
+        lv_port_indev_enabled(false);
+    });
+    lv_anim_set_ready_cb(&a, [](struct _lv_anim_t *a){
+        lv_port_indev_enabled(true);
+    });
     lv_anim_start(&a);
 
     lv_anim_set_time(&a, 400);
     lv_anim_set_var(&a, menu_cont);
     lv_anim_set_values(&a, -DISPALY_WIDTH*0.4, 0);
-    lv_anim_set_exec_cb(&a, anim0_x1_cb);
+    lv_anim_set_exec_cb(&a, [](void * var, int32_t v){
+        lv_obj_set_x((lv_obj_t *)var, v);
+        lv_port_indev_enabled(false);
+    });
     lv_anim_start(&a);
 }
 
@@ -107,15 +96,24 @@ void switch_scr0_anim(int user_data)
     lv_anim_set_values(&a, 0, DISPALY_WIDTH*0.6);
     lv_anim_set_time(&a, 400);
     lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
-    lv_anim_set_exec_cb(&a, anim0_x_cb);
-    lv_anim_set_ready_cb(&a, switch_scr_anim_ready_cb);
+    lv_anim_set_exec_cb(&a, [](void * var, int32_t v){
+        lv_obj_set_x((lv_obj_t *)var, v);
+        lv_port_indev_enabled(false);
+    });
+    lv_anim_set_ready_cb(&a, [](struct _lv_anim_t *a){
+        scr_mgr_switch((int)a->user_data, false);
+        lv_port_indev_enabled(true);
+    });
     lv_anim_set_user_data(&a, (void *)user_data);
     lv_anim_start(&a);
 
     lv_anim_set_time(&a, 400);
     lv_anim_set_var(&a, menu_cont);
     lv_anim_set_values(&a, 0, -DISPALY_WIDTH*0.4);
-    lv_anim_set_exec_cb(&a, anim0_x1_cb);
+    lv_anim_set_exec_cb(&a, [](void * var, int32_t v){
+        lv_obj_set_x((lv_obj_t *)var, v);
+        lv_port_indev_enabled(false);
+    });
     lv_anim_start(&a);
 }
 
@@ -240,8 +238,8 @@ void create0(lv_obj_t *parent)
 void entry0(void) {   
     entry0_anim();
 }
-void exit0(void) {    printf("exit0\n");}
-void destroy0(void) { printf("destroy0\n");}
+void exit0(void) {}
+void destroy0(void) {}
 
 scr_lifecycle_t screen0 = {
     .create = create0,
@@ -281,7 +279,9 @@ void colorwheel_focus_event(lv_event_t *e)
         c.red = c32.ch.red;
         c.green = c32.ch.green;
         c.blue = c32.ch.blue;
-        ws2812_set_color(c);
+        if(ws2812_get_mode()==0){
+            ws2812_set_color(c);
+        }
         lv_label_set_text_fmt(label, "0x%02X%02X%02X", c.red, c.green, c.blue);
         lv_obj_set_style_bg_color(light_acr, ws2812_color, LV_PART_KNOB);
         lv_obj_set_style_arc_color(light_acr, ws2812_color, LV_PART_INDICATOR);
@@ -298,7 +298,7 @@ static void value_changed_event_cb(lv_event_t * e)
     ws2812_light = lv_arc_get_value(arc);
     lv_label_set_text_fmt(label, "%d", ws2812_light);
     ws2812_set_light(ws2812_light);
-
+    
     /*Rotate the label to the current position of the arc*/
     // lv_arc_rotate_obj_to_angle(arc, label, 25);
 }
@@ -312,6 +312,27 @@ static void scr1_btn_event_cb(lv_event_t * e)
     }
 }
 
+static void ws2812_mode_event_cb(lv_event_t * e)
+{
+    static int mode = 0;
+    lv_obj_t *tgt = (lv_obj_t *)e->target;
+    lv_obj_t *lab = (lv_obj_t *)e->user_data;
+    if(e->code == LV_EVENT_CLICKED){
+        mode++;
+        mode &= 0x3;
+        switch (mode)
+        {
+            case 0: lv_label_set_text(lab, "OFF");    break;
+            case 1: lv_label_set_text(lab, "effct1"); break;
+            case 2: lv_label_set_text(lab, "effct2"); break;
+            case 3: lv_label_set_text(lab, "effct3"); break;
+            default:
+                break;
+        }
+        ws2812_set_mode(mode);
+    }
+}
+
 void entry1_anim(lv_obj_t *obj)
 {
     lv_anim_t a;
@@ -321,11 +342,11 @@ void entry1_anim(lv_obj_t *obj)
     lv_anim_set_time(&a, 200);
     lv_anim_set_path_cb(&a, lv_anim_path_linear);
     lv_anim_set_exec_cb(&a, [](void * var, int32_t v){ 
-        indev_enabled(false);
+        lv_port_indev_enabled(false);
         lv_obj_set_style_opa((lv_obj_t *)var, v, LV_PART_MAIN);
     });
     lv_anim_set_ready_cb(&a, [](_lv_anim_t *a){ 
-        indev_enabled(true);
+        lv_port_indev_enabled(true);
     });
     lv_anim_start(&a);
 }
@@ -339,12 +360,12 @@ void exit1_anim(int user_data, lv_obj_t *obj)
     lv_anim_set_time(&a, 200);
     lv_anim_set_path_cb(&a, lv_anim_path_linear);
     lv_anim_set_exec_cb(&a, [](void * var, int32_t v){ 
-        indev_enabled(false);
+        lv_port_indev_enabled(false);
         lv_obj_set_style_opa((lv_obj_t *)var, v, LV_PART_MAIN);
     });
     lv_anim_set_ready_cb(&a, [](_lv_anim_t *a){
         scr_mgr_switch((int)a->user_data, false);
-        indev_enabled(true);
+        lv_port_indev_enabled(true);
     });
     lv_anim_set_user_data(&a, (void *)user_data);
     lv_anim_start(&a);
@@ -402,6 +423,29 @@ void create1(lv_obj_t *parent)
 
     /*Manually update the label for the first time*/
     lv_event_send(light_acr, LV_EVENT_VALUE_CHANGED, NULL);
+
+    lv_obj_t * mode_btn = lv_btn_create(scr1_cont);
+    // lv_group_add_obj(lv_group_get_default(), mode_btn);
+    lv_obj_set_style_pad_all(mode_btn, 0, 0);
+    lv_obj_set_height(mode_btn, 30);
+    lv_obj_align(mode_btn, LV_ALIGN_TOP_MID, 0, 10);
+    // lv_obj_set_style_border_color(mode_btn, lv_color_hex(COLOR_BORDER), LV_PART_MAIN);
+    lv_obj_set_style_border_width(mode_btn, 0, LV_PART_MAIN);
+    lv_obj_set_style_shadow_width(mode_btn, 0, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(mode_btn, lv_color_hex(COLOR_BG), LV_PART_MAIN);
+    lv_obj_remove_style(mode_btn, NULL, LV_STATE_FOCUS_KEY);
+    lv_obj_set_style_outline_pad(mode_btn, 2, LV_STATE_FOCUS_KEY);
+    lv_obj_set_style_outline_width(mode_btn, 2, LV_STATE_FOCUS_KEY);
+    lv_obj_set_style_outline_color(mode_btn, lv_color_hex(COLOR_FOCUS_ON), LV_STATE_FOCUS_KEY);
+    lv_obj_t * mode_lab = lv_label_create(mode_btn);
+    lv_obj_align(mode_lab, LV_ALIGN_LEFT_MID, 0, 0);
+    if(ws2812_get_mode() == 0) {
+        lv_label_set_text(mode_lab, "OFF");
+    } else {
+        lv_label_set_text_fmt(mode_lab, "effs %d", ws2812_get_mode());
+    }
+    lv_obj_add_event_cb(mode_btn, ws2812_mode_event_cb, LV_EVENT_CLICKED, mode_lab);
+    lv_event_send(mode_btn, LV_EVENT_VALUE_CHANGED, mode_lab);
 
     lv_obj_t * btn = lv_btn_create(scr1_cont);
     // lv_group_add_obj(lv_group_get_default(), btn);
@@ -483,7 +527,7 @@ void create2(lv_obj_t *parent){
 
     lv_obj_t *label2 = lv_label_create(btn);
     lv_obj_align(label2, LV_ALIGN_LEFT_MID, 0, 0);
-    lv_label_set_text(label2, LV_SYMBOL_LEFT " Battery");
+    lv_label_set_text(label2, LV_SYMBOL_LEFT " LORA");
 }
 void entry2(void) {entry2_anim(scr2_cont);}
 void exit2(void) {}

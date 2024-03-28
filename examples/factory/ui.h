@@ -11,7 +11,7 @@
 #define DISPALY_WIDTH  TFT_HEIGHT
 #define DISPALY_HEIGHT TFT_WIDTH
 
-#define COLOR_BG       0x161823   // 漆黑色
+#define COLOR_BG       0x161823   // 漆黑色  0x161823
 #define COLOR_FOCUS_ON 0x91B821   // 绿茶色
 #define COLOR_TETX     0xffffff   // 丁香淡紫 0xE9D4DF
 #define COLOR_4  //

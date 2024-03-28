@@ -26,7 +26,8 @@ extern RotaryEncoder encoder;
  * GLOBAL PROTOTYPES
  **********************/
 void lv_port_indev_init(void);
-void indev_enabled(bool en);
+void lv_port_indev_enabled(bool en);
+int lv_port_indev_get_pos(void);
 /**********************
  *      MACROS
  **********************/

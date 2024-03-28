@@ -76,6 +76,7 @@ void lv_port_indev_init(void)
  * Encoder
  * -----------------*/
 volatile bool indev_encoder_enabled = true;
+int indev_encoder_pos = 0;
 /*Initialize your keypad*/
 static void encoder_init(void)
 {
@@ -88,16 +89,13 @@ static void encoder_init(void)
 /*Will be called by the library to read the encoder*/
 static void encoder_read(lv_indev_drv_t * indev_drv, lv_indev_data_t * data)
 {
-    // static int pos = 0;
-    // int new_pos = encoder.getPosition();
-   
-
     if(indev_encoder_enabled){
+        indev_encoder_pos= encoder.getPosition();
+
         int encoder_dir = (int16_t)encoder.getDirection();
         if(encoder_dir != 0){
             data->enc_diff = -encoder_dir;
         }
-
         if (digitalRead(ENCODER_KEY) == LOW) {
             data->state = LV_INDEV_STATE_PR;
         } else if (digitalRead(ENCODER_KEY) == HIGH) { 
@@ -119,9 +117,14 @@ static void encoder_handler(void)
     }
 }
 
-void indev_enabled(bool en)
+void lv_port_indev_enabled(bool en)
 {
     indev_encoder_enabled = en;
+}
+
+int lv_port_indev_get_pos(void)
+{
+    return indev_encoder_pos;
 }
 
 
