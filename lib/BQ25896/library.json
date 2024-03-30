@@ -1,0 +1,20 @@
+{
+    "name": "BQ25896",
+    "keywords": "i2c,wire,battery management system,battery charging",
+    "description": "Arduino library for BQ25896 Single Cell battery Charger",
+    "repository":
+    {
+        "type": "git",
+        "url": "https://github.com/andhieSetyabudi/BQ25896.git"
+    },
+    "authors":
+    {
+        "name": "Andhie Setyabudi",
+        "url": "https://github.com/andhieSetyabudi",
+        "maintainer": true
+    },
+    "version": "0.1.0",
+    "license": "MIT",
+    "frameworks": "arduino",
+    "platforms": "*"
+}

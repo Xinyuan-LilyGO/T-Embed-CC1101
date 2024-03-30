@@ -9,7 +9,7 @@ uint32_t cycleInterval;
 void setup(void)
 {
     Serial.begin(115200);
-    int start_delay = 2;
+    int start_delay = 3;
     while (start_delay) {
         Serial.print(start_delay);
         delay(1000);
@@ -44,25 +44,25 @@ void setup(void)
     // SPI init
     SPI.begin(BOARD_SPI_SCK, BOARD_SPI_MISO, BOARD_SPI_MOSI, -1);
 
-    // bool result =  PMU.init(Wire, BOARD_I2C_SDA, BOARD_I2C_SCL, BOARD_I2C_ADDR_2);
+    bool result =  PMU.init(Wire, BOARD_I2C_SDA, BOARD_I2C_SCL, BOARD_I2C_ADDR_2);
 
-    // if (result == false) {
-    //     while (1) {
-    //         Serial.println("PMU is not online...");
-    //         delay(50);
-    //     }
-    // }
-    // // Set the charging target voltage, Range:3840 ~ 4608mV ,step:16 mV
-    // PMU.setChargeTargetVoltage(3856);
+    if (result == false) {
+        while (1) {
+            Serial.println("PMU is not online...");
+            delay(50);
+        }
+    }
+    // Set the charging target voltage, Range:3840 ~ 4608mV ,step:16 mV
+    PMU.setChargeTargetVoltage(3856);
 
-    // // Set the precharge current , Range: 64mA ~ 1024mA ,step:64mA
-    // PMU.setPrechargeCurr(64);
+    // Set the precharge current , Range: 64mA ~ 1024mA ,step:64mA
+    PMU.setPrechargeCurr(64);
 
-    // // Set the charging current , Range:0~5056mA ,step:64mA
-    // PMU.setChargerConstantCurr(320);
+    // Set the charging current , Range:0~5056mA ,step:64mA
+    PMU.setChargerConstantCurr(320);
 
-    // // To obtain voltage data, the ADC must be enabled first
-    // PMU.enableADCMeasure();
+    // To obtain voltage data, the ADC must be enabled first
+    PMU.enableADCMeasure();
     
     lora_init();
     
@@ -76,31 +76,31 @@ void loop(void)
     lv_timer_handler();
 
     // SY6970 When VBUS is input, the battery voltage detection will not take effect
-    // if (millis() > cycleInterval) {
+    if (millis() > cycleInterval) {
 
-    //     Serial.println("Sats        VBUS    VBAT   SYS    VbusStatus      String   ChargeStatus     String      TargetVoltage       ChargeCurrent       Precharge       NTCStatus           String");
-    //     Serial.println("            (mV)    (mV)   (mV)   (HEX)                         (HEX)                    (mV)                 (mA)                   (mA)           (HEX)           ");
-    //     Serial.println("--------------------------------------------------------------------------------------------------------------------------------");
-    //     Serial.print(PMU.isVbusIn() ? "Connected" : "Disconnect"); Serial.print("\t");
-    //     Serial.print(PMU.getVbusVoltage()); Serial.print("\t");
-    //     Serial.print(PMU.getBattVoltage()); Serial.print("\t");
-    //     Serial.print(PMU.getSystemVoltage()); Serial.print("\t");
-    //     Serial.print("0x");
-    //     Serial.print(PMU.getBusStatus(), HEX); Serial.print("\t");
-    //     Serial.print(PMU.getBusStatusString()); Serial.print("\t");
-    //     Serial.print("0x");
-    //     Serial.print(PMU.chargeStatus(), HEX); Serial.print("\t");
-    //     Serial.print(PMU.getChargeStatusString()); Serial.print("\t");
+        Serial.println("Sats        VBUS    VBAT   SYS    VbusStatus      String   ChargeStatus     String      TargetVoltage       ChargeCurrent       Precharge       NTCStatus           String");
+        Serial.println("            (mV)    (mV)   (mV)   (HEX)                         (HEX)                    (mV)                 (mA)                   (mA)           (HEX)           ");
+        Serial.println("--------------------------------------------------------------------------------------------------------------------------------");
+        Serial.print(PMU.isVbusIn() ? "Connected" : "Disconnect"); Serial.print("\t");
+        Serial.print(PMU.getVbusVoltage()); Serial.print("\t");
+        Serial.print(PMU.getBattVoltage()); Serial.print("\t");
+        Serial.print(PMU.getSystemVoltage()); Serial.print("\t");
+        Serial.print("0x");
+        Serial.print(PMU.getBusStatus(), HEX); Serial.print("\t");
+        Serial.print(PMU.getBusStatusString()); Serial.print("\t");
+        Serial.print("0x");
+        Serial.print(PMU.chargeStatus(), HEX); Serial.print("\t");
+        Serial.print(PMU.getChargeStatusString()); Serial.print("\t");
 
-    //     Serial.print(PMU.getChargeTargetVoltage()); Serial.print("\t");
-    //     Serial.print(PMU.getChargerConstantCurr()); Serial.print("\t");
-    //     Serial.print(PMU.getPrechargeCurr()); Serial.print("\t");
-    //     Serial.print(PMU.getNTCStatus()); Serial.print("\t");
-    //     Serial.print(PMU.getNTCStatusString()); Serial.print("\t");
+        Serial.print(PMU.getChargeTargetVoltage()); Serial.print("\t");
+        Serial.print(PMU.getChargerConstantCurr()); Serial.print("\t");
+        Serial.print(PMU.getPrechargeCurr()); Serial.print("\t");
+        Serial.print(PMU.getNTCStatus()); Serial.print("\t");
+        Serial.print(PMU.getNTCStatusString()); Serial.print("\t");
 
 
-    //     Serial.println();
-    //     Serial.println();
-    //     cycleInterval = millis() + 1000;
-    // }
+        Serial.println();
+        Serial.println();
+        cycleInterval = millis() + 1000;
+    }
 }

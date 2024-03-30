@@ -1,0 +1,38 @@
+###########################################
+# Syntax Coloring Map For BQ25896-library
+###########################################
+
+###########################################
+# Datatypes			(KEYWORD1)
+###########################################
+
+BQ25896				KEYWORD1
+
+###########################################
+# Methods and Functions		(KEYWORD2)
+###########################################
+		
+properties				KEYWORD2
+getVBUS				    KEYWORD2
+getVSYS           KEYWORD2
+getVBAT				    KEYWORD2
+getICHG				    KEYWORD2
+getTSPCT				      KEYWORD2
+getTemperature				KEYWORD2
+getCHG_STATUS				KEYWORD2
+getVBUS_STATUS				KEYWORD2
+getVSYS_STATUS				KEYWORD2
+getTemp_Rank				KEYWORD2
+getCHG_Fault_STATUS				KEYWORD2
+getFast_Charge_Current_Limit				KEYWORD2
+getInput_Current_Limit				KEYWORD2
+getPreCharge_Current_Limit				KEYWORD2
+###########################################
+# Constants			(LITERAL1)
+###########################################
+
+TS_RANK				LITERAL1
+CHG_FAULT				LITERAL1
+VBUS_STAT				LITERAL1
+CHG_STAT				LITERAL1
+VSYS_STAT       LITERAL1

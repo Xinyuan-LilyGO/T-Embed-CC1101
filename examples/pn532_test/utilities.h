@@ -6,28 +6,8 @@
 #define WS2812_NUM_LEDS 8
 #define WS2812_DATA_PIN 14
 
-// IR
-#define BOARD_IR_EN 2
-#define BOARD_IR_RX 1
-
-// MIC
-#define BOARD_MIC_DATA 42
-#define BOARD_MIC_CLK  39
-
 // --------- DISPLAY ---------
 // About LCD definition in the file: lib/TFT_eSPI/User_Setups/Setup214_LilyGo_T_Embed_PN532.h
-// #define ST7789_DRIVER     // Configure all registers
-// #define TFT_WIDTH  170
-// #define TFT_HEIGHT 320
-
-// #define TFT_BL     21   // LED back-light
-// #define TFT_MISO   -1   
-// #define TFT_MOSI   9
-// #define TFT_SCLK   11
-// #define TFT_CS     41 
-// #define TFT_DC     10
-// #define TFT_RST    40 // Connect reset to ensure display initialises
-
 
 // --------- ENCODER ---------
 #define ENCODER_INA 4
@@ -43,6 +23,7 @@
 #define BOARD_I2C_ADDR_2 0x55  // PMU
 #define BOARD_I2C_ADDR_3 0x6b  // 
 
+// PN532
 #define BOARD_PN532_SCL     BOARD_I2C_SCL
 #define BOARD_PN532_SDA     BOARD_I2C_SDA
 #define BOARD_PN532_RF_REST 45
