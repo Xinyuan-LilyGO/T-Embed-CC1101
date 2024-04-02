@@ -20,6 +20,7 @@
  *      TYPEDEFS
  **********************/
 extern TFT_eSPI tft;
+extern SemaphoreHandle_t radioLock;
 
 /**********************
  * GLOBAL PROTOTYPES

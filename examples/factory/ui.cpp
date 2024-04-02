@@ -2,7 +2,11 @@
 #include "ui.h"
 int display_rotation = 3;
 
-//************************************[ screen 0 ]******************************************
+/**
+ * screen 0: 
+*/
+
+//************************************[ screen 0 ]****************************************** menu
 #if 1
 lv_obj_t *item_cont;
 lv_obj_t *menu_cont;
@@ -10,7 +14,7 @@ lv_obj_t *menu_icon;
 lv_obj_t *menu_icon_lab;
 
 int fouce_item = 0;
-const char *name_buf[] = { "Battery", "WS2812", "Setting", "WiFi",  "Device",
+const char *name_buf[] = { "Lora", "WS2812", "Setting", "WiFi",  "Device",
                            "Rotation" };
 
 void entry0_anim(void);
@@ -26,18 +30,20 @@ static void scr0_btn_event_cb(lv_event_t * e)
         switch (fouce_item)
         {
             case 0: switch_scr0_anim(SCREEN2_ID); break; // name_buf[0]: Battery
-            case 1: switch_scr0_anim(SCREEN1_ID); ws2812_effect_task(); break; // name_buf[1]: WS2812
-            case 2: switch_scr0_anim(SCREEN2_ID); break;
-            case 3: switch_scr0_anim(SCREEN2_ID); break;
-            case 4: switch_scr0_anim(SCREEN2_ID); break;
+            case 1: switch_scr0_anim(SCREEN1_ID); break; // name_buf[1]: WS2812
+            case 2: switch_scr0_anim(SCREEN3_ID); break;
+            case 3: switch_scr0_anim(SCREEN3_ID); break;
+            case 4: switch_scr0_anim(SCREEN3_ID); break;
             case 5:
-                if(display_rotation == 3){
-                    tft.setRotation(1);
-                    display_rotation = 1;
-                } else if(display_rotation == 1){
-                    tft.setRotation(3);
-                    display_rotation = 3;
-                }
+                // if(display_rotation == 3){
+                //     tft.fillScreen(TFT_BLACK);
+                //     tft.setRotation(1);
+                //     display_rotation = 1;
+                // } else if(display_rotation == 1){
+                //     tft.fillScreen(TFT_BLACK);
+                //     tft.setRotation(3);
+                //     display_rotation = 3;
+                // }
                 break;
             default:
                 break;
@@ -248,7 +254,7 @@ scr_lifecycle_t screen0 = {
     .destroy = destroy0,
 };
 #endif
-//************************************[ screen 1 ]******************************************
+//************************************[ screen 1 ]****************************************** ws2812
 #if 1
 lv_obj_t *scr1_cont;
 lv_obj_t *light_acr;
@@ -330,6 +336,11 @@ static void ws2812_mode_event_cb(lv_event_t * e)
                 break;
         }
         ws2812_set_mode(mode);
+        if(mode == 0){
+            vTaskSuspend(ws2812_handle);
+        } else {
+            vTaskResume(ws2812_handle);
+        }
     }
 }
 
@@ -465,7 +476,9 @@ void create1(lv_obj_t *parent)
     lv_obj_align(label2, LV_ALIGN_LEFT_MID, 0, 0);
     lv_label_set_text(label2, LV_SYMBOL_LEFT " WS2812");
 }
-void entry1(void) {entry1_anim(scr1_cont);}
+void entry1(void) {
+    entry1_anim(scr1_cont);
+}
 void exit1(void) {}
 void destroy1(void) {}
 
@@ -476,9 +489,8 @@ scr_lifecycle_t screen1 = {
     .destroy = destroy1,
 };
 #endif
-//************************************[ screen 2 ]******************************************
+//************************************[ screen 2 ]****************************************** lora
 #if 1
-
 lv_obj_t *scr2_cont;
 
 void entry2_anim(lv_obj_t *obj);
@@ -527,10 +539,15 @@ void create2(lv_obj_t *parent){
 
     lv_obj_t *label2 = lv_label_create(btn);
     lv_obj_align(label2, LV_ALIGN_LEFT_MID, 0, 0);
-    lv_label_set_text(label2, LV_SYMBOL_LEFT " LORA");
+    lv_label_set_text(label2, LV_SYMBOL_LEFT " Lora");
 }
-void entry2(void) {entry2_anim(scr2_cont);}
-void exit2(void) {}
+void entry2(void) {
+    entry2_anim(scr2_cont);
+    vTaskResume(lora_handle);
+}
+void exit2(void) {
+    vTaskSuspend(lora_handle);
+}
 void destroy2(void) {
 }
 scr_lifecycle_t screen2 = {
@@ -540,10 +557,58 @@ scr_lifecycle_t screen2 = {
     .destroy = destroy2,
 };
 #endif
-//************************************[ screen 3 ]******************************************
+//************************************[ screen 3 ]****************************************** nfc
 #if 1
-void create3(lv_obj_t *parent){}
-void entry3(void) {}
+lv_obj_t *scr3_cont;
+
+void entry3_anim(lv_obj_t *obj)
+{
+    entry1_anim(obj);
+}
+
+void exit3_anim(int user_data, lv_obj_t *obj)
+{
+    exit1_anim(user_data, obj);
+}
+
+static void scr3_btn_event_cb(lv_event_t * e)
+{
+    if(e->code == LV_EVENT_CLICKED){
+        // scr_mgr_set_anim(LV_SCR_LOAD_ANIM_FADE_OUT, -1, -1);
+        // scr_mgr_switch(SCREEN0_ID, false);
+        exit3_anim(SCREEN0_ID, scr3_cont);
+    }
+}
+
+void create3(lv_obj_t *parent){
+    scr3_cont = lv_obj_create(parent);
+    lv_obj_set_size(scr3_cont, lv_pct(100), lv_pct(100));
+    lv_obj_set_style_bg_color(scr3_cont, lv_color_hex(COLOR_BG), LV_PART_MAIN);
+    lv_obj_set_scrollbar_mode(scr3_cont, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_set_style_border_width(scr3_cont, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(scr3_cont, 0, LV_PART_MAIN);
+
+    lv_obj_t * btn = lv_btn_create(scr3_cont);
+    // lv_group_add_obj(lv_group_get_default(), btn);
+    lv_obj_set_style_pad_all(btn, 0, 0);
+    lv_obj_set_height(btn, 30);
+    lv_obj_align(btn, LV_ALIGN_TOP_LEFT, 8, 8);
+    lv_obj_set_style_border_width(btn, 0, LV_PART_MAIN);
+    lv_obj_set_style_shadow_width(btn, 0, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(btn, lv_color_hex(COLOR_BG), LV_PART_MAIN);
+    lv_obj_remove_style(btn, NULL, LV_STATE_FOCUS_KEY);
+    lv_obj_set_style_outline_pad(btn, 4, LV_STATE_FOCUS_KEY);
+    lv_obj_set_style_outline_width(btn, 2, LV_STATE_FOCUS_KEY);
+    lv_obj_set_style_outline_color(btn, lv_color_hex(COLOR_FOCUS_ON), LV_STATE_FOCUS_KEY);
+    lv_obj_add_event_cb(btn, scr3_btn_event_cb, LV_EVENT_CLICKED, NULL);
+
+    lv_obj_t *label2 = lv_label_create(btn);
+    lv_obj_align(label2, LV_ALIGN_LEFT_MID, 0, 0);
+    lv_label_set_text(label2, LV_SYMBOL_LEFT " nfc");
+}
+void entry3(void) {
+    entry3_anim(scr3_cont);
+}
 void exit3(void) {}
 void destroy3(void) {
 }

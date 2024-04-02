@@ -19,13 +19,16 @@ void ws2812_set_color(CRGB c)
     for(int i = 0; i < WS2812_NUM_LEDS; i++){
         leds[i] = c;
     }
-    // FastLED.show();
+    if(ws2812_effs_mode == 0)
+        FastLED.show();
 }
 
 void ws2812_set_light(uint8_t light)
 {
     FastLED.setBrightness(light);
-    // FastLED.show();
+
+    if(ws2812_effs_mode == 0)
+        FastLED.show();
 }
 
 void ws2812_set_mode(int m)
@@ -103,14 +106,5 @@ void ws2812_task(void *param)
                 break;
         }
         vTaskDelay(pdMS_TO_TICKS(10));
-    }
-}
-
-volatile bool ws2812_task_flag = false;
-void ws2812_effect_task(void)
-{
-    if(!ws2812_task_flag){
-        ws2812_task_flag = true;
-        xTaskCreatePinnedToCore(ws2812_task, "ws2812_task", 1024 * 2, NULL, 0, NULL, 0);
     }
 }

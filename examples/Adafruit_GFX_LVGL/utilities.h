@@ -25,7 +25,7 @@
 // #define TFT_MOSI   9
 // #define TFT_SCLK   11
 // #define TFT_CS     41 
-// #define TFT_DC     16
+// #define TFT_DC     10
 // #define TFT_RST    40 // Connect reset to ensure display initialises
 
 #define DISPLAY_WIDTH  170
@@ -36,7 +36,7 @@
 #define DISPLAY_MISO -1
 #define DISPLAY_MOSI  9
 #define DISPLAY_SCLK 11
-#define DISPLAY_DC   16
+#define DISPLAY_DC   10
 #define DISPLAY_RST  40
 
 // --------- ENCODER ---------
@@ -53,7 +53,6 @@
 #define BOARD_I2C_ADDR_2 0x55  // PMU
 #define BOARD_I2C_ADDR_3 0x6b  // 
 
-// NFC
 #define BOARD_PN532_SCL     BOARD_I2C_SCL
 #define BOARD_PN532_SDA     BOARD_I2C_SDA
 #define BOARD_PN532_RF_REST 45

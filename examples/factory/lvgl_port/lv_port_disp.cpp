@@ -60,9 +60,7 @@ void lv_port_disp_init(void)
     static lv_color_t *buf2 = (lv_color_t *)ps_malloc((width * height) * sizeof(lv_color_t));
     assert(buf2);
 
-    // static lv_color_t buf1[170*320];
-    // static lv_color_t buf2[170*320];
-    lv_disp_draw_buf_init(&draw_buf_dsc, buf1, buf2, width * height);
+    lv_disp_draw_buf_init(&draw_buf_dsc, buf1, NULL, width * height);
 
     /*-----------------------------------
      * Register the display in LVGL
@@ -124,13 +122,15 @@ void disp_disable_update(void)
 static void disp_flush(lv_disp_drv_t * disp_drv, const lv_area_t * area, lv_color_t * color_p)
 {
     if(disp_flush_enabled) {
-        uint32_t w = (area->x2 - area->x1 + 1);
-        uint32_t h = (area->y2 - area->y1 + 1);
-        tft.setAddrWindow(area->x1, area->y1, w, h);
-        tft.pushColors((uint16_t *)&color_p->full, w * h);
-    }
+        if(xSemaphoreTake(radioLock, portMAX_DELAY) == pdTRUE){
+            uint32_t w = (area->x2 - area->x1 + 1);
+            uint32_t h = (area->y2 - area->y1 + 1);
 
-    /*IMPORTANT!!!
-     *Inform the graphics library that you are ready with the flushing*/
-    lv_disp_flush_ready(disp_drv);
+            tft.setAddrWindow( area->x1, area->y1, w, h );
+            tft.pushColors( ( uint16_t * )&color_p->full, w * h, true );
+
+            lv_disp_flush_ready(disp_drv);
+            xSemaphoreGive(radioLock);
+        }
+    }
 }

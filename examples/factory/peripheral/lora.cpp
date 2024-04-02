@@ -1,33 +1,49 @@
 
 #include "peripheral.h"
+CC1101 radio = new Module(BOARD_LORA_CS, BOARD_LORA_IO0, -1, BOARD_LORA_IO2);
 
-CC1101 radio = new Module(BOARD_LORA_CS, BOARD_LORA_IO0, RADIOLIB_NC, BOARD_LORA_IO2, SPI);
+// recv
+static volatile bool receivedFlag = false;
+
+static void recvSetFlag(void) {
+  // we got a packet, set the flag
+  receivedFlag = true;
+}
+
+// send
+static int transmissionState = RADIOLIB_ERR_NONE;
+static volatile bool transmittedFlag = false;
+
+static void sendSetFlag(void) {
+  // we sent a packet, set the flag
+  transmittedFlag = true;
+}
+
 
 void lora_init(void)
 {
-    // pinMode(BOARD_LORA_SW1, OUTPUT);
-    // pinMode(BOARD_LORA_SW0, OUTPUT);
+    float lora_freq = 0;
 
+    //Set antenna frequency settings
+    pinMode(BOARD_LORA_SW1, OUTPUT);
+    pinMode(BOARD_LORA_SW0, OUTPUT);
     // SW1:1  SW0:0 --- 315MHz
-    // digitalWrite(BOARD_LORA_SW1, HIGH);
-    // digitalWrite(BOARD_LORA_SW0, LOW);
     // SW1:0  SW0:1 --- 868/915MHz
-    // digitalWrite(BOARD_LORA_SW1, LOW);
-    // digitalWrite(BOARD_LORA_SW0, HIGH);
     // SW1:1  SW0:1 --- 434MHz
-    // digitalWrite(BOARD_LORA_SW1, HIGH);
-    // digitalWrite(BOARD_LORA_SW0, HIGH);
+    digitalWrite(BOARD_LORA_SW1, HIGH);
+    digitalWrite(BOARD_LORA_SW0, LOW);
+    lora_freq = 315.0;
 
-    // initialize CC1101 with default settings
+    // 
+    SPI.end();
+    SPI.begin(BOARD_SPI_SCK, BOARD_SPI_MISO, BOARD_SPI_MOSI); 
+
+    // initialize CC1101
     Serial.print(F("[CC1101] Initializing ... "));
-    // carrier frequency:                   868.0 MHz
-    // bit rate:                            32.0 kbps
-    // frequency deviation:                 60.0 kHz
-    // Rx bandwidth:                        250.0 kHz
-    // output power:                        7 dBm
-    // preamble length:                     32 bits
-    // int state = radio.begin(868.0, 32.0, 60.0, 250.0, 7, 32);
-    int state = radio.begin();
+    Serial.print(lora_freq);
+    Serial.println(" MHz ");
+
+    int state = radio.begin(lora_freq);
     if (state == RADIOLIB_ERR_NONE) {
         Serial.println(F("success!"));
     } else {
@@ -36,67 +52,78 @@ void lora_init(void)
         while (true);
     }
 
-    state = radio.setNodeAddress(0x01, 1);
-    if (state == RADIOLIB_ERR_NONE) {
-        Serial.println(F("success!"));
-    } else {
-        Serial.print(F("failed, code "));
-        Serial.println(state);
-        while (true);
+    // set the function that will be called
+    // when packet transmission is finished
+    radio.setPacketSentAction(sendSetFlag);
+
+    // start transmitting the first packet
+    // Serial.print(F("[CC1101] Sending first packet ... "));
+
+    // // you can transmit C-string or Arduino string up to
+    // // 64 characters long
+    // transmissionState = radio.startTransmit("Hello World!");
+}
+
+void lora_send(const char *str)
+{
+    // check if the previous transmission finished
+    if(xSemaphoreTake(radioLock, portMAX_DELAY) != pdTRUE){
+        return;
     }
+
+    if(transmittedFlag) {
+        // reset flag
+        transmittedFlag = false;
+
+        if (transmissionState == RADIOLIB_ERR_NONE) {
+            // packet was successfully sent
+            Serial.println(F("transmission finished!"));
+
+            // NOTE: when using interrupt-driven transmit method,
+            //       it is not possible to automatically measure
+            //       transmission data rate using getDataRate()
+        } else {
+            Serial.print(F("failed, code "));
+            Serial.println(transmissionState);
+        }
+
+        // clean up after transmission is finished
+        // this will ensure transmitter is disabled,
+        // RF switch is powered down etc.
+        radio.finishTransmit();
+
+        // wait a second before transmitting again
+
+        // send another one
+        Serial.print(F("[CC1101] Sending another packet ... "));
+
+        // you can transmit C-string or Arduino string up to
+        // 256 characters long
+        transmissionState = radio.startTransmit(str);
+        if (transmissionState == RADIOLIB_ERR_NONE) {
+            // packet was successfully sent
+            Serial.println(F("transmission finished!"));
+
+            // NOTE: when using interrupt-driven transmit method,
+            //       it is not possible to automatically measure
+            //       transmission data rate using getDataRate()
+        } else {
+            Serial.print(F("failed, code "));
+            Serial.println(transmissionState);
+        }
+    }
+    xSemaphoreGive(radioLock);
 }
 
 void lora_task(void *param)
 {
-    Serial.print(F("[CC1101] Waiting for incoming transmission ... "));
-
-    // you can receive data as an Arduino String
-    String str;
-    int state = radio.receive(str);
-
-    // you can also receive data as byte array
-    /*
-        byte byteArr[8];
-        int state = radio.receive(byteArr, 8);
-    */
-
-    if (state == RADIOLIB_ERR_NONE) {
-        // packet was successfully received
-        Serial.println(F("success!"));
-
-        // print the data of the packet
-        Serial.print(F("[CC1101] Data:\t\t"));
+    int count = 0;
+    while (1)
+    {
+        String str = "Hello World! #" + String(count++);
         Serial.println(str);
-
-        // print RSSI (Received Signal Strength Indicator)
-        // of the last received packet
-        Serial.print(F("[CC1101] RSSI:\t\t"));
-        Serial.print(radio.getRSSI());
-        Serial.println(F(" dBm"));
-
-        // print LQI (Link Quality Indicator)
-        // of the last received packet, lower is better
-        Serial.print(F("[CC1101] LQI:\t\t"));
-        Serial.println(radio.getLQI());
-
-    } else if (state == RADIOLIB_ERR_CRC_MISMATCH) {
-        // packet was received, but is malformed
-        Serial.println(F("CRC error!"));
-
-    } else {
-        // some other error occurred
-        Serial.print(F("failed, code "));
-        Serial.println(state);
-
-    }
-}
-
-volatile bool lora_task_flag = false;
-void lora_task_start(void)
-{
-    if(!lora_task_flag){
-        lora_task_flag = true;
-        xTaskCreatePinnedToCore(lora_task, "lora_task", 1024 * 2, NULL, 0, NULL, 0);
+        lora_send(str.c_str());
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
 
