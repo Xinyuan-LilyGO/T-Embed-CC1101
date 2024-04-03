@@ -2,7 +2,7 @@
 #include <RadioLib.h>
 #include "utilities.h"
 
-// #define TEST_BOARD
+#define TEST_BOARD
 #define BOARD_TEST_CS   41
 #define BOARD_TEST_SCK  42
 #define BOARD_TEST_MOSI 46

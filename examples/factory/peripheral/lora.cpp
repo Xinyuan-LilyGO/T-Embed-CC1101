@@ -1,6 +1,12 @@
 
 #include "peripheral.h"
+
+
 CC1101 radio = new Module(BOARD_LORA_CS, BOARD_LORA_IO0, -1, BOARD_LORA_IO2);
+int lora_mode = LORA_MODE_SEND;
+int lora_recv_success = 0;
+String lora_recv_str;
+
 
 // recv
 static volatile bool receivedFlag = false;
@@ -52,16 +58,53 @@ void lora_init(void)
         while (true);
     }
 
-    // set the function that will be called
-    // when packet transmission is finished
-    radio.setPacketSentAction(sendSetFlag);
+    
+    if(lora_mode == LORA_MODE_SEND){     // send
+        radio.setPacketSentAction(sendSetFlag);
+         Serial.print(F("[CC1101] Sending first packet ... "));
 
-    // start transmitting the first packet
-    // Serial.print(F("[CC1101] Sending first packet ... "));
+        // you can transmit C-string or Arduino string up to
+        // 64 characters long
+        transmissionState = radio.startTransmit("Hello World!");
+    } else if(lora_mode == LORA_MODE_RECV) { // recv
+        
+        radio.setPacketReceivedAction(recvSetFlag);
+        // start listening for packets
+        Serial.print(F("[CC1101] Starting to listen ... "));
+        state = radio.startReceive();
+        if (state == RADIOLIB_ERR_NONE) {
+            Serial.println(F("success!"));
+        } else {
+            Serial.print(F("failed, code "));
+            Serial.println(state);
+            while (true);
+        }
+    }
+}
 
-    // // you can transmit C-string or Arduino string up to
-    // // 64 characters long
-    // transmissionState = radio.startTransmit("Hello World!");
+void lora_mode_sw(int m)
+{
+    if(m == LORA_MODE_RECV) {
+        radio.setPacketReceivedAction(recvSetFlag);
+        // start listening for packets
+        Serial.print(F("[CC1101] Starting to listen ... "));
+        int state = radio.startReceive();
+        if (state == RADIOLIB_ERR_NONE) {
+            Serial.println(F("success!"));
+        } else {
+            Serial.print(F("failed, code "));
+            Serial.println(state);
+            while (true);
+        }
+        } else if(m == LORA_MODE_SEND) {
+        radio.setPacketSentAction(sendSetFlag);
+    }
+    lora_mode = m;
+}
+
+int lora_get_mode(void)
+{
+    return lora_mode;
 }
 
 void lora_send(const char *str)
@@ -115,15 +158,70 @@ void lora_send(const char *str)
     xSemaphoreGive(radioLock);
 }
 
+void lora_recv(void)
+{
+    // check if the flag is set
+    if(xSemaphoreTake(radioLock, portMAX_DELAY) != pdTRUE){
+        return;
+    }
+
+    if(receivedFlag) {
+        // reset flag
+        receivedFlag = false;
+
+        // you can read received data as an Arduino String
+        int state = radio.readData(lora_recv_str);
+
+        if (state == RADIOLIB_ERR_NONE) {
+            lora_recv_success = 1;
+        // packet was successfully received
+        Serial.println(F("[CC1101] Received packet!"));
+
+        // print data of the packet
+        Serial.print(F("[CC1101] Data:\t\t"));
+        Serial.println(lora_recv_str);
+
+        // print RSSI (Received Signal Strength Indicator)
+        // of the last received packet
+        Serial.print(F("[CC1101] RSSI:\t\t"));
+        Serial.print(radio.getRSSI());
+        Serial.println(F(" dBm"));
+
+        // print LQI (Link Quality Indicator)
+        // of the last received packet, lower is better
+        Serial.print(F("[CC1101] LQI:\t\t"));
+        Serial.println(radio.getLQI());
+
+        } else if (state == RADIOLIB_ERR_CRC_MISMATCH) {
+        // packet was received, but is malformed
+        Serial.println(F("CRC error!"));
+
+        } else {
+        // some other error occurred
+        Serial.print(F("failed, code "));
+        Serial.println(state);
+
+        }
+
+        // put module back to listen mode
+        radio.startReceive();
+    }
+    xSemaphoreGive(radioLock);
+}
+
 void lora_task(void *param)
 {
     int count = 0;
     vTaskSuspend(lora_handle);
     while (1)
     {
-        String str = "Hello World! #" + String(count++);
-        Serial.println(str);
+        if(lora_mode == LORA_MODE_RECV) {
+            lora_recv();
+        }
+        // String str = "Hello World! #" + String(count++);
+        // Serial.println(str);
         // lora_send(str.c_str());
+        // lora_recv();
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }

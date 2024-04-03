@@ -82,12 +82,12 @@ void multi_thread_create(void)
 void setup(void)
 {
     Serial.begin(115200);
-    int start_delay = 3;
-    while (start_delay) {
-        Serial.print(start_delay);
-        delay(1000);    
-        start_delay--;
-    }
+    // int start_delay = 3;
+    // while (start_delay) {
+    //     Serial.print(start_delay);
+    //     delay(1000);    
+    //     start_delay--;
+    // }
 
     Serial.print("setup() running core ID: ");
     Serial.println(xPortGetCoreID());

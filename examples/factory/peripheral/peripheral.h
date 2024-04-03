@@ -22,18 +22,20 @@ void nfc_init(void);
 uint32_t nfc_get_ver_data(void);
 void nfc_task(void *param);
 
-
-
 /**------------------------------ LORA -----------------------------------**/
 // CC1101
 #include <RadioLib.h>
+#define LORA_MODE_SEND 1
+#define LORA_MODE_RECV 2
+
 extern TaskHandle_t lora_handle;
 extern SemaphoreHandle_t radioLock;
 
 void lora_init(void);
+void lora_mode_sw(int m);
+int lora_get_mode(void);
 void lora_send(const char *str);
 void lora_task(void *param);
-
 
 /**---------------------------- BATTERY ----------------------------------**/
 extern TaskHandle_t battery_handle;
