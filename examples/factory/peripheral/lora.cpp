@@ -118,11 +118,12 @@ void lora_send(const char *str)
 void lora_task(void *param)
 {
     int count = 0;
+    vTaskSuspend(lora_handle);
     while (1)
     {
         String str = "Hello World! #" + String(count++);
         Serial.println(str);
-        lora_send(str.c_str());
+        // lora_send(str.c_str());
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }

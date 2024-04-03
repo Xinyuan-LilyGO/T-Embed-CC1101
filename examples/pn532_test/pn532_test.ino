@@ -5,7 +5,7 @@
 #include "utilities.h"
 
 
-#define PN532_TSET
+// #define PN532_TSET
 #define PN532_TSET_IQR  7
 #define PN532_TSET_REST 8
 #define PN532_TSET_SCL  10
@@ -82,7 +82,7 @@ void setup() {
 }
 
 void loop() {
-   uint8_t success;
+    uint8_t success;
     uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };  // Buffer to store the returned UID
     uint8_t uidLength;                        // Length of the UID (4 or 7 bytes depending on ISO14443A card type)
 

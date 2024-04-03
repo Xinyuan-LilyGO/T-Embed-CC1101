@@ -71,6 +71,8 @@ void ws2812_task(void *param)
     int8_t last_led = 0;
     EventBits_t bit;
     int encoder_pos = 0;
+
+    vTaskSuspend(ws2812_handle);
     
     while(1){
         uint8_t time = millis() >> 4;

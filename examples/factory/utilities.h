@@ -51,7 +51,7 @@
 // IIC addr
 #define BOARD_I2C_ADDR_1 0x24  // PN532
 #define BOARD_I2C_ADDR_2 0x55  // PMU
-#define BOARD_I2C_ADDR_3 0x6b  // 
+#define BOARD_I2C_ADDR_3 0x6b  // BQ25896
 
 // NFC
 #define BOARD_PN532_SCL     BOARD_I2C_SCL

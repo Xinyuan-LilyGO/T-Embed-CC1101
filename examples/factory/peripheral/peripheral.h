@@ -17,7 +17,10 @@ void ws2812_task(void *param);
 #include <Wire.h>
 #include <SPI.h>
 #include <Adafruit_PN532.h>
-void lora_task(void *param);
+extern TaskHandle_t nfc_handle;
+void nfc_init(void);
+uint32_t nfc_get_ver_data(void);
+void nfc_task(void *param);
 
 
 
@@ -32,6 +35,6 @@ void lora_send(const char *str);
 void lora_task(void *param);
 
 
-/**------------------------------ LVGL -----------------------------------**/
-extern TaskHandle_t ui_handle;
+/**---------------------------- BATTERY ----------------------------------**/
+extern TaskHandle_t battery_handle;
 
