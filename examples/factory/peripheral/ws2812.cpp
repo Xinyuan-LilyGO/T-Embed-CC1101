@@ -9,7 +9,7 @@ CRGB leds[WS2812_NUM_LEDS];
 void ws2812_init(void)
 {
     FastLED.addLeds<WS2812, WS2812_DATA_PIN, GRB>(leds, WS2812_NUM_LEDS);
-    FastLED.setBrightness(10);
+    FastLED.setBrightness(WS2812_DEFAULT_LIGHT);
     ws2812_set_color(CRGB::Red);
     FastLED.show();
 }
@@ -26,9 +26,7 @@ void ws2812_set_color(CRGB c)
 void ws2812_set_light(uint8_t light)
 {
     FastLED.setBrightness(light);
-
-    if(ws2812_effs_mode == 0)
-        FastLED.show();
+    FastLED.show();
 }
 
 void ws2812_set_mode(int m)

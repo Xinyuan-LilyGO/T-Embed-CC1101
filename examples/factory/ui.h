@@ -11,6 +11,19 @@
 #define DISPALY_WIDTH  TFT_HEIGHT
 #define DISPALY_HEIGHT TFT_WIDTH
 
+// font
+LV_FONT_DECLARE(Font_Mono_Bold_14);
+LV_FONT_DECLARE(Font_Mono_Bold_16);
+LV_FONT_DECLARE(Font_Mono_Bold_18);
+LV_FONT_DECLARE(Font_Mono_Bold_20);
+LV_FONT_DECLARE(Font_Mono_Light_14);
+
+
+#define FONT_MONO_BOLD  &Font_Mono_Bold_14
+#define FONT_MONO_LIGHT &Font_Mono_Light_14
+#define FONT_MENU_ITEM  &Font_Mono_Bold_14
+
+// color
 #define COLOR_BG       0x161823   // 漆黑色  0x161823
 #define COLOR_FOCUS_ON 0x91B821   // 绿茶色
 #define COLOR_TEXT     0xffffff   // 丁香淡紫 0xE9D4DF

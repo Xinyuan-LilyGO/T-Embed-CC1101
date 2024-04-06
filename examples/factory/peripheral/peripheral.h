@@ -3,6 +3,7 @@
 
 /**----------------------------- WS2812 ----------------------------------**/
 #include <FastLED.h>
+#define WS2812_DEFAULT_LIGHT 0
 extern TaskHandle_t ws2812_handle;
 
 void ws2812_init(void);
@@ -38,5 +39,8 @@ void lora_send(const char *str);
 void lora_task(void *param);
 
 /**---------------------------- BATTERY ----------------------------------**/
-extern TaskHandle_t battery_handle;
+#include "BQ25896.h"
 
+extern TaskHandle_t battery_handle;
+extern BQ25896 battery_charging;
+void battery_task(void *param);

@@ -8,14 +8,23 @@ int display_rotation = 3;
 
 //************************************[ screen 0 ]****************************************** menu
 #if 1
+// 
+#define MENU_PROPORTION     (0.55)
+#define MENU_LAB_PROPORTION (1 - MENU_PROPORTION)
+
 lv_obj_t *item_cont;
 lv_obj_t *menu_cont;
 lv_obj_t *menu_icon;
 lv_obj_t *menu_icon_lab;
 
 int fouce_item = 0;
-const char *name_buf[] = { "Lora", "WS2812", "NFC", "Battery",  "Device",
-                           "Rotation" };
+const char *name_buf[] = { 
+    "<- Lora",
+    "<- WS2812", 
+    "<- NFC", 
+    "<- Battery", 
+    "<- Setting"
+};
 
 void entry0_anim(void);
 void switch_scr0_anim(int user_data);
@@ -29,22 +38,11 @@ static void scr0_btn_event_cb(lv_event_t * e)
         fouce_item = data;
         switch (fouce_item)
         {
-            case 0: switch_scr0_anim(SCREEN2_ID); break; // name_buf[0]: lora
-            case 1: switch_scr0_anim(SCREEN1_ID); break; // name_buf[1]: WS2812
-            case 2: switch_scr0_anim(SCREEN3_ID); break; // name_buf[1]: nfc
-            case 3: switch_scr0_anim(SCREEN4_ID); break;
+            case 0: switch_scr0_anim(SCREEN2_ID); break; // lora
+            case 1: switch_scr0_anim(SCREEN1_ID); break; // WS2812
+            case 2: switch_scr0_anim(SCREEN3_ID); break; // nfc
+            case 3: switch_scr0_anim(SCREEN5_ID); break; // setting
             case 4: switch_scr0_anim(SCREEN4_ID); break;
-            case 5:
-                if(display_rotation == 3){
-                    // tft.fillScreen(TFT_BLACK);
-                    tft.setRotation(1);
-                    display_rotation = 1;
-                } else if(display_rotation == 1){
-                    // tft.fillScreen(TFT_BLACK);
-                    tft.setRotation(3);
-                    display_rotation = 3;
-                }
-                break;
             default:
                 break;
         }
@@ -63,7 +61,7 @@ static void scr0_btn_event_cb(lv_event_t * e)
             default:
                 break;
         }
-        lv_label_set_text(menu_icon_lab, name_buf[data]);
+        lv_label_set_text(menu_icon_lab, ((char*)name_buf[data] + 3));
     }
 }
 
@@ -72,7 +70,7 @@ void entry0_anim(void)
     lv_anim_t a;
     lv_anim_init(&a);
     lv_anim_set_var(&a, item_cont);
-    lv_anim_set_values(&a, DISPALY_WIDTH*0.6, 0);
+    lv_anim_set_values(&a, DISPALY_WIDTH * MENU_PROPORTION, 0);
     lv_anim_set_time(&a, 400);
     lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
     lv_anim_set_exec_cb(&a, [](void * var, int32_t v){
@@ -86,7 +84,7 @@ void entry0_anim(void)
 
     lv_anim_set_time(&a, 400);
     lv_anim_set_var(&a, menu_cont);
-    lv_anim_set_values(&a, -DISPALY_WIDTH*0.4, 0);
+    lv_anim_set_values(&a, -DISPALY_WIDTH * MENU_LAB_PROPORTION, 0);
     lv_anim_set_exec_cb(&a, [](void * var, int32_t v){
         lv_obj_set_x((lv_obj_t *)var, v);
         lv_port_indev_enabled(false);
@@ -99,7 +97,7 @@ void switch_scr0_anim(int user_data)
     lv_anim_t a;
     lv_anim_init(&a);
     lv_anim_set_var(&a, item_cont);
-    lv_anim_set_values(&a, 0, DISPALY_WIDTH*0.6);
+    lv_anim_set_values(&a, 0, DISPALY_WIDTH * MENU_PROPORTION);
     lv_anim_set_time(&a, 400);
     lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
     lv_anim_set_exec_cb(&a, [](void * var, int32_t v){
@@ -115,7 +113,7 @@ void switch_scr0_anim(int user_data)
 
     lv_anim_set_time(&a, 400);
     lv_anim_set_var(&a, menu_cont);
-    lv_anim_set_values(&a, 0, -DISPALY_WIDTH*0.4);
+    lv_anim_set_values(&a, 0, -DISPALY_WIDTH * MENU_LAB_PROPORTION);
     lv_anim_set_exec_cb(&a, [](void * var, int32_t v){
         lv_obj_set_x((lv_obj_t *)var, v);
         lv_port_indev_enabled(false);
@@ -166,7 +164,7 @@ static void scroll_event_cb(lv_event_t * e)
 void create0(lv_obj_t *parent)
 {
     menu_cont = lv_obj_create(parent);
-    lv_obj_set_size(menu_cont, DISPALY_WIDTH*0.4, DISPALY_HEIGHT);
+    lv_obj_set_size(menu_cont, DISPALY_WIDTH * MENU_LAB_PROPORTION, DISPALY_HEIGHT);
     lv_obj_set_scrollbar_mode(menu_cont, LV_SCROLLBAR_MODE_OFF);
     lv_obj_set_align(menu_cont, LV_ALIGN_LEFT_MID);
     lv_obj_set_style_bg_color(menu_cont, lv_color_hex(COLOR_BG), LV_PART_MAIN);
@@ -179,14 +177,14 @@ void create0(lv_obj_t *parent)
     lv_obj_align(menu_icon, LV_ALIGN_CENTER, 5, 0);
     
     menu_icon_lab = lv_label_create(menu_cont);
-    lv_obj_set_width(menu_icon_lab, DISPALY_WIDTH*0.4);
+    lv_obj_set_width(menu_icon_lab, DISPALY_WIDTH * MENU_LAB_PROPORTION);
     lv_obj_set_style_text_align(menu_icon_lab, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
     lv_obj_set_style_text_color(menu_icon_lab, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
     // lv_label_set_text(menu_icon_lab, "battery");
     lv_obj_align_to(menu_icon_lab, menu_cont, LV_ALIGN_BOTTOM_MID, 5, -25);
     
     lv_obj_t *menu_lab = lv_label_create(menu_cont);
-    lv_obj_set_width(menu_lab, DISPALY_WIDTH*0.4);
+    lv_obj_set_width(menu_lab, DISPALY_WIDTH * MENU_LAB_PROPORTION);
     lv_obj_align(menu_lab, LV_ALIGN_TOP_MID, 5, 25);
     lv_obj_set_style_text_align(menu_lab, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
     // lv_obj_set_style_text_font(menu_lab, &lv_font_montserrat_26, LV_PART_MAIN);
@@ -195,7 +193,7 @@ void create0(lv_obj_t *parent)
 
     ///////////////////////////////////////////////////////
     item_cont = lv_obj_create(parent);
-    lv_obj_set_size(item_cont, DISPALY_WIDTH*0.6, DISPALY_HEIGHT);
+    lv_obj_set_size(item_cont, DISPALY_WIDTH * MENU_PROPORTION, DISPALY_HEIGHT);
     lv_obj_set_align(item_cont, LV_ALIGN_RIGHT_MID);
     lv_obj_set_flex_flow(item_cont, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_style_bg_color(item_cont, lv_color_hex(COLOR_BG), LV_PART_MAIN);
@@ -227,6 +225,7 @@ void create0(lv_obj_t *parent)
 
         lv_obj_t * label = lv_label_create(btn);
         lv_obj_set_style_text_color(label, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
+        lv_obj_set_style_text_font(label, FONT_MENU_ITEM, LV_PART_MAIN);
         lv_label_set_text(label, name_buf[i]);
     }
 
@@ -258,7 +257,7 @@ scr_lifecycle_t screen0 = {
 #if 1
 lv_obj_t *scr1_cont;
 lv_obj_t *light_acr;
-int ws2812_light = 10;
+int ws2812_light = WS2812_DEFAULT_LIGHT;
 lv_color_t ws2812_color ={.full = 0xF800};
 
 void entry1_anim(lv_obj_t *obj);
@@ -709,7 +708,7 @@ extern bool nfc_upd_falg;
 extern uint32_t cardid;
 extern uint8_t uid[];
 lv_obj_t *scr3_cont;
-lv_obj_t *list;
+lv_obj_t *nfc_list;
 lv_obj_t *nfc_led;
 lv_obj_t *nfc_ledlab;
 lv_timer_t *nfc_chk_timer = NULL;
@@ -750,10 +749,11 @@ void nfc_chk_timer_event(lv_timer_t *t)
             
             lv_snprintf(buf, 33, "%02d-UID-[%02X:%02X:%02X:%02X]-#%d", 
                 nfc_recode_cnt, uid[0], uid[1], uid[2], uid[3], cardid);
-            lv_obj_t *item = lv_list_add_btn(list, NULL, buf);
+            lv_obj_t *item = lv_list_add_btn(nfc_list, NULL, buf);
             lv_obj_set_style_bg_color(item, lv_color_hex(COLOR_FOCUS_ON), LV_STATE_FOCUS_KEY);
             lv_obj_set_style_bg_color(item, lv_color_hex(COLOR_BG), LV_PART_MAIN);
             lv_obj_set_style_text_color(item, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
+            lv_obj_set_style_text_font(item, FONT_MONO_BOLD, LV_PART_MAIN);
         }
     } 
     else {
@@ -791,7 +791,8 @@ void create3(lv_obj_t *parent){
 
     lv_obj_t *lable = lv_label_create(scr3_cont);
     lv_obj_set_style_text_color(lable, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
-    lv_obj_align(lable, LV_ALIGN_TOP_MID, 0, 5);
+    lv_obj_set_style_text_font(lable, FONT_MONO_BOLD, LV_PART_MAIN);
+    lv_obj_align(lable, LV_ALIGN_TOP_MID, 0, 10);
 
     uint32_t verisondata = nfc_get_ver_data();
     uint32_t chip = (verisondata >> 24) & 0xFF;
@@ -801,23 +802,24 @@ void create3(lv_obj_t *parent){
 
     nfc_led  = lv_led_create(scr3_cont);
     lv_obj_set_size(nfc_led, 16, 16);
-    lv_obj_align(nfc_led, LV_ALIGN_TOP_RIGHT, -10, 5);
+    lv_obj_align(nfc_led, LV_ALIGN_TOP_RIGHT, -10, 10);
     lv_led_off(nfc_led);
 
     nfc_ledlab = lv_label_create(scr3_cont);
     lv_obj_set_style_text_color(nfc_ledlab, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
+    lv_obj_set_style_text_font(nfc_ledlab, FONT_MONO_LIGHT, LV_PART_MAIN);
     lv_obj_align_to(nfc_ledlab, nfc_led, LV_ALIGN_OUT_LEFT_MID, -6, 0);
     lv_label_set_text(nfc_ledlab, "xx -");
 
-    list = lv_list_create(scr3_cont);
-    lv_obj_set_size(list, LV_HOR_RES, 135);
-    lv_obj_align(list, LV_ALIGN_BOTTOM_MID, 0, 0);
-    lv_obj_set_style_bg_color(list, lv_color_hex(COLOR_BG), LV_PART_MAIN);
-    lv_obj_set_style_pad_row(list, 2, LV_PART_MAIN);
-    lv_obj_set_style_radius(list, 0, LV_PART_MAIN);
-    // lv_obj_set_style_outline_pad(list, 2, LV_PART_MAIN);
-    lv_obj_set_style_border_width(list, 0, LV_PART_MAIN);
-    lv_obj_set_style_shadow_width(list, 0, LV_PART_MAIN);
+    nfc_list = lv_list_create(scr3_cont);
+    lv_obj_set_size(nfc_list, LV_HOR_RES, 135);
+    lv_obj_align(nfc_list, LV_ALIGN_BOTTOM_MID, 0, 0);
+    lv_obj_set_style_bg_color(nfc_list, lv_color_hex(COLOR_BG), LV_PART_MAIN);
+    lv_obj_set_style_pad_row(nfc_list, 2, LV_PART_MAIN);
+    lv_obj_set_style_radius(nfc_list, 0, LV_PART_MAIN);
+    // lv_obj_set_style_outline_pad(nfc_list, 2, LV_PART_MAIN);
+    lv_obj_set_style_border_width(nfc_list, 0, LV_PART_MAIN);
+    lv_obj_set_style_shadow_width(nfc_list, 0, LV_PART_MAIN);
 
     for(int i = 0; i < nfc_recode_cnt; i++) {
         char buf[33];
@@ -828,10 +830,11 @@ void create3(lv_obj_t *parent){
                 (nfc_id[i] >> 8)  & 0xFF, 
                 nfc_id[i] & 0xFF, 
                 nfc_id[i]);
-        lv_obj_t *item = lv_list_add_btn(list, NULL, buf);
+        lv_obj_t *item = lv_list_add_btn(nfc_list, NULL, buf);
         lv_obj_set_style_bg_color(item, lv_color_hex(COLOR_FOCUS_ON), LV_STATE_FOCUS_KEY);
         lv_obj_set_style_bg_color(item, lv_color_hex(COLOR_BG), LV_PART_MAIN);
         lv_obj_set_style_text_color(item, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
+        lv_obj_set_style_text_font(item, FONT_MONO_BOLD, LV_PART_MAIN);
         // lv_obj_add_event_cb(item, list_item_event, LV_EVENT_CLICKED, (void *)i);
     }
 
@@ -872,10 +875,40 @@ scr_lifecycle_t screen3 = {
     .destroy = destroy3,
 };
 #endif
-//************************************[ screen 4 ]******************************************
+//************************************[ screen 4 ]****************************************** setting
 #if 1
-
 lv_obj_t *scr4_cont;
+lv_obj_t *setting_list;
+
+void setting_scr_event(lv_event_t *e)
+{
+    lv_obj_t *tgt = (lv_obj_t *)e->target;
+    int data = (int)e->user_data;
+
+    if(e->code == LV_EVENT_CLICKED) {
+        switch (data)
+        {
+        case 0: // "Rotatoion"
+            if(display_rotation == 3){
+                // tft.fillScreen(TFT_BLACK);
+                tft.setRotation(1);
+                display_rotation = 1;
+            } else if(display_rotation == 1){
+                // tft.fillScreen(TFT_BLACK);
+                tft.setRotation(3);
+                display_rotation = 3;
+            }
+            break;
+        case 1: // "Deep Sleep"
+            ws2812_set_light(0);
+            esp_sleep_enable_ext0_wakeup((gpio_num_t)ENCODER_KEY, 0);
+            esp_deep_sleep_start();
+            break;
+        default:
+            break;
+        }
+    }
+}
 
 void entry4_anim(lv_obj_t *obj)
 {
@@ -904,6 +937,33 @@ void create4(lv_obj_t *parent){
     lv_obj_set_style_border_width(scr4_cont, 0, LV_PART_MAIN);
     lv_obj_set_style_pad_all(scr4_cont, 0, LV_PART_MAIN);
 
+    lv_obj_t *lable = lv_label_create(scr4_cont);
+    lv_obj_set_style_text_color(lable, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
+    lv_obj_set_style_text_font(lable, FONT_MONO_BOLD, LV_PART_MAIN);
+    lv_label_set_text(lable, "Setting");
+    lv_obj_align(lable, LV_ALIGN_TOP_MID, 0, 10);
+
+    setting_list = lv_list_create(scr4_cont);
+    lv_obj_set_size(setting_list, LV_HOR_RES, 135);
+    lv_obj_align(setting_list, LV_ALIGN_BOTTOM_MID, 0, 0);
+    lv_obj_set_style_bg_color(setting_list, lv_color_hex(COLOR_BG), LV_PART_MAIN);
+    lv_obj_set_style_pad_row(setting_list, 2, LV_PART_MAIN);
+    lv_obj_set_style_radius(setting_list, 0, LV_PART_MAIN);
+    // lv_obj_set_style_outline_pad(setting_list, 2, LV_PART_MAIN);
+    lv_obj_set_style_border_width(setting_list, 0, LV_PART_MAIN);
+    lv_obj_set_style_shadow_width(setting_list, 0, LV_PART_MAIN);
+
+    lv_obj_t *setting1 = lv_list_add_btn(setting_list, LV_SYMBOL_SETTINGS, "Rotatoion");
+    lv_obj_t *setting2 = lv_list_add_btn(setting_list, LV_SYMBOL_SETTINGS, "Deep Sleep");
+
+    for(int i = 0; i < lv_obj_get_child_cnt(setting_list); i++) {
+        lv_obj_t *item = lv_obj_get_child(setting_list, i);
+        lv_obj_set_style_bg_color(item, lv_color_hex(COLOR_FOCUS_ON), LV_STATE_FOCUS_KEY);
+        lv_obj_set_style_bg_color(item, lv_color_hex(COLOR_BG), LV_PART_MAIN);
+        lv_obj_set_style_text_color(item, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
+        lv_obj_add_event_cb(item, setting_scr_event, LV_EVENT_CLICKED, (void *)i);
+    }
+
     lv_obj_t * btn = lv_btn_create(scr4_cont);
     // lv_group_add_obj(lv_group_get_default(), btn);
     lv_obj_set_style_pad_all(btn, 0, 0);
@@ -924,10 +984,8 @@ void create4(lv_obj_t *parent){
 }
 void entry4(void) {
     entry4_anim(scr4_cont);
-    vTaskResume(battery_handle);
 }
 void exit4(void) {
-    vTaskSuspend(battery_handle);
 }
 void destroy4(void) {
 }
@@ -938,6 +996,260 @@ scr_lifecycle_t screen4 = {
     .destroy = destroy4,
 };
 #endif
+//************************************[ screen 5 ]****************************************** battery
+#if 1
+
+#define BAT_INFO_LIEN_CHAR 30
+#define BAT_INFO_LIEN_NUM  7
+
+lv_obj_t *scr5_cont;
+lv_obj_t *batt_cont;
+lv_obj_t *batt_line[BAT_INFO_LIEN_NUM];
+lv_timer_t *batt_timer;
+
+void scr5_add_info_lab(const char *s);
+
+void batt_timer_event(lv_timer_t *t)
+{
+    lv_label_set_text_fmt(batt_line[0], "VBUS --- %3.2f | VSYS --- %3.2f", battery_charging.getVBUS(), battery_charging.getVSYS());
+    lv_label_set_text_fmt(batt_line[1], "VBAT --- %3.2f | ICHG --- %3.2f", battery_charging.getVBAT(), battery_charging.getICHG());
+    lv_label_set_text_fmt(batt_line[2], "TSPCT - %4.2f | Tempe - %4.2f", battery_charging.getTSPCT(), battery_charging.getTemperature());
+    lv_label_set_text_fmt(batt_line[3], "Charging Status ----------- %d", battery_charging.getCHG_STATUS());
+    lv_label_set_text_fmt(batt_line[4], "VBUS Status --------------- %d", battery_charging.getVBUS_STATUS());
+    lv_label_set_text_fmt(batt_line[5], "VSYS Status --------------- %d", battery_charging.getVSYS_STATUS());
+    lv_label_set_text_fmt(batt_line[6], "Charger err --------------- %d", battery_charging.getCHG_Fault_STATUS());
+}
+
+void entry5_anim(lv_obj_t *obj)
+{
+    entry1_anim(obj);
+}
+
+void exit5_anim(int user_data, lv_obj_t *obj)
+{
+    exit1_anim(user_data, obj);
+}
+
+static void scr5_btn_event_cb(lv_event_t * e)
+{
+    if(e->code == LV_EVENT_CLICKED){
+        // scr_mgr_set_anim(LV_SCR_LOAD_ANIM_FADE_OUT, -1, -1);
+        // scr_mgr_switch(SCREEN0_ID, false);
+        exit5_anim(SCREEN0_ID, scr5_cont);
+    }
+}
+
+lv_obj_t * scr5_add_info_lab(lv_obj_t *label, const char *s)
+{
+    label = lv_label_create(batt_cont);
+    lv_obj_set_width(label, DISPALY_WIDTH);
+    lv_obj_set_style_bg_color(label, lv_color_hex(COLOR_BG), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(label, lv_color_hex(COLOR_FOCUS_ON), LV_STATE_FOCUS_KEY);
+    lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+    lv_obj_set_style_text_color(label, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(label, LV_OPA_100, LV_PART_MAIN);
+    lv_obj_set_style_text_font(label, &Font_Mono_Bold_16, LV_PART_MAIN);
+    lv_label_set_text(label, s);
+    lv_group_add_obj(lv_group_get_default(), label);
+    lv_obj_center(label);
+    return label;
+}
+
+void create5(lv_obj_t *parent) 
+{
+    scr5_cont = lv_obj_create(parent);
+    lv_obj_set_size(scr5_cont, lv_pct(100), lv_pct(100));
+    lv_obj_set_style_bg_color(scr5_cont, lv_color_hex(COLOR_BG), LV_PART_MAIN);
+    lv_obj_set_scrollbar_mode(scr5_cont, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_set_style_border_width(scr5_cont, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(scr5_cont, 0, LV_PART_MAIN);
+
+    lv_obj_t *lable = lv_label_create(scr5_cont);
+    lv_obj_set_style_text_color(lable, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
+    lv_obj_set_style_text_font(lable, FONT_MONO_BOLD, LV_PART_MAIN);
+    lv_label_set_text(lable, "Battery");
+    lv_obj_align(lable, LV_ALIGN_TOP_MID, 0, 10);
+
+    batt_cont = lv_obj_create(scr5_cont);
+    lv_obj_set_size(batt_cont, DISPALY_WIDTH, 140);
+    lv_obj_align(batt_cont, LV_ALIGN_BOTTOM_MID, 0, 0);
+    lv_obj_set_style_radius(batt_cont, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(batt_cont, 0, LV_PART_MAIN);
+    lv_obj_set_flex_flow(batt_cont, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_row(batt_cont, 1, LV_PART_MAIN);
+    lv_obj_set_style_border_width(batt_cont, 0, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(batt_cont, lv_color_hex(COLOR_BG), LV_PART_MAIN);
+    lv_obj_set_scrollbar_mode(batt_cont, LV_SCROLLBAR_MODE_OFF);
+    
+    lv_obj_t *label; // init label style
+    for(int i = 0; i < BAT_INFO_LIEN_NUM; i++) {
+        batt_line[i] = scr5_add_info_lab(label, " ");
+    }
+
+    lv_obj_t * btn = lv_btn_create(scr5_cont);
+    // lv_group_add_obj(lv_group_get_default(), btn);
+    lv_obj_set_style_pad_all(btn, 0, 0);
+    lv_obj_set_height(btn, 20);
+    lv_obj_align(btn, LV_ALIGN_TOP_LEFT, 8, 8);
+    lv_obj_set_style_border_width(btn, 0, LV_PART_MAIN);
+    lv_obj_set_style_shadow_width(btn, 0, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(btn, lv_color_hex(COLOR_BG), LV_PART_MAIN);
+    lv_obj_remove_style(btn, NULL, LV_STATE_FOCUS_KEY);
+    lv_obj_set_style_outline_pad(btn, 0, LV_STATE_FOCUS_KEY);
+    lv_obj_set_style_outline_width(btn, 2, LV_STATE_FOCUS_KEY);
+    lv_obj_set_style_outline_color(btn, lv_color_hex(COLOR_FOCUS_ON), LV_STATE_FOCUS_KEY);
+    lv_obj_add_event_cb(btn, scr5_btn_event_cb, LV_EVENT_CLICKED, NULL);
+
+    lv_obj_t *label2 = lv_label_create(btn);
+    lv_obj_align(label2, LV_ALIGN_LEFT_MID, 0, 0);
+    lv_label_set_text(label2, " " LV_SYMBOL_LEFT " ");
+}
+void entry5(void) {   
+    entry5_anim(scr5_cont);
+    batt_timer = lv_timer_create(batt_timer_event, 500, NULL);
+    vTaskResume(battery_handle);
+}
+void exit5(void) {
+    lv_timer_del(batt_timer);
+    batt_timer = NULL;
+    vTaskSuspend(battery_handle);
+}
+void destroy5(void) { 
+}
+
+scr_lifecycle_t screen5 = {
+    .create = create5,
+    .entry = entry5,
+    .exit  = exit5,
+    .destroy = destroy5,
+};
+#endif
+//************************************[ screen 6 ]******************************************
+#if 1
+
+lv_obj_t *scr6_cont;
+
+void entry6_anim(lv_obj_t *obj)
+{
+    entry1_anim(obj);
+}
+
+void exit6_anim(int user_data, lv_obj_t *obj)
+{
+    exit1_anim(user_data, obj);
+}
+
+static void scr6_btn_event_cb(lv_event_t * e)
+{
+    if(e->code == LV_EVENT_CLICKED){
+        // scr_mgr_set_anim(LV_SCR_LOAD_ANIM_FADE_OUT, -1, -1);
+        // scr_mgr_switch(SCREEN0_ID, false);
+        exit6_anim(SCREEN0_ID, scr6_cont);
+    }
+}
+
+void create6(lv_obj_t *parent) 
+{
+    scr6_cont = lv_obj_create(parent);
+    lv_obj_set_size(scr6_cont, lv_pct(100), lv_pct(100));
+    lv_obj_set_style_bg_color(scr6_cont, lv_color_hex(COLOR_BG), LV_PART_MAIN);
+    lv_obj_set_scrollbar_mode(scr6_cont, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_set_style_border_width(scr6_cont, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(scr6_cont, 0, LV_PART_MAIN);
+
+    lv_obj_t * btn = lv_btn_create(scr6_cont);
+    // lv_group_add_obj(lv_group_get_default(), btn);
+    lv_obj_set_style_pad_all(btn, 0, 0);
+    lv_obj_set_height(btn, 20);
+    lv_obj_align(btn, LV_ALIGN_TOP_LEFT, 8, 8);
+    lv_obj_set_style_border_width(btn, 0, LV_PART_MAIN);
+    lv_obj_set_style_shadow_width(btn, 0, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(btn, lv_color_hex(COLOR_BG), LV_PART_MAIN);
+    lv_obj_remove_style(btn, NULL, LV_STATE_FOCUS_KEY);
+    lv_obj_set_style_outline_pad(btn, 0, LV_STATE_FOCUS_KEY);
+    lv_obj_set_style_outline_width(btn, 2, LV_STATE_FOCUS_KEY);
+    lv_obj_set_style_outline_color(btn, lv_color_hex(COLOR_FOCUS_ON), LV_STATE_FOCUS_KEY);
+    lv_obj_add_event_cb(btn, scr6_btn_event_cb, LV_EVENT_CLICKED, NULL);
+
+    lv_obj_t *label2 = lv_label_create(btn);
+    lv_obj_align(label2, LV_ALIGN_LEFT_MID, 0, 0);
+    lv_label_set_text(label2, " " LV_SYMBOL_LEFT " ");
+}
+void entry6(void) {   }
+void exit6(void) {   }
+void destroy6(void) { 
+}
+
+scr_lifecycle_t screen6 = {
+    .create = create6,
+    .entry = entry6,
+    .exit  = exit6,
+    .destroy = destroy6,
+};
+#endif
+//************************************[ screen 7 ]******************************************
+#if 1
+lv_obj_t *scr7_cont;
+
+void entry7_anim(lv_obj_t *obj)
+{
+    entry1_anim(obj);
+}
+
+void exit7_anim(int user_data, lv_obj_t *obj)
+{
+    exit1_anim(user_data, obj);
+}
+
+static void scr7_btn_event_cb(lv_event_t * e)
+{
+    if(e->code == LV_EVENT_CLICKED){
+        // scr_mgr_set_anim(LV_SCR_LOAD_ANIM_FADE_OUT, -1, -1);
+        // scr_mgr_switch(SCREEN0_ID, false);
+        exit7_anim(SCREEN0_ID, scr7_cont);
+    }
+}
+
+void create7(lv_obj_t *parent) 
+{
+    scr7_cont = lv_obj_create(parent);
+    lv_obj_set_size(scr7_cont, lv_pct(100), lv_pct(100));
+    lv_obj_set_style_bg_color(scr7_cont, lv_color_hex(COLOR_BG), LV_PART_MAIN);
+    lv_obj_set_scrollbar_mode(scr7_cont, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_set_style_border_width(scr7_cont, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(scr7_cont, 0, LV_PART_MAIN);
+
+    lv_obj_t * btn = lv_btn_create(scr7_cont);
+    // lv_group_add_obj(lv_group_get_default(), btn);
+    lv_obj_set_style_pad_all(btn, 0, 0);
+    lv_obj_set_height(btn, 20);
+    lv_obj_align(btn, LV_ALIGN_TOP_LEFT, 8, 8);
+    lv_obj_set_style_border_width(btn, 0, LV_PART_MAIN);
+    lv_obj_set_style_shadow_width(btn, 0, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(btn, lv_color_hex(COLOR_BG), LV_PART_MAIN);
+    lv_obj_remove_style(btn, NULL, LV_STATE_FOCUS_KEY);
+    lv_obj_set_style_outline_pad(btn, 0, LV_STATE_FOCUS_KEY);
+    lv_obj_set_style_outline_width(btn, 2, LV_STATE_FOCUS_KEY);
+    lv_obj_set_style_outline_color(btn, lv_color_hex(COLOR_FOCUS_ON), LV_STATE_FOCUS_KEY);
+    lv_obj_add_event_cb(btn, scr7_btn_event_cb, LV_EVENT_CLICKED, NULL);
+
+    lv_obj_t *label2 = lv_label_create(btn);
+    lv_obj_align(label2, LV_ALIGN_LEFT_MID, 0, 0);
+    lv_label_set_text(label2, " " LV_SYMBOL_LEFT " ");
+}
+void entry7(void) { }
+void exit7(void) {   }
+void destroy7(void) { 
+}
+
+scr_lifecycle_t screen7 = {
+    .create = create7,
+    .entry = entry7,
+    .exit  = exit7,
+    .destroy = destroy7,
+};
+#endif
+
 
 //************************************[ UI ENTRY ]******************************************
 void ui_entry(void)
@@ -953,6 +1265,8 @@ void ui_entry(void)
     scr_mgr_register(SCREEN2_ID, &screen2);
     scr_mgr_register(SCREEN3_ID, &screen3);
     scr_mgr_register(SCREEN4_ID, &screen4);
+    scr_mgr_register(SCREEN5_ID, &screen5);
+    scr_mgr_register(SCREEN6_ID, &screen6);
 
     scr_mgr_switch(SCREEN0_ID, false); // main scr
 }
