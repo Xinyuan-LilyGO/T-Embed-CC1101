@@ -2,13 +2,19 @@
 #include "utilities.h"
 #include <XPowersLib.h>
 #include "ui.h"
-#include "BQ25896.h"
+#include <WiFi.h>
+/*********************************************************************************
+ *                               DEFINE
+ *********************************************************************************/
 
 #define NFC_PRIORITY     (configMAX_PRIORITIES - 1)
 #define LORA_PRIORITY    (configMAX_PRIORITIES - 2)
 #define WS2812_PRIORITY  (configMAX_PRIORITIES - 3)
 #define BATTERY_PRIORITY (configMAX_PRIORITIES - 4)
 
+/*********************************************************************************
+ *                              TYPEDEFS
+ *********************************************************************************/
 PowersSY6970 PMU;
 uint32_t cycleInterval;
 
@@ -19,10 +25,21 @@ TaskHandle_t lora_handle;
 TaskHandle_t ws2812_handle;
 TaskHandle_t battery_handle;
 
+// wifi
+const char* ssid = "xinyuandianzi";
+const char* password = "AA15994823428";
+const char *ntpServer1 = "pool.ntp.org";
+const char* ntpServer2 = "time.nist.gov";
+bool is_connect_wifi = false;
+static struct tm timeinfo;
+static uint32_t last_tick;
+
 // void vTaskSuspend( TaskHandle_t xTaskToSuspend ); // 阻塞
 // void vTaskResume( TaskHandle_t xTaskToResume );   // 唤醒
 
-
+/*********************************************************************************
+ *                              FUNCTION
+ *********************************************************************************/
 void multi_thread_create(void)
 {
     xTaskCreate(nfc_task, "nfc_task", 1024 * 3, NULL, NFC_PRIORITY, &nfc_handle);
@@ -34,6 +51,45 @@ void multi_thread_create(void)
     // vTaskSuspend(lora_handle);
     // vTaskSuspend(ws2812_handle);
     // vTaskSuspend(battery_handle);
+}
+
+void wifi_init(void)
+{
+    WiFi.begin(ssid, password);
+    wl_status_t wifi_state = WiFi.status();
+    last_tick = millis();
+    while (wifi_state != WL_CONNECTED){
+        delay(500);
+        Serial.print(".");
+        wifi_state = WiFi.status();
+        if(wifi_state == WL_CONNECTED){
+            is_connect_wifi = true;
+            Serial.println("WiFi connected!");
+            configTime(8 * 3600, 0, ntpServer1, ntpServer2);
+            break;
+        }
+        if (millis() - last_tick > 5000) {
+            Serial.println("WiFi connected falied!");
+            last_tick = millis();
+            break;
+        }
+    }
+}
+
+static void msg_send_event(lv_timer_t *t)
+{
+    if(is_connect_wifi == true){
+        if (!getLocalTime(&timeinfo)){
+            Serial.println("Failed to obtain time");
+            return;
+        }
+        // Serial.println(&timeinfo, "%F %T %A"); // 格式化输出
+        timeinfo.tm_hour = timeinfo.tm_hour % 12;
+        lv_msg_send(MSG_CLOCK_HOUR, &timeinfo.tm_hour);
+        lv_msg_send(MSG_CLOCK_MINUTE, &timeinfo.tm_min);
+        lv_msg_send(MSG_CLOCK_SECOND, &timeinfo.tm_sec);
+    }
+    // eeprom_write(-1, 0);
 }
 
 void setup(void)
@@ -84,6 +140,8 @@ void setup(void)
 
     battery_charging.begin();
 
+    wifi_init();
+
     ui_entry(); // init UI and display     SPI.begin(BOARD_SPI_SCK, -1, BOARD_SPI_MOSI); 
 
     lora_init(); // SPI.begin(BOARD_SPI_SCK, BOARD_SPI_MISO, BOARD_SPI_MOSI);
@@ -91,6 +149,8 @@ void setup(void)
     nfc_init();
 
     ws2812_init();
+
+    lv_timer_create(msg_send_event, 10000, NULL);
 
     multi_thread_create();
 }

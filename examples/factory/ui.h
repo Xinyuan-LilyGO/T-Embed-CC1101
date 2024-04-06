@@ -11,14 +11,6 @@
 #define DISPALY_WIDTH  TFT_HEIGHT
 #define DISPALY_HEIGHT TFT_WIDTH
 
-// font
-LV_FONT_DECLARE(Font_Mono_Bold_14);
-LV_FONT_DECLARE(Font_Mono_Bold_16);
-LV_FONT_DECLARE(Font_Mono_Bold_18);
-LV_FONT_DECLARE(Font_Mono_Bold_20);
-LV_FONT_DECLARE(Font_Mono_Light_14);
-
-
 #define FONT_MONO_BOLD  &Font_Mono_Bold_14
 #define FONT_MONO_LIGHT &Font_Mono_Light_14
 #define FONT_MENU_ITEM  &Font_Mono_Bold_14
@@ -31,6 +23,7 @@ LV_FONT_DECLARE(Font_Mono_Light_14);
 #define COLOR_5  //
 #define COLOR_6  //
 
+// screen id
 enum{
     SCREEN0_ID = 0,
     SCREEN1_ID,
@@ -41,6 +34,14 @@ enum{
     SCREEN6_ID,
     SCREEN7_ID,
     SCREEN_ID_MAX,
+};
+
+// msg id
+enum{
+    // clock msg
+    MSG_CLOCK_HOUR,
+    MSG_CLOCK_MINUTE,
+    MSG_CLOCK_SECOND,
 };
 
 void ui_entry(void);

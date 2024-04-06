@@ -1,13 +1,19 @@
 #pragma once
 #include "lvgl.h"
 
-LV_IMG_DECLARE(Canada_Flag);
-LV_IMG_DECLARE(China_Flag);
-LV_IMG_DECLARE(European_Union_Flag);
-LV_IMG_DECLARE(United_Kingdom_Flag);
-LV_IMG_DECLARE(US_Outlying_Islands_Flag);
+LV_IMG_DECLARE(img_battery_32);
+LV_IMG_DECLARE(img_light_32);
+LV_IMG_DECLARE(img_lora_32);
+LV_IMG_DECLARE(img_nfc_32);
+LV_IMG_DECLARE(img_setting_32);
+LV_IMG_DECLARE(img_wifi_32);
 
-LV_IMG_DECLARE(Battery_Charging_48);
-LV_IMG_DECLARE(Light_48);
-LV_IMG_DECLARE(Settings_48);
-LV_IMG_DECLARE(Wifi_icon_48);
+// font
+LV_FONT_DECLARE(Font_Mono_Bold_14);
+LV_FONT_DECLARE(Font_Mono_Bold_16);
+LV_FONT_DECLARE(Font_Mono_Bold_18);
+LV_FONT_DECLARE(Font_Mono_Bold_20);
+LV_FONT_DECLARE(Font_Mono_Light_14);
+
+
+

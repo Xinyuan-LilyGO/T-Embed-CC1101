@@ -3,7 +3,13 @@
 int display_rotation = 3;
 
 /**
- * screen 0: 
+ * screen 0: menu
+ * screen 1: ws2812
+ * screen 2: lora
+ * screen 3: nfc
+ * screen 4: setting
+ * screen 5: battery
+ * screen 6: wifi
 */
 
 //************************************[ screen 0 ]****************************************** menu
@@ -16,13 +22,18 @@ lv_obj_t *item_cont;
 lv_obj_t *menu_cont;
 lv_obj_t *menu_icon;
 lv_obj_t *menu_icon_lab;
+lv_obj_t *menu_time_lab;
 
 int fouce_item = 0;
+int hour = 0;
+int minute = 0;
+int second = 0;
 const char *name_buf[] = { 
-    "<- Lora",
-    "<- WS2812", 
-    "<- NFC", 
+    "<- Lora"   ,
+    "<- WS2812" , 
+    "<- NFC"    , 
     "<- Battery", 
+    "<- Wifi"   ,
     "<- Setting"
 };
 
@@ -30,6 +41,22 @@ void entry0_anim(void);
 void switch_scr0_anim(int user_data);
 
 // event
+static void clock_upd_event(lv_event_t *e)
+{
+    lv_obj_t * label = lv_event_get_target(e);
+    lv_msg_t * m = lv_event_get_msg(e);
+    int data = (int)lv_msg_get_user_data(m);
+    const int32_t *v = (int32_t *)lv_msg_get_payload(m);
+
+    switch (data) {
+        case MSG_CLOCK_HOUR:   hour = *v;    break;
+        case MSG_CLOCK_MINUTE: minute = *v;  break;
+        case MSG_CLOCK_SECOND: second = *v;  break;
+        default: break;
+    }
+    lv_label_set_text_fmt(menu_time_lab, "#EE781F %02d# #ffffff :# #D8E699 %02d#", hour, minute);
+}
+
 static void scr0_btn_event_cb(lv_event_t * e)
 {   
     int data = (int)e->user_data;
@@ -39,10 +66,11 @@ static void scr0_btn_event_cb(lv_event_t * e)
         switch (fouce_item)
         {
             case 0: switch_scr0_anim(SCREEN2_ID); break; // lora
-            case 1: switch_scr0_anim(SCREEN1_ID); break; // WS2812
+            case 1: switch_scr0_anim(SCREEN1_ID); break; // ws2812
             case 2: switch_scr0_anim(SCREEN3_ID); break; // nfc
-            case 3: switch_scr0_anim(SCREEN5_ID); break; // setting
-            case 4: switch_scr0_anim(SCREEN4_ID); break;
+            case 3: switch_scr0_anim(SCREEN5_ID); break; // battery
+            case 4: switch_scr0_anim(SCREEN6_ID); break; // wifi
+            case 5: switch_scr0_anim(SCREEN4_ID); break; // setting
             default:
                 break;
         }
@@ -51,13 +79,32 @@ static void scr0_btn_event_cb(lv_event_t * e)
     if(e->code == LV_EVENT_FOCUSED){
         switch (data)
         { 
-            case 0: lv_img_set_src(menu_icon, &Battery_Charging_48); break; // Battery 
-            case 1: lv_img_set_src(menu_icon, &Canada_Flag); break;        // Battery 
-            case 2: lv_img_set_src(menu_icon, &China_Flag); break;             // Battery 
-            case 3: lv_img_set_src(menu_icon, &European_Union_Flag); break;        // Battery 
-            case 4: lv_img_set_src(menu_icon, &United_Kingdom_Flag); break;        // Battery 
-            case 5: lv_img_set_src(menu_icon, &US_Outlying_Islands_Flag); break;        // Battery 
-
+            case 0: 
+                lv_img_set_src(menu_icon, &img_lora_32); 
+                lv_obj_set_style_img_recolor(menu_icon, lv_palette_main(LV_PALETTE_CYAN), LV_PART_MAIN);
+                lv_obj_set_style_img_recolor_opa(menu_icon, LV_OPA_100, LV_PART_MAIN);
+                break; 
+            case 1: 
+                lv_img_set_src(menu_icon, &img_light_32); 
+                lv_obj_set_style_img_recolor_opa(menu_icon, LV_OPA_0, LV_PART_MAIN);
+                break;    
+            case 2: 
+                lv_img_set_src(menu_icon, &img_nfc_32);
+                lv_obj_set_style_img_recolor(menu_icon, lv_palette_main(LV_PALETTE_CYAN), LV_PART_MAIN);
+                lv_obj_set_style_img_recolor_opa(menu_icon, LV_OPA_100, LV_PART_MAIN);
+                break;      
+            case 3: 
+                lv_img_set_src(menu_icon, &img_battery_32); 
+                lv_obj_set_style_img_recolor_opa(menu_icon, LV_OPA_0, LV_PART_MAIN);
+                break;  
+            case 4: 
+                lv_img_set_src(menu_icon, &img_wifi_32);
+                lv_obj_set_style_img_recolor_opa(menu_icon, LV_OPA_0, LV_PART_MAIN);
+                break;     
+            case 5: 
+                lv_img_set_src(menu_icon, &img_setting_32); 
+                lv_obj_set_style_img_recolor_opa(menu_icon, LV_OPA_0, LV_PART_MAIN);
+                break;  
             default:
                 break;
         }
@@ -180,16 +227,18 @@ void create0(lv_obj_t *parent)
     lv_obj_set_width(menu_icon_lab, DISPALY_WIDTH * MENU_LAB_PROPORTION);
     lv_obj_set_style_text_align(menu_icon_lab, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
     lv_obj_set_style_text_color(menu_icon_lab, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
+    lv_obj_set_style_text_font(menu_icon_lab, &Font_Mono_Bold_18, LV_PART_MAIN);
     // lv_label_set_text(menu_icon_lab, "battery");
     lv_obj_align_to(menu_icon_lab, menu_cont, LV_ALIGN_BOTTOM_MID, 5, -25);
     
-    lv_obj_t *menu_lab = lv_label_create(menu_cont);
-    lv_obj_set_width(menu_lab, DISPALY_WIDTH * MENU_LAB_PROPORTION);
-    lv_obj_align(menu_lab, LV_ALIGN_TOP_MID, 5, 25);
-    lv_obj_set_style_text_align(menu_lab, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-    // lv_obj_set_style_text_font(menu_lab, &lv_font_montserrat_26, LV_PART_MAIN);
-    lv_label_set_recolor(menu_lab, true);                      /*Enable re-coloring by commands in the text*/
-    lv_label_set_text_fmt(menu_lab, "#EE781F %02d# #ffffff :# #D8E699 %02d#", 18, 59);
+    menu_time_lab = lv_label_create(menu_cont);
+    lv_obj_set_width(menu_time_lab, DISPALY_WIDTH * MENU_LAB_PROPORTION);
+    lv_obj_align(menu_time_lab, LV_ALIGN_TOP_MID, 5, 25);
+    lv_obj_set_style_text_align(menu_time_lab, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+    lv_obj_set_style_text_font(menu_time_lab, &Font_Mono_Bold_18, LV_PART_MAIN);
+    // lv_obj_set_style_text_font(menu_time_lab, &lv_font_montserrat_26, LV_PART_MAIN);
+    lv_label_set_recolor(menu_time_lab, true);                      /*Enable re-coloring by commands in the text*/
+    lv_label_set_text_fmt(menu_time_lab, "#EE781F %02d# #ffffff :# #D8E699 %02d#", hour, minute);
 
     ///////////////////////////////////////////////////////
     item_cont = lv_obj_create(parent);
@@ -242,8 +291,17 @@ void create0(lv_obj_t *parent)
 
 void entry0(void) {   
     entry0_anim();
+    lv_obj_add_event_cb(menu_time_lab, clock_upd_event, LV_EVENT_MSG_RECEIVED, NULL);
+    lv_msg_subsribe_obj(MSG_CLOCK_HOUR, menu_time_lab, (void *)MSG_CLOCK_HOUR);
+    lv_msg_subsribe_obj(MSG_CLOCK_MINUTE, menu_time_lab, (void *)MSG_CLOCK_MINUTE);
+    lv_msg_subsribe_obj(MSG_CLOCK_SECOND, menu_time_lab, (void *)MSG_CLOCK_SECOND);
 }
-void exit0(void) {}
+void exit0(void) {
+    lv_obj_remove_event_cb(menu_time_lab, clock_upd_event);
+    lv_msg_unsubscribe_obj(MSG_CLOCK_HOUR, menu_time_lab);
+    lv_msg_unsubscribe_obj(MSG_CLOCK_MINUTE, menu_time_lab);
+    lv_msg_unsubscribe_obj(MSG_CLOCK_SECOND, menu_time_lab);
+}
 void destroy0(void) {}
 
 scr_lifecycle_t screen0 = {
@@ -419,8 +477,8 @@ void create1(lv_obj_t *parent)
     lv_obj_set_style_arc_width(light_acr, 10, LV_PART_INDICATOR);
     lv_arc_set_rotation(light_acr, 90);
     lv_arc_set_bg_angles(light_acr, 0, 360);
-    lv_arc_set_value(light_acr, ws2812_light);
     lv_arc_set_range(light_acr, 0, 255);
+    lv_arc_set_value(light_acr, ws2812_light);
     lv_obj_set_style_outline_pad(light_acr, 4, LV_STATE_FOCUS_KEY);
     lv_obj_set_style_radius(light_acr, LV_RADIUS_CIRCLE, LV_STATE_FOCUS_KEY);
     lv_obj_set_style_outline_width(light_acr, 2, LV_STATE_FOCUS_KEY);
@@ -1050,7 +1108,7 @@ lv_obj_t * scr5_add_info_lab(lv_obj_t *label, const char *s)
     lv_obj_set_style_bg_opa(label, LV_OPA_100, LV_PART_MAIN);
     lv_obj_set_style_text_font(label, &Font_Mono_Bold_16, LV_PART_MAIN);
     lv_label_set_text(label, s);
-    lv_group_add_obj(lv_group_get_default(), label);
+    // lv_group_add_obj(lv_group_get_default(), label);
     lv_obj_center(label);
     return label;
 }
@@ -1124,7 +1182,7 @@ scr_lifecycle_t screen5 = {
     .destroy = destroy5,
 };
 #endif
-//************************************[ screen 6 ]******************************************
+//************************************[ screen 6 ]****************************************** wifi
 #if 1
 
 lv_obj_t *scr6_cont;
