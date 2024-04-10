@@ -44,3 +44,25 @@ void lora_task(void *param);
 extern TaskHandle_t battery_handle;
 extern BQ25896 battery_charging;
 void battery_task(void *param);
+
+/**------------------------------ MIC ------------------------------------**/
+
+/**----------------------------- WIFI ------------------------------------**/
+#include <WiFi.h>
+#define WIFI_SSID_MAX_LEN 30
+#define WIFI_PSWD_MAX_LEN 30
+extern char wifi_ssid[WIFI_SSID_MAX_LEN];
+extern char wifi_password[WIFI_PSWD_MAX_LEN];
+extern bool wifi_is_connect;
+
+/**---------------------------- EEPROM -----------------------------------**/
+#include <EEPROM.h>
+#define EEPROM_UPDATA_FLAG_NUM  0xAA
+#define WIFI_SSID_EEPROM_ADDR   (1)
+#define WIFI_PSWD_EEPROM_ADDR   (WIFI_SSID_EEPROM_ADDR + WIFI_SSID_MAX_LEN)
+#define UI_THEME_EEPROM_ADDR    (WIFI_PSWD_EEPROM_ADDR + WIFI_PSWD_MAX_LEN)
+#define UI_ROTATION_EEPROM_ADDR (UI_THEME_EEPROM_ADDR + 1)
+#define EEPROM_SIZE_MAX 64
+
+void eeprom_wr(int addr, uint8_t val);
+void eeprom_wr_wifi(const char *ssid, uint16_t ssid_len, const char *pwsd, uint16_t pwsd_len);

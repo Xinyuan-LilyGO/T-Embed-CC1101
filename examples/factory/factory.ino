@@ -2,7 +2,6 @@
 #include "utilities.h"
 #include <XPowersLib.h>
 #include "ui.h"
-#include <WiFi.h>
 /*********************************************************************************
  *                               DEFINE
  *********************************************************************************/
@@ -12,6 +11,11 @@
 #define WS2812_PRIORITY  (configMAX_PRIORITIES - 3)
 #define BATTERY_PRIORITY (configMAX_PRIORITIES - 4)
 
+/*********************************************************************************
+ *                              EXTERN
+ *********************************************************************************/
+extern uint8_t display_rotation;
+extern uint8_t setting_theme;
 /*********************************************************************************
  *                              TYPEDEFS
  *********************************************************************************/
@@ -26,36 +30,103 @@ TaskHandle_t ws2812_handle;
 TaskHandle_t battery_handle;
 
 // wifi
-const char* ssid = "xinyuandianzi";
-const char* password = "AA15994823428";
+// char wifi_ssid[WIFI_SSID_MAX_LEN] = "xinyuandianzi";
+// char wifi_password[WIFI_PSWD_MAX_LEN] = "AA15994823428";
+char wifi_ssid[WIFI_SSID_MAX_LEN] = {0};
+char wifi_password[WIFI_PSWD_MAX_LEN] = {0};
 const char *ntpServer1 = "pool.ntp.org";
 const char* ntpServer2 = "time.nist.gov";
-bool is_connect_wifi = false;
+bool wifi_is_connect = false;
 static struct tm timeinfo;
 static uint32_t last_tick;
 
-// void vTaskSuspend( TaskHandle_t xTaskToSuspend ); // 阻塞
-// void vTaskResume( TaskHandle_t xTaskToResume );   // 唤醒
+// eeprom
+uint8_t eeprom_ssid[WIFI_SSID_MAX_LEN];
+uint8_t eeprom_pswd[WIFI_PSWD_MAX_LEN];
 
 /*********************************************************************************
  *                              FUNCTION
  *********************************************************************************/
+void eeprom_wr(int addr, uint8_t val)
+{
+    EEPROM.write(addr, val);
+    EEPROM.commit();
+    Serial.printf("eeprom_wr %d:%d\n", addr, val);
+}
+
+void eeprom_wr_wifi(const char *ssid, uint16_t ssid_len, const char *pwsd, uint16_t pwsd_len)
+{
+    Serial.printf("eeprom_wr_wifi %s:%d   %s:%d\n", ssid, ssid_len, pwsd, pwsd_len);
+    if(ssid_len > WIFI_SSID_MAX_LEN) 
+        ssid_len = WIFI_SSID_MAX_LEN;
+    if(pwsd_len > WIFI_PSWD_MAX_LEN)
+        pwsd_len = WIFI_PSWD_MAX_LEN;
+
+    EEPROM.write(0, EEPROM_UPDATA_FLAG_NUM);
+    for(int i = WIFI_SSID_EEPROM_ADDR; i < WIFI_SSID_EEPROM_ADDR + WIFI_SSID_MAX_LEN; i++) {
+        int k = i - WIFI_SSID_EEPROM_ADDR;
+        if(k < ssid_len) {
+            EEPROM.write(i, ssid[k]);
+        } else {
+            EEPROM.write(i, 0x00);
+        }
+    }
+    for(int i = WIFI_PSWD_EEPROM_ADDR; i < WIFI_PSWD_EEPROM_ADDR + WIFI_PSWD_MAX_LEN; i++) {
+        int k = i - WIFI_PSWD_EEPROM_ADDR;
+        if(k < pwsd_len) {
+            EEPROM.write(i, pwsd[k]);
+        } else {
+            EEPROM.write(i, 0x00);
+        }
+    }
+    EEPROM.commit();
+}
+
+void eeprom_init()
+{
+    if (!EEPROM.begin(EEPROM_SIZE_MAX)) {
+        Serial.println("failed to initialise EEPROM"); delay(1000000);
+    }
+    uint8_t frist_flag = EEPROM.read(0);
+    if(frist_flag == EEPROM_UPDATA_FLAG_NUM) {
+        for(int i = WIFI_SSID_EEPROM_ADDR; i < WIFI_SSID_EEPROM_ADDR + WIFI_SSID_MAX_LEN; i++) {
+            wifi_ssid[i - WIFI_SSID_EEPROM_ADDR] = EEPROM.read(i);
+        }
+        for(int i = WIFI_PSWD_EEPROM_ADDR; i < WIFI_PSWD_EEPROM_ADDR + WIFI_PSWD_MAX_LEN; i++) {
+            wifi_password[i - WIFI_PSWD_EEPROM_ADDR] = EEPROM.read(i);
+        }
+        Serial.printf("eeprom flag: %d\n", frist_flag);
+        Serial.printf("eeprom SSID: %s\n", wifi_ssid);
+        Serial.printf("eeprom PWSD: %s\n", wifi_password);
+
+        uint8_t theme = EEPROM.read(UI_THEME_EEPROM_ADDR);
+        uint8_t rotation = EEPROM.read(UI_ROTATION_EEPROM_ADDR);
+
+        setting_theme = theme;
+        display_rotation = (rotation == 1 ? 1 : 3);
+        
+        Serial.printf("eeprom theme: %d\n", theme);
+        Serial.printf("eeprom rotation: %d\n", rotation);
+    }
+}
+
 void multi_thread_create(void)
 {
     xTaskCreate(nfc_task, "nfc_task", 1024 * 3, NULL, NFC_PRIORITY, &nfc_handle);
     xTaskCreate(lora_task, "lora_task", 1024 * 2, NULL, LORA_PRIORITY, &lora_handle);
     xTaskCreate(ws2812_task, "ws2812_task", 1024 * 2, NULL, WS2812_PRIORITY, &ws2812_handle);
     xTaskCreate(battery_task, "battery_task", 1024 * 2, NULL, BATTERY_PRIORITY, &battery_handle);
-    
-    // vTaskSuspend(nfc_handle);
-    // vTaskSuspend(lora_handle);
-    // vTaskSuspend(ws2812_handle);
-    // vTaskSuspend(battery_handle);
 }
 
 void wifi_init(void)
 {
-    WiFi.begin(ssid, password);
+    Serial.printf("SSID len: %d\n", strlen(wifi_ssid));
+    Serial.printf("PWSD len: %d\n", strlen(wifi_password));
+    if(strlen(wifi_ssid) == 0 || strlen(wifi_password) == 0) {
+        return;
+    }
+
+    WiFi.begin(wifi_ssid, wifi_password);
     wl_status_t wifi_state = WiFi.status();
     last_tick = millis();
     while (wifi_state != WL_CONNECTED){
@@ -63,7 +134,7 @@ void wifi_init(void)
         Serial.print(".");
         wifi_state = WiFi.status();
         if(wifi_state == WL_CONNECTED){
-            is_connect_wifi = true;
+            wifi_is_connect = true;
             Serial.println("WiFi connected!");
             configTime(8 * 3600, 0, ntpServer1, ntpServer2);
             break;
@@ -78,7 +149,7 @@ void wifi_init(void)
 
 static void msg_send_event(lv_timer_t *t)
 {
-    if(is_connect_wifi == true){
+    if(wifi_is_connect == true){
         if (!getLocalTime(&timeinfo)){
             Serial.println("Failed to obtain time");
             return;
@@ -89,19 +160,30 @@ static void msg_send_event(lv_timer_t *t)
         lv_msg_send(MSG_CLOCK_MINUTE, &timeinfo.tm_min);
         lv_msg_send(MSG_CLOCK_SECOND, &timeinfo.tm_sec);
     }
-    // eeprom_write(-1, 0);
+}
+
+
+static void msg_subsribe_event(void * s, lv_msg_t * msg)
+{
+    LV_UNUSED(s);
+
+    switch (msg->id)
+    {
+        case MSG_UI_ROTATION_ST:{ 
+            
+        }break;
+        case MSG_UI_THEME_MODE:{
+            
+        }break;
+    
+        default:
+            break;
+    }
 }
 
 void setup(void)
 {
     Serial.begin(115200);
-    // int start_delay = 3;
-    // while (start_delay) {
-    //     Serial.print(start_delay);
-    //     delay(1000);    
-    //     start_delay--;
-    // }
-
     Serial.print("setup() running core ID: ");
     Serial.println(xPortGetCoreID());
 
@@ -137,31 +219,31 @@ void setup(void)
     if (nDevices == 0){
         Serial.println("No I2C devices found");
     }
+    eeprom_init();
+
+    ui_entry(); // init UI and display
 
     battery_charging.begin();
 
     wifi_init();
+    configTime(8 * 3600, 0, ntpServer1, ntpServer2);
 
-    ui_entry(); // init UI and display     SPI.begin(BOARD_SPI_SCK, -1, BOARD_SPI_MOSI); 
-
-    lora_init(); // SPI.begin(BOARD_SPI_SCK, BOARD_SPI_MISO, BOARD_SPI_MOSI);
+    lora_init(); 
 
     nfc_init();
 
     ws2812_init();
 
-    lv_timer_create(msg_send_event, 10000, NULL);
+    lv_timer_create(msg_send_event, 5000, NULL);
 
     multi_thread_create();
+
+    // lvgl msg
+    lv_msg_subsribe(MSG_UI_ROTATION_ST, msg_subsribe_event, NULL);
+    lv_msg_subsribe(MSG_UI_THEME_MODE, msg_subsribe_event, NULL);
 }
 
-uint32_t prev_tick = 0;
 void loop(void)
 {
     lv_timer_handler();
-
-    if(millis() - prev_tick > 3000){
-        prev_tick = millis();
-        
-    }
 }
