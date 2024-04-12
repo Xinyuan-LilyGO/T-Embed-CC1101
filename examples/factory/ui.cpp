@@ -397,6 +397,7 @@ lv_obj_t *scr1_cont;
 lv_obj_t *light_acr;
 int ws2812_light = WS2812_DEFAULT_LIGHT;
 lv_color_t ws2812_color ={.full = 0xF800};
+static int ui_light_mode = 0;
 
 void entry1_anim(lv_obj_t *obj);
 void exit1_anim(int user_data, lv_obj_t *obj);
@@ -457,13 +458,12 @@ static void scr1_btn_event_cb(lv_event_t * e)
 
 static void ws2812_mode_event_cb(lv_event_t * e)
 {
-    static int mode = 0;
     lv_obj_t *tgt = (lv_obj_t *)e->target;
     lv_obj_t *lab = (lv_obj_t *)e->user_data;
     if(e->code == LV_EVENT_CLICKED){
-        mode++;
-        mode &= 0x3;
-        switch (mode)
+        ui_light_mode++;
+        ui_light_mode &= 0x3;
+        switch (ui_light_mode)
         {
             case 0: lv_label_set_text(lab, " OFF ");    break;
             case 1: lv_label_set_text(lab, " demo1 "); break;
@@ -472,8 +472,8 @@ static void ws2812_mode_event_cb(lv_event_t * e)
             default:
                 break;
         }
-        ws2812_set_mode(mode);
-        if(mode == 0){
+        ws2812_set_mode(ui_light_mode);
+        if(ui_light_mode == 0){
             vTaskSuspend(ws2812_handle);
         } else {
             vTaskResume(ws2812_handle);
@@ -588,10 +588,10 @@ void create1(lv_obj_t *parent)
     lv_obj_t * mode_lab = lv_label_create(mode_btn);
     lv_obj_set_style_text_color(mode_lab, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
     lv_obj_align(mode_lab, LV_ALIGN_LEFT_MID, 0, 0);
-    if(ws2812_get_mode() == 0) {
+    if(ui_light_mode == 0) {
         lv_label_set_text(mode_lab, " OFF ");
     } else {
-        lv_label_set_text_fmt(mode_lab, " demo%d ", ws2812_get_mode());
+        lv_label_set_text_fmt(mode_lab, " demo%d ", ui_light_mode);
     }
     lv_obj_add_event_cb(mode_btn, ws2812_mode_event_cb, LV_EVENT_CLICKED, mode_lab);
     lv_event_send(mode_btn, LV_EVENT_VALUE_CHANGED, mode_lab);
