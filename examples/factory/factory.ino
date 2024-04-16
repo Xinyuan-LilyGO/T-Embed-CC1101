@@ -37,6 +37,7 @@ char wifi_password[WIFI_PSWD_MAX_LEN] = {0};
 const char *ntpServer1 = "pool.ntp.org";
 const char* ntpServer2 = "time.nist.gov";
 bool wifi_is_connect = false;
+bool wifi_eeprom_upd = false;
 static struct tm timeinfo;
 static uint32_t last_tick;
 
@@ -47,8 +48,38 @@ uint8_t eeprom_pswd[WIFI_PSWD_MAX_LEN];
 /*********************************************************************************
  *                              FUNCTION
  *********************************************************************************/
+
+void eeprom_default_val(void)
+{
+    char wifi_ssid[WIFI_SSID_MAX_LEN] = "xinyuandianzi";
+    char wifi_password[WIFI_PSWD_MAX_LEN] = "AA15994823428";
+
+    EEPROM.write(0, EEPROM_UPDATA_FLAG_NUM);
+    for(int i = WIFI_SSID_EEPROM_ADDR; i < WIFI_SSID_EEPROM_ADDR + WIFI_SSID_MAX_LEN; i++) {
+        int k = i - WIFI_SSID_EEPROM_ADDR;
+        if(k < WIFI_SSID_MAX_LEN) {
+            EEPROM.write(i, wifi_ssid[k]);
+        } else {
+            EEPROM.write(i, 0x00);
+        }
+    }
+    for(int i = WIFI_PSWD_EEPROM_ADDR; i < WIFI_PSWD_EEPROM_ADDR + WIFI_PSWD_MAX_LEN; i++) {
+        int k = i - WIFI_PSWD_EEPROM_ADDR;
+        if(k < WIFI_PSWD_MAX_LEN) {
+            EEPROM.write(i, wifi_password[k]);
+        } else {
+            EEPROM.write(i, 0x00);
+        }
+    }
+    EEPROM.commit();
+    wifi_eeprom_upd = true;
+}
+
 void eeprom_wr(int addr, uint8_t val)
 {
+    if(wifi_eeprom_upd == false) {
+        eeprom_default_val();
+    }
     EEPROM.write(addr, val);
     EEPROM.commit();
     Serial.printf("eeprom_wr %d:%d\n", addr, val);
@@ -56,13 +87,17 @@ void eeprom_wr(int addr, uint8_t val)
 
 void eeprom_wr_wifi(const char *ssid, uint16_t ssid_len, const char *pwsd, uint16_t pwsd_len)
 {
-    Serial.printf("eeprom_wr_wifi %s:%d   %s:%d\n", ssid, ssid_len, pwsd, pwsd_len);
+    Serial.printf("eeprom_wr_wifi \n%s:%d\n%s:%d\n", ssid, ssid_len, pwsd, pwsd_len);
     if(ssid_len > WIFI_SSID_MAX_LEN) 
         ssid_len = WIFI_SSID_MAX_LEN;
     if(pwsd_len > WIFI_PSWD_MAX_LEN)
         pwsd_len = WIFI_PSWD_MAX_LEN;
 
-    EEPROM.write(0, EEPROM_UPDATA_FLAG_NUM);
+    if(wifi_eeprom_upd == false) {
+        EEPROM.write(0, EEPROM_UPDATA_FLAG_NUM);
+        wifi_eeprom_upd = true;
+    }
+
     for(int i = WIFI_SSID_EEPROM_ADDR; i < WIFI_SSID_EEPROM_ADDR + WIFI_SSID_MAX_LEN; i++) {
         int k = i - WIFI_SSID_EEPROM_ADDR;
         if(k < ssid_len) {
@@ -95,6 +130,8 @@ void eeprom_init()
         for(int i = WIFI_PSWD_EEPROM_ADDR; i < WIFI_PSWD_EEPROM_ADDR + WIFI_PSWD_MAX_LEN; i++) {
             wifi_password[i - WIFI_PSWD_EEPROM_ADDR] = EEPROM.read(i);
         }
+
+        wifi_eeprom_upd = true;
         Serial.printf("eeprom flag: %d\n", frist_flag);
         Serial.printf("eeprom SSID: %s\n", wifi_ssid);
         Serial.printf("eeprom PWSD: %s\n", wifi_password);

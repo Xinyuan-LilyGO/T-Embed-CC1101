@@ -34,6 +34,7 @@ void prompt_info(const char *str, uint16_t time)
         lv_obj_set_style_radius(label, 5, LV_PART_MAIN);
         lv_obj_set_style_bg_opa(label, LV_OPA_COVER, LV_PART_MAIN);
         lv_obj_set_style_pad_hor(label, 3, LV_PART_MAIN);
+        lv_obj_set_style_pad_ver(label, 3, LV_PART_MAIN);
         lv_obj_set_style_text_font(label, FONT_MONO_BOLD, LV_PART_MAIN);
         lv_obj_set_style_bg_color(label, lv_color_hex(COLOR_PROMPT_BG), LV_PART_MAIN);
         lv_obj_set_style_text_color(label, lv_color_hex(COLOR_PROMPT_TXT), LV_PART_MAIN);
@@ -1247,7 +1248,7 @@ static void wifi_config_event_handler(lv_event_t *e)
     }
 
     if(wifi_is_connect){
-        prompt_info("WiFi is connected do not need to configure WiFi.", 2000);
+        prompt_info(" WiFi is connected do not need to configure WiFi.", 2000);
         return;
     }
 
@@ -1601,15 +1602,15 @@ void other_list_event(lv_event_t *e)
         {
             case 0: // Infrared
                 scr_mgr_switch(SCREEN7_1_ID, false);
-                prompt_info("IR underdevelopment", 1000);
+                prompt_info("  IR underdevelopment", 1000);
                 break;
             case 1: // Microphone
                 scr_mgr_switch(SCREEN7_2_ID, false);
-                prompt_info("MIC underdevelopment", 1000);
+                prompt_info("  MIC underdevelopment", 1000);
                 break;
             case 2: // TF Card
                 scr_mgr_switch(SCREEN7_3_ID, false);
-                prompt_info("SD underdevelopment", 1000);
+                prompt_info("  SD underdevelopment", 1000);
                 break;
             default:
                 break;
