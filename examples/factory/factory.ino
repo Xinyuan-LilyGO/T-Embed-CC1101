@@ -10,6 +10,7 @@
 #define LORA_PRIORITY    (configMAX_PRIORITIES - 2)
 #define WS2812_PRIORITY  (configMAX_PRIORITIES - 3)
 #define BATTERY_PRIORITY (configMAX_PRIORITIES - 4)
+#define INFARED_PRIORITY (configMAX_PRIORITIES - 4)
 
 /*********************************************************************************
  *                              EXTERN
@@ -28,6 +29,7 @@ TaskHandle_t nfc_handle;
 TaskHandle_t lora_handle;
 TaskHandle_t ws2812_handle;
 TaskHandle_t battery_handle;
+TaskHandle_t infared_handle;
 
 // wifi
 // char wifi_ssid[WIFI_SSID_MAX_LEN] = "xinyuandianzi";
@@ -153,6 +155,7 @@ void multi_thread_create(void)
     xTaskCreate(lora_task, "lora_task", 1024 * 2, NULL, LORA_PRIORITY, &lora_handle);
     xTaskCreate(ws2812_task, "ws2812_task", 1024 * 2, NULL, WS2812_PRIORITY, &ws2812_handle);
     xTaskCreate(battery_task, "battery_task", 1024 * 2, NULL, BATTERY_PRIORITY, &battery_handle);
+    xTaskCreate(infared_task, "infared_task", 1024 * 2, NULL, INFARED_PRIORITY, &infared_handle);
 }
 
 void wifi_init(void)
@@ -264,6 +267,8 @@ void setup(void)
 
     wifi_init();
     configTime(8 * 3600, 0, ntpServer1, ntpServer2);
+
+    infared_init();
 
     lora_init(); 
 

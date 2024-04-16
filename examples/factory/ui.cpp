@@ -78,7 +78,7 @@ void ui_theme_setting(int ui_theme)
         COLOR_PROMPT_TXT = 0x1e1e00; 
     } else if(ui_theme == UI_THEME_LIGHT) {
         COLOR_BG         = 0xffffff;
-        COLOR_FOCUS_ON   = 0x91B821;
+        COLOR_FOCUS_ON   = 0x49a6fd;
         COLOR_TEXT       = 0x161823;
         COLOR_BORDER     = 0xBBBBBB;
         COLOR_PROMPT_BG  = 0x1e1e00;
@@ -130,7 +130,7 @@ static void clock_upd_event(lv_event_t *e)
         case MSG_CLOCK_SECOND: second = *v;  break;
         default: break;
     }
-    lv_label_set_text_fmt(menu_time_lab, "#EE781F %02d# #C0C0C0 :# #D8E699 %02d#", hour, minute);
+    lv_label_set_text_fmt(menu_time_lab, "#EE781F %02d# #C0C0C0 :# #AFCA31 %02d#", hour, minute);
 }
 
 static void scr0_btn_event_cb(lv_event_t * e)
@@ -319,7 +319,7 @@ void create0(lv_obj_t *parent)
     lv_obj_set_style_text_font(menu_time_lab, &Font_Mono_Bold_18, LV_PART_MAIN);
     // lv_obj_set_style_text_font(menu_time_lab, &lv_font_montserrat_26, LV_PART_MAIN);
     lv_label_set_recolor(menu_time_lab, true);                      /*Enable re-coloring by commands in the text*/
-    lv_label_set_text_fmt(menu_time_lab, "#EE781F %02d# #C0C0C0 :# #D8E699 %02d#", hour, minute);
+    lv_label_set_text_fmt(menu_time_lab, "#EE781F %02d# #C0C0C0 :# #AFCA31 %02d#", hour, minute);
 
     ///////////////////////////////////////////////////////
     item_cont = lv_obj_create(parent);
@@ -1472,6 +1472,14 @@ void create7_1(lv_obj_t *parent)
     lv_obj_set_style_border_width(scr7_1_cont, 0, LV_PART_MAIN);
     lv_obj_set_style_pad_all(scr7_1_cont, 0, LV_PART_MAIN);
 
+    lv_obj_t *info = lv_label_create(scr7_1_cont);
+    lv_obj_set_width(info, DISPALY_WIDTH * 0.9);
+    lv_obj_set_style_text_color(info, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
+    lv_obj_set_style_text_font(info, FONT_MONO_BOLD, LV_PART_MAIN);
+    lv_label_set_long_mode(info, LV_LABEL_LONG_WRAP);
+    lv_label_set_text(info, "Turn on the phone's infrared remote control and search for LG TV remote control to control the device");
+    lv_obj_center(info);
+
     lv_obj_t *label = lv_label_create(scr7_1_cont);
     lv_obj_set_style_text_color(label, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
     lv_obj_set_style_text_font(label, FONT_MONO_BOLD, LV_PART_MAIN);
@@ -1540,7 +1548,6 @@ scr_lifecycle_t screen7_2 = {
 #endif
 // --------------------- screen 7.3 --------------------- SD
 #if 1
-
 lv_obj_t *scr7_3_cont;
 
 void entry7_3_anim(lv_obj_t *obj) { entry1_anim(obj); }
@@ -1602,7 +1609,7 @@ void other_list_event(lv_event_t *e)
         {
             case 0: // Infrared
                 scr_mgr_switch(SCREEN7_1_ID, false);
-                prompt_info("  IR underdevelopment", 1000);
+                // prompt_info("  IR underdevelopment", 1000);
                 break;
             case 1: // Microphone
                 scr_mgr_switch(SCREEN7_2_ID, false);

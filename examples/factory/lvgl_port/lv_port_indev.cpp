@@ -19,9 +19,16 @@
  **********************/
 RotaryEncoder encoder(ENCODER_INA, ENCODER_INB, RotaryEncoder::LatchMode::TWO03);
 
+volatile bool indev_encoder_enabled = true;
+volatile bool indev_keypad_enabled = true;
+
 /**********************
  *  STATIC PROTOTYPES
  **********************/
+
+static void keypad_init(void);
+static void keypad_read(lv_indev_drv_t * indev_drv, lv_indev_data_t * data);
+static uint32_t keypad_get_key(void);
 
 static void encoder_init(void);
 static void encoder_read(lv_indev_drv_t * indev_drv, lv_indev_data_t * data);
@@ -30,6 +37,7 @@ static void encoder_handler(void);
 /**********************
  *  STATIC VARIABLES
  **********************/
+lv_indev_t * indev_keypad;
 lv_indev_t * indev_encoder;
 
 static int32_t encoder_diff;
@@ -46,6 +54,8 @@ static lv_indev_state_t encoder_state;
 void lv_port_indev_init(void)
 {
     static lv_indev_drv_t indev_drv;
+    static lv_indev_drv_t indev_drv_keypad;
+
 
     /*------------------
      * Encoder
@@ -67,15 +77,99 @@ void lv_port_indev_init(void)
      *add objects to the group with `lv_group_add_obj(group, obj)`
      *and assign this input device to group to navigate in it:
      *`lv_indev_set_group(indev_encoder, group);`*/
+
+    /*------------------
+     * Keypad
+     * -----------------*/
+
+    /*Initialize your keypad or keyboard if you have*/
+    keypad_init();
+
+    /*Register a keypad input device*/
+    lv_indev_drv_init(&indev_drv_keypad);
+    indev_drv_keypad.type = LV_INDEV_TYPE_KEYPAD;
+    indev_drv_keypad.read_cb = keypad_read;
+    indev_keypad = lv_indev_drv_register(&indev_drv_keypad);
+    // lv_group_t *keypad_group = lv_group_create();
+    lv_indev_set_group(indev_keypad, group);
+
+    /*Later you should create group(s) with `lv_group_t * group = lv_group_create()`,
+     *add objects to the group with `lv_group_add_obj(group, obj)`
+     *and assign this input device to group to navigate in it:
+     *`lv_indev_set_group(indev_keypad, group);`*/
+
 }
 
 /**********************
  *   STATIC FUNCTIONS
  **********************/
+
+/*------------------
+ * Keypad
+ * -----------------*/
+extern uint16_t infared_get_cmd(void);
+
+/*Initialize your keypad*/
+static void keypad_init(void)
+{
+    /*Your code comes here*/
+}
+
+/*Will be called by the library to read the mouse*/
+static void keypad_read(lv_indev_drv_t * indev_drv, lv_indev_data_t * data)
+{
+    static uint32_t last_key = 0;
+
+    if(indev_keypad_enabled == false) {
+        return;
+    }
+
+    /*Get the current x and y coordinates*/
+    // mouse_get_xy(&data->point.x, &data->point.y);
+
+    /*Get whether the a key is pressed and save the pressed key*/
+    uint32_t act_key = infared_get_cmd();
+    if(act_key != 0) {
+        data->state = LV_INDEV_STATE_PR;
+
+        /*Translate the keys to LVGL control characters according to your key definitions*/
+        switch(act_key) {
+            case 0x41:
+                act_key = LV_KEY_NEXT;
+                break;
+            case 0x40:
+                act_key = LV_KEY_PREV;
+                break;
+            case 0x7:
+                act_key = LV_KEY_LEFT;
+                break;
+            case 0x6:
+                act_key = LV_KEY_RIGHT;
+                break;
+            case 0x44:
+                act_key = LV_KEY_ENTER;
+                break;
+        }
+
+        last_key = act_key;
+    }
+    else {
+        data->state = LV_INDEV_STATE_REL;
+    }
+
+    data->key = last_key;
+}
+
+/*Get the currently being pressed key.  0 if no key is pressed*/
+static uint32_t keypad_get_key(void)
+{
+    /*Your code comes here*/
+
+    return 0;
+}
 /*------------------
  * Encoder
  * -----------------*/
-volatile bool indev_encoder_enabled = true;
 int indev_encoder_pos = 0;
 /*Initialize your keypad*/
 static void encoder_init(void)
@@ -120,6 +214,7 @@ static void encoder_handler(void)
 void lv_port_indev_enabled(bool en)
 {
     indev_encoder_enabled = en;
+    indev_keypad_enabled = en;
 }
 
 int lv_port_indev_get_pos(void)

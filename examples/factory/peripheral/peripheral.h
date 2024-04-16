@@ -47,6 +47,11 @@ void battery_task(void *param);
 
 /**------------------------------ MIC ------------------------------------**/
 
+/**------------------------------- IR ------------------------------------**/
+void infared_init();
+uint16_t infared_get_cmd(void);
+void infared_task(void *param);
+
 /**----------------------------- WIFI ------------------------------------**/
 #include <WiFi.h>
 #define WIFI_SSID_MAX_LEN 30

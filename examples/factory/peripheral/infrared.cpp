@@ -68,12 +68,31 @@
 /*
  * This include defines the actual pin number for pins like IR_RECEIVE_PIN, IR_SEND_PIN for many different boards and architectures
  */
-#include "PinDefinitionsAndMore.h"
+// #include "PinDefinitionsAndMore.h"
+#if !defined (FLASHEND)
+#define FLASHEND 0xFFFF // Dummy value for platforms where FLASHEND is not defined
+#endif
+#if !defined (RAMEND)
+#define RAMEND 0xFFFF // Dummy value for platforms where RAMEND is not defined
+#endif
+#if !defined (RAMSIZE)
+#define RAMSIZE 0xFFFF // Dummy value for platforms where RAMSIZE is not defined
+#endif
+
+/*
+ * Helper macro for getting a macro definition as string
+ */
+#if !defined(STR_HELPER)
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+#endif
+
+
 #include <IRremote.hpp> // include the library
 
-void setup() {
-    Serial.begin(115200);
+uint16_t infared_cmd = 0;
 
+void infared_init() {
     pinMode(BOARD_IR_EN, OUTPUT);
     digitalWrite(BOARD_IR_EN, HIGH);
     
@@ -81,46 +100,67 @@ void setup() {
     Serial.println(F("START " __FILE__ " from " __DATE__ "\r\nUsing library version " VERSION_IRREMOTE));
 
     // Start the receiver and if not 3. parameter specified, take LED_BUILTIN pin from the internal boards definition as default feedback LED
-    IrReceiver.begin(IR_RECEIVE_PIN, ENABLE_LED_FEEDBACK);
+    IrReceiver.begin(BOARD_IR_RX, ENABLE_LED_FEEDBACK);
 
     Serial.print(F("Ready to receive IR signals of protocols: "));
     printActiveIRProtocols(&Serial);
-    Serial.println(F("at pin " STR(IR_RECEIVE_PIN)));
+    Serial.println(F("at pin " STR(BOARD_IR_RX)));
 }
 
-void loop() {
-    /*
-     * Check if received data is available and if yes, try to decode it.
-     * Decoded result is in the IrReceiver.decodedIRData structure.
-     *
-     * E.g. command is in IrReceiver.decodedIRData.command
-     * address is in command is in IrReceiver.decodedIRData.address
-     * and up to 32 bit raw data in IrReceiver.decodedIRData.decodedRawData
-     */
-    if (IrReceiver.decode()) {
+uint16_t infared_get_cmd(void)
+{
+    uint16_t cmd = 0;
 
-        /*
-         * Print a summary of received data
-         */
-        if (IrReceiver.decodedIRData.protocol == UNKNOWN) {
-            Serial.println(F("Received noise or an unknown (or not yet enabled) protocol"));
-            // We have an unknown protocol here, print extended info
-            IrReceiver.printIRResultRawFormatted(&Serial, true);
-            IrReceiver.resume(); // Do it here, to preserve raw data for printing with printIRResultRawFormatted()
-        } else {
-            IrReceiver.resume(); // Early enable receiving of the next IR frame
-            IrReceiver.printIRResultShort(&Serial);
-            IrReceiver.printIRSendUsage(&Serial);
-        }
-        Serial.println();
+    if(infared_cmd != 0) {
+        cmd = infared_cmd;
+        infared_cmd = 0;
+    }
 
-        /*
-         * Finally, check the received data and perform actions according to the received command
-         */
-        if (IrReceiver.decodedIRData.command == 0x10) {
-            // do something
-        } else if (IrReceiver.decodedIRData.command == 0x11) {
-            // do something else
+    return cmd; 
+}
+
+void infared_task(void *param)
+{
+    int enter_cnt = 0;
+
+    while (1)
+    {
+        if (IrReceiver.decode()) {
+
+            /*
+            * Print a summary of received data
+            */
+            if (IrReceiver.decodedIRData.protocol == UNKNOWN) {
+                Serial.println(F("Received noise or an unknown (or not yet enabled) protocol"));
+                // We have an unknown protocol here, print extended info
+                IrReceiver.printIRResultRawFormatted(&Serial, true);
+                IrReceiver.resume(); // Do it here, to preserve raw data for printing with printIRResultRawFormatted()
+            } else {
+                IrReceiver.resume(); // Early enable receiving of the next IR frame
+                IrReceiver.printIRResultShort(&Serial);
+                IrReceiver.printIRSendUsage(&Serial);
+            }
+            Serial.println();
+
+            /*
+            * Finally, check the received data and perform actions according to the received command
+            */
+            if (IrReceiver.decodedIRData.command == 0x10) {
+                // do something
+            } else if (IrReceiver.decodedIRData.command == 0x11) {
+                // do something else
+            }
+
+            if (IrReceiver.decodedIRData.command == 0x44) {
+                enter_cnt++;
+                if(enter_cnt == 2) {
+                    enter_cnt = 0;
+                    infared_cmd = IrReceiver.decodedIRData.command;
+                }
+            } else {
+                infared_cmd = IrReceiver.decodedIRData.command;
+            }
         }
+        delay(20);
     }
 }
