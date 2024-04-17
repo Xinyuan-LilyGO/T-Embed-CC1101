@@ -58,7 +58,6 @@ void lora_init(void)
         while (true);
     }
 
-    
     if(lora_mode == LORA_MODE_SEND){     // send
         radio.setPacketSentAction(sendSetFlag);
          Serial.print(F("[CC1101] Sending first packet ... "));

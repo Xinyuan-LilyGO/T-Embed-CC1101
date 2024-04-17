@@ -1,4 +1,4 @@
-#include "scr_mrg.h"
+#include "port_scr_mrg.h"
 
 /* 记录所有的屏幕卡片 */ 
 scr_card_t *scr_mgr_head;

@@ -272,6 +272,8 @@ void setup(void)
 
     lora_init(); 
 
+    sd_init();
+
     nfc_init();
 
     ws2812_init();

@@ -26,6 +26,7 @@ void nfc_task(void *param);
 /**------------------------------ LORA -----------------------------------**/
 // CC1101
 #include <RadioLib.h>
+
 #define LORA_MODE_SEND 1
 #define LORA_MODE_RECV 2
 
@@ -51,6 +52,13 @@ void battery_task(void *param);
 void infared_init();
 uint16_t infared_get_cmd(void);
 void infared_task(void *param);
+
+/**------------------------------- SD ------------------------------------**/
+#include "FS.h"
+#include "SD.h"
+#include "SPI.h"
+
+void sd_init(void);
 
 /**----------------------------- WIFI ------------------------------------**/
 #include <WiFi.h>

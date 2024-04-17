@@ -8,7 +8,7 @@
 /*********************
  *      INCLUDES
  *********************/
-#include "lv_port_disp.h"
+#include "port_disp.h"
 #include <stdbool.h>
 
 /*********************

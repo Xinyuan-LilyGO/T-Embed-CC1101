@@ -1,9 +1,9 @@
 
 #pragma once
 #include "lvgl.h"
-#include "lvgl_port/lv_port_disp.h"
-#include "lvgl_port/lv_port_indev.h"
-#include "lvgl_port/scr_mrg.h"
+#include "lvgl_port/port_disp.h"
+#include "lvgl_port/port_indev.h"
+#include "lvgl_port/port_scr_mrg.h"
 #include "assets/assets.h"
 #include "peripheral/peripheral.h"
 

@@ -25,6 +25,9 @@
 #include "utilities.h"
 
 #include "Arduino.h"
+#include "FS.h"
+#include "SD.h"
+#include "SPI.h"
 
 #define EXAMPLE_REC_TIME    15       // Recording time
 #define EXAMPLE_I2S_CH      0        // I2S Channel Number

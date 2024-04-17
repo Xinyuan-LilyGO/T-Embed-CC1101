@@ -6,7 +6,7 @@
 /*********************
  *      INCLUDES
  *********************/
-#include "lv_port_indev.h"
+#include "port_indev.h"
 #include "lvgl.h"
 #include "utilities.h"
 

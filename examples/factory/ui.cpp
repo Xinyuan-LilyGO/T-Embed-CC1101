@@ -1697,7 +1697,6 @@ void ui_entry(void)
     lv_port_indev_init();
 
     scr_mgr_init();
-    // scr_mgr_set_bg_color(COLOR_BG);
     ui_theme_setting(setting_theme);
     scr_mgr_register(SCREEN0_ID, &screen0);     // menu
     scr_mgr_register(SCREEN1_ID, &screen1);     // ws2812
