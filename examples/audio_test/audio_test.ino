@@ -1,33 +1,10 @@
-/* I2S Digital Microphone Recording Example
 
-   This example code is in the Public Domain (or CC0 licensed, at your option.)
-
-   Unless required by applicable law or agreed to in writing, this
-   software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY KIND, either express or implied.
-*/
-
-#include <stdio.h>
-#include <string.h>
-#include <math.h>
-#include <sys/unistd.h>
-#include <sys/stat.h>
-#include "esp_log.h"
-#include "esp_err.h"
-#include "esp_system.h"
-#include "esp_vfs_fat.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "driver/i2s.h"
-#include "driver/gpio.h"
-#include "driver/spi_common.h"
-#include "sdmmc_cmd.h"
-#include "utilities.h"
-
-#include "Arduino.h"
 #include "FS.h"
 #include "SD.h"
 #include "SPI.h"
+#include <sys/stat.h>
+#include "driver/i2s.h"
+#include "utilities.h"
 
 #define EXAMPLE_REC_TIME    15       // Recording time
 #define EXAMPLE_I2S_CH      0        // I2S Channel Number
@@ -40,62 +17,16 @@
 #define SAMPLE_SIZE         (EXAMPLE_BIT_SAMPLE * 1024)
 #define BYTE_RATE           (EXAMPLE_SAMPLE_RATE * (EXAMPLE_BIT_SAMPLE / 8)) * NUM_CHANNELS
 
-// When testing SD and SPI modes, keep in mind that once the card has been
-// initialized in SPI mode, it can not be reinitialized in SD mode without
-// toggling power to the card.
-sdmmc_host_t host = SDSPI_HOST_DEFAULT();
-sdmmc_card_t* card;
-
 static int16_t i2s_readraw_buff[SAMPLE_SIZE];
 size_t bytes_read;
 const int WAVE_HEADER_SIZE = 44;
 
-void mount_sdcard(void)
-{
-    esp_err_t ret;
-    // Options for mounting the filesystem.
-    // If format_if_mount_failed is set to true, SD card will be partitioned and
-    // formatted in case when mounting fails.
-    esp_vfs_fat_sdmmc_mount_config_t mount_config = {
-        .format_if_mount_failed = true,
-        .max_files = 5,
-        .allocation_unit_size = 8 * 1024,
-    };
-    Serial.println("Initializing SD card");
+#define REASSIGN_PINS
+int sck =  BOARD_SD_SCK;
+int miso = BOARD_SPI_MISO;
+int mosi = BOARD_SPI_MOSI;
+int cs =   BOARD_SD_CS;
 
-    spi_bus_config_t buf_cfg = {
-        .mosi_io_num = BOARD_SD_MOSI,
-        .miso_io_num = BOARD_SD_MISO,
-        .sclk_io_num = BOARD_SD_SCK,
-        .quadwp_io_num = -1,
-        .quadhd_io_num = -1,
-        .max_transfer_sz = 4000,
-    };
-    ret = spi_bus_initialize((spi_host_device_t)host.slot, &buf_cfg, SPI_DMA_CHAN);
-    if(ret != ESP_OK) {
-        Serial.println("Failed to initialize bus.");
-        return;
-    }
-
-    // This initializes the slot without card detect (CD) and write protect (WP) signals.
-    // Modify slot_config.gpio_cd and slot_config.gpio_wp if your board has these signals.
-    sdspi_device_config_t slot_config = SDSPI_DEVICE_CONFIG_DEFAULT();
-    slot_config.gpio_cs = (gpio_num_t)BOARD_SD_CS;
-    slot_config.host_id = (spi_host_device_t)host.slot;
-    ret = esp_vfs_fat_sdspi_mount(SD_MOUNT_POINT, &host, &slot_config, &mount_config, &card);
-
-    if (ret != ESP_OK) {
-        if (ret == ESP_FAIL) {
-            Serial.println("Failed to mount filesystem.");
-        } else {
-            Serial.printf("Failed to initialize the card (%s). "
-                "Make sure SD card lines have pull-up resistors in place.\n", esp_err_to_name(ret));
-        }
-        return;
-    }
-    // Card has been initialized, print its properties
-    sdmmc_card_print_info(stdout, card);
-}
 
 void generate_wav_header(char* wav_header, uint32_t wav_size, uint32_t sample_rate)
 {
@@ -133,46 +64,30 @@ void record_wav(uint32_t rec_time)
     uint32_t flash_rec_time = BYTE_RATE * rec_time;
     generate_wav_header(wav_header_fmt, flash_rec_time, EXAMPLE_SAMPLE_RATE);
 
-    // First check if file exists before creating a new file.
-    struct stat st;
-    if(stat(SD_MOUNT_POINT"/record.wav", &st) == 0) {
-        // Delete it if it exists
-        unlink(SD_MOUNT_POINT"/record.wav");
-    }
-
     // Create new WAV file
-    FILE *f = fopen(SD_MOUNT_POINT"/record.wav", "a");
-    if(f == NULL) {
+    File file = SD.open("/record.wav", FILE_WRITE);
+    if(!file){
         Serial.println("Failed to open file for writing");
         return;
     }
 
-    // Write the header to the WAV file
-    fwrite(wav_header_fmt, 1, WAVE_HEADER_SIZE, f);
+    file.write((uint8_t *)wav_header_fmt, WAVE_HEADER_SIZE);
 
     // Start recording
     while(flash_wr_size < flash_rec_time) {
         // Read the RAW samples from the microphone
         i2s_read((i2s_port_t)EXAMPLE_I2S_CH, (char *)i2s_readraw_buff, SAMPLE_SIZE, &bytes_read, 100);
         // Write the samples to the WAV file
-        fwrite(i2s_readraw_buff, 1, bytes_read, f);
+        file.write((uint8_t *)i2s_readraw_buff, bytes_read);
         flash_wr_size += bytes_read;
     }
-
     Serial.println("Recording done!");
-    fclose(f);
+    file.close();
     Serial.println("File written on SDCard");
-
-    // All done, unmount partition and disable SPI peripheral
-    esp_vfs_fat_sdcard_unmount(SD_MOUNT_POINT, card);
-   Serial.println("Card unmounted");
-    // Deinitialize the bus after all devices are removed
-    spi_bus_free((spi_host_device_t)host.slot);
-}   
+}
 
 void init_microphone(void)
 {
-    // Set the I2S configuration as PDM and 16bits per sample
     i2s_config_t i2s_config = {
         .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_RX | I2S_MODE_PDM),
         .sample_rate = EXAMPLE_SAMPLE_RATE,
@@ -200,14 +115,39 @@ void init_microphone(void)
     ESP_ERROR_CHECK( i2s_set_clk((i2s_port_t )EXAMPLE_I2S_CH, EXAMPLE_SAMPLE_RATE, I2S_BITS_PER_SAMPLE_16BIT, I2S_CHANNEL_MONO) );
 }
 
-void setup(void)
-{
+void setup(){
     Serial.begin(115200);
-    Serial.print("setup() running core ID: ");
-    Serial.println(xPortGetCoreID());
-    Serial.println("PDM microphone recording Example start");
-    // Mount the SDCard for recording the audio file
-    mount_sdcard();
+    while(!Serial) { delay (10); }
+
+#ifdef REASSIGN_PINS
+    SPI.begin(sck, miso, mosi, cs);
+#endif
+    //if(!SD.begin(cs)){ //Change to this function to manually change CS pin
+    if(!SD.begin(cs)){
+        Serial.println("Card Mount Failed");
+        return;
+    }
+    uint8_t cardType = SD.cardType();
+
+    if(cardType == CARD_NONE){
+        Serial.println("No SD card attached");
+        return;
+    }
+
+    Serial.print("SD Card Type: ");
+    if(cardType == CARD_MMC){
+        Serial.println("MMC");
+    } else if(cardType == CARD_SD){
+        Serial.println("SDSC");
+    } else if(cardType == CARD_SDHC){
+        Serial.println("SDHC");
+    } else {
+        Serial.println("UNKNOWN");
+    }
+
+    uint64_t cardSize = SD.cardSize() / (1024 * 1024);
+    Serial.printf("SD Card Size: %lluMB\n", cardSize);
+
     // Init the PDM digital microphone
     init_microphone();
     Serial.printf("Starting recording for %d seconds!\n", EXAMPLE_REC_TIME);
@@ -217,7 +157,6 @@ void setup(void)
     ESP_ERROR_CHECK( i2s_driver_uninstall((i2s_port_t)EXAMPLE_I2S_CH) );
 }
 
-void loop(void)
-{
+void loop(){
 
 }

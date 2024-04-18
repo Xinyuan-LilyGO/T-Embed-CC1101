@@ -59,6 +59,9 @@ void infared_task(void *param);
 #include "SPI.h"
 
 void sd_init(void);
+bool sd_is_valid(void);
+uint32_t sd_get_sum_Mbyte(void);
+uint32_t sd_get_used_Mbyte(void);
 
 /**----------------------------- WIFI ------------------------------------**/
 #include <WiFi.h>

@@ -1524,6 +1524,8 @@ void create7_2(lv_obj_t *parent)
     lv_obj_set_style_border_width(scr7_2_cont, 0, LV_PART_MAIN);
     lv_obj_set_style_pad_all(scr7_2_cont, 0, LV_PART_MAIN);
 
+    
+
     lv_obj_t *label = lv_label_create(scr7_2_cont);
     lv_obj_set_style_text_color(label, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
     lv_obj_set_style_text_font(label, FONT_MONO_BOLD, LV_PART_MAIN);
@@ -1549,6 +1551,10 @@ scr_lifecycle_t screen7_2 = {
 // --------------------- screen 7.3 --------------------- SD
 #if 1
 lv_obj_t *scr7_3_cont;
+lv_obj_t *sd_err_info;
+lv_obj_t *sd_slider;
+lv_obj_t *sd_total;
+lv_obj_t *sd_used;
 
 void entry7_3_anim(lv_obj_t *obj) { entry1_anim(obj); }
 void exit7_3_anim(int user_data, lv_obj_t *obj) { exit1_anim(user_data, obj); }
@@ -1569,6 +1575,48 @@ void create7_3(lv_obj_t *parent)
     lv_obj_set_style_border_width(scr7_3_cont, 0, LV_PART_MAIN);
     lv_obj_set_style_pad_all(scr7_3_cont, 0, LV_PART_MAIN);
 
+    sd_err_info = lv_label_create(scr7_3_cont);
+    lv_obj_set_width(sd_err_info, DISPALY_WIDTH * 0.9);
+    lv_obj_set_style_text_color(sd_err_info, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
+    lv_obj_set_style_text_font(sd_err_info, FONT_MONO_BOLD, LV_PART_MAIN);
+    lv_label_set_long_mode(sd_err_info, LV_LABEL_LONG_WRAP);
+
+    static lv_style_t style_bg;
+    static lv_style_t style_indic;
+    lv_style_init(&style_bg);
+    lv_style_set_border_color(&style_bg, lv_color_hex(COLOR_FOCUS_ON));
+    lv_style_set_border_width(&style_bg, 2);
+    lv_style_set_pad_all(&style_bg, 6); /*To make the indicator smaller*/
+    lv_style_set_radius(&style_bg, 6);
+    lv_style_set_anim_time(&style_bg, 500);
+    lv_style_init(&style_indic);
+    lv_style_set_bg_opa(&style_indic, LV_OPA_COVER);
+    lv_style_set_bg_color(&style_indic, lv_color_hex(COLOR_FOCUS_ON));
+    lv_style_set_radius(&style_indic, 3);
+
+    sd_slider = lv_bar_create(scr7_3_cont);
+    lv_obj_remove_style_all(sd_slider);  /*To have a clean start*/
+    lv_obj_add_style(sd_slider, &style_bg, 0);
+    lv_obj_add_style(sd_slider, &style_indic, LV_PART_INDICATOR);
+    lv_obj_set_size(sd_slider, DISPALY_WIDTH * 0.9, 20);
+    lv_obj_center(sd_slider);
+
+    sd_total = lv_label_create(scr7_3_cont);
+    lv_obj_set_width(sd_total, DISPALY_WIDTH * 0.4);
+    lv_obj_set_style_text_color(sd_total, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
+    lv_obj_set_style_text_font(sd_total, FONT_MONO_BOLD, LV_PART_MAIN);
+    lv_label_set_long_mode(sd_total, LV_LABEL_LONG_WRAP);
+    lv_obj_set_style_text_align(sd_total, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
+    lv_obj_align_to(sd_total, sd_slider, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 5);
+
+    sd_used = lv_label_create(scr7_3_cont);
+    lv_obj_set_width(sd_used, DISPALY_WIDTH * 0.4);
+    lv_obj_set_style_text_color(sd_used, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
+    lv_obj_set_style_text_font(sd_used, FONT_MONO_BOLD, LV_PART_MAIN);
+    lv_label_set_long_mode(sd_used, LV_LABEL_LONG_WRAP);
+    lv_obj_set_style_text_align(sd_used, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
+    lv_obj_align_to(sd_used, sd_slider, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 5);
+
     lv_obj_t *label = lv_label_create(scr7_3_cont);
     lv_obj_set_style_text_color(label, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
     lv_obj_set_style_text_font(label, FONT_MONO_BOLD, LV_PART_MAIN);
@@ -1579,7 +1627,32 @@ void create7_3(lv_obj_t *parent)
     scr_back_btn_create(scr7_3_cont, scr7_3_btn_event_cb);
 }
 void entry7_3(void) {
+    uint32_t total = sd_get_sum_Mbyte();
+    uint32_t used = sd_get_used_Mbyte();
+    uint32_t tmp = 1;
+
     entry7_3_anim(scr7_3_cont);
+
+    if(sd_is_valid()) {
+        lv_label_set_text(sd_err_info, "SD type: MMC");
+        lv_obj_align(sd_err_info, LV_ALIGN_TOP_LEFT, 20, 50);
+        lv_label_set_text_fmt(sd_total, "%dM total", total);
+        lv_label_set_text_fmt(sd_used, "%dM used", used);
+
+        if(used > total / 100) {
+            tmp = lv_map(used, 0, total, 0, 100);
+        }
+        lv_bar_set_value(sd_slider, tmp, LV_ANIM_ON);
+
+        lv_obj_add_flag(sd_err_info, LV_OBJ_FLAG_HIDDEN);
+    } else {
+        lv_label_set_text(sd_err_info, "No sd card is detected. Insert the sd card and restart the device.");
+        lv_obj_center(sd_err_info);
+
+        lv_obj_add_flag(sd_slider, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(sd_total, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(sd_used, LV_OBJ_FLAG_HIDDEN);
+    }
 }
 void exit7_3(void) {}
 void destroy7_3(void) {}
@@ -1613,11 +1686,11 @@ void other_list_event(lv_event_t *e)
                 break;
             case 1: // Microphone
                 scr_mgr_switch(SCREEN7_2_ID, false);
-                prompt_info("  MIC underdevelopment", 1000);
+                // prompt_info("  MIC underdevelopment", 1000);
                 break;
             case 2: // TF Card
                 scr_mgr_switch(SCREEN7_3_ID, false);
-                prompt_info("  SD underdevelopment", 1000);
+                // prompt_info("  SD underdevelopment", 1000);
                 break;
             default:
                 break;

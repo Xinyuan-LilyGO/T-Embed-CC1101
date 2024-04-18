@@ -28,46 +28,18 @@ The default GPIO configuration is the following:
 
 |Mic        | GPIO   |
 |:---------:|:------:|
-| PDM Clock | GPIO4 |
-| PDM Data  | GPIO5 |
+| PDM Clock | GPIO39 |
+| PDM Data  | GPIO42 |
 
 The SDCard is connected using SPI peripheral.
 
 | SPI  | SDCard |  GPIO  |
 |:----:|:------:|:------:|
-| MISO | DAT0   | GPIO17 |
-| MOSI | CMD    | GPIO16 |
-| SCLK | CLK    | GPIO18 |
-| CS   | CD     | GPIO19 |
+| MISO | DAT0   | GPIO10 |
+| MOSI | CMD    | GPIO9  |
+| SCLK | CLK    | GPIO11 |
+| CS   | CD     | GPIO13 |
 
-To change the GPIO configuration, see the `Example Configuration` from the menuconfig.
-
-### Configure the Project
-
-```
-idf.py menuconfig
-```
-
-In the `Example Configuration` menu:
-
-* Use `SDCard Configuration` to assign the SPI peripheral GPIOs.
-* Use `I2S MEMS MIC Configuration` to assign the I2S peripheral GPIOs and audio settings.
-
-Optional: If you need, change the other options according to your requirements.
-
-### Build and Flash
-
-Build the project and flash it to the board, then run monitor tool to view serial output:
-
-```
-idf.py -p PORT flash monitor
-```
-
-(To exit the serial monitor, type ``Ctrl-]``.)
-
-See the Getting Started Guide for full steps to configure and use ESP-IDF to build projects.
-
-* [ESP-IDF Getting Started Guide on ESP32](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/get-started/index.html)
 
 ## Example Output
 
@@ -92,11 +64,3 @@ I (60471) pdm_rec_example: File written on SDCard
 I (60471) pdm_rec_example: Card unmounted
 ```
 
-## Troubleshooting
-
-* Program upload failure
-
-    * Hardware connection is not correct: run `idf.py -p PORT monitor`, and reboot your board to see if there are any output logs.
-    * The baud rate for downloading is too high: lower your baud rate in the `menuconfig` menu, and try again.
-
-For any technical queries, please open an [issue](https://github.com/espressif/esp-idf/issues) on GitHub. We will get back to you soon.
