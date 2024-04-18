@@ -16,6 +16,8 @@ uint32_t COLOR_PROMPT_TXT = 0x1e1e00;  // 提示弹窗的文本色
 //************************************[ Other fun ]******************************************
 #if 1
 bool prompt_is_busy = false;
+lv_timer_t *prompt_time;
+lv_obj_t *prompt_label;
 
 void prompt_label_timer(lv_timer_t *t)
 {
@@ -24,23 +26,34 @@ void prompt_label_timer(lv_timer_t *t)
     prompt_is_busy = false;
 }
 
+void prompt_create(const char *str, uint16_t time)
+{
+    prompt_label = lv_label_create(lv_layer_top());
+    lv_obj_set_width(prompt_label, DISPALY_WIDTH * 0.8);
+    lv_label_set_text(prompt_label, str);
+    lv_label_set_long_mode(prompt_label, LV_LABEL_LONG_WRAP);
+    lv_obj_set_style_radius(prompt_label, 5, LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(prompt_label, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_pad_hor(prompt_label, 3, LV_PART_MAIN);
+    lv_obj_set_style_text_font(prompt_label, FONT_MONO_BOLD, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(prompt_label, lv_color_hex(COLOR_PROMPT_BG), LV_PART_MAIN);
+    lv_obj_set_style_text_color(prompt_label, lv_color_hex(COLOR_PROMPT_TXT), LV_PART_MAIN);
+    lv_obj_set_style_text_align(prompt_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+    lv_obj_center(prompt_label);
+    prompt_time = lv_timer_create(prompt_label_timer, time, prompt_label);
+    prompt_is_busy = true;
+}
+
 void prompt_info(const char *str, uint16_t time)
 {
     if(prompt_is_busy == false){
-        lv_obj_t *label = lv_label_create(lv_layer_top());
-        lv_obj_set_width(label, DISPALY_WIDTH * 0.8);
-        lv_label_set_text(label, str);
-        lv_label_set_long_mode(label, LV_LABEL_LONG_WRAP);
-        lv_obj_set_style_radius(label, 5, LV_PART_MAIN);
-        lv_obj_set_style_bg_opa(label, LV_OPA_COVER, LV_PART_MAIN);
-        lv_obj_set_style_pad_hor(label, 3, LV_PART_MAIN);
-        lv_obj_set_style_pad_ver(label, 3, LV_PART_MAIN);
-        lv_obj_set_style_text_font(label, FONT_MONO_BOLD, LV_PART_MAIN);
-        lv_obj_set_style_bg_color(label, lv_color_hex(COLOR_PROMPT_BG), LV_PART_MAIN);
-        lv_obj_set_style_text_color(label, lv_color_hex(COLOR_PROMPT_TXT), LV_PART_MAIN);
-        lv_obj_center(label);
-        lv_timer_create(prompt_label_timer, time, label);
-        prompt_is_busy = true;
+        prompt_create(str, time);
+    } else {
+        lv_obj_del(prompt_label);
+        lv_timer_del(prompt_time);
+        prompt_is_busy = false;
+
+        prompt_create(str, time);
     }
 }
 
@@ -1234,7 +1247,7 @@ void wifi_info_label_create(void);
 void wifi_help_event(lv_event_t *e)
 {
     if(e->code == LV_EVENT_CLICKED) {
-        prompt_info(" You need to download 'EspTouch' to configure WiFi.", 3000);
+        prompt_info(" You need to download 'EspTouch' to configure WiFi.", 1000);
     }
 }
 
@@ -1248,7 +1261,7 @@ static void wifi_config_event_handler(lv_event_t *e)
     }
 
     if(wifi_is_connect){
-        prompt_info(" WiFi is connected do not need to configure WiFi.", 2000);
+        prompt_info(" WiFi is connected do not need to configure WiFi.", 1000);
         return;
     }
 
@@ -1505,8 +1518,53 @@ scr_lifecycle_t screen7_1 = {
 // --------------------- screen 7.2 --------------------- MIC
 #if 1
 lv_obj_t *scr7_2_cont;
+lv_obj_t *mic_btn;
+
+extern bool recode_start;
+bool recode_sta = false;
+
+int test_cnt = 0;
+
 void entry7_2_anim(lv_obj_t *obj) { entry1_anim(obj); }
 void exit7_2_anim(int user_data, lv_obj_t *obj) { exit1_anim(user_data, obj); }
+
+void mic_start_recode_event(lv_event_t *e)
+{
+    if(e->code == LV_EVENT_VALUE_CHANGED) {
+        if(recode_sta == false) {
+            recode_sta = true;
+            
+            if(sd_is_valid()) {
+               prompt_info("Start recording! During 10 seconds of recording, it is normal for the screen to jam.", 1000);
+                mic_recode_start(10);
+                // Create new WAV file
+                // char buf[32]={0};
+                // snprintf(buf, 32, "/test%02d.wav", test_cnt);
+                // test_cnt++;
+                // Serial.printf("file: %s\n", buf);
+
+                // File file = SD.open(buf, FILE_APPEND);
+                // if(!file){
+                //     Serial.println("- failed to open file for writing");
+                //     return;
+                // }
+                // if(file.print("message")){
+                //     Serial.println("- file written");
+                // } else {
+                //     Serial.println("- write failed");
+                // }
+                // file.close();
+
+                 
+            } else {
+                prompt_info("No fond SD card!", 1000);
+            }
+        } else {
+            recode_sta = false;
+            prompt_info("Stop recording", 1000);
+        }
+    }
+}
 
 static void scr7_2_btn_event_cb(lv_event_t * e)
 {
@@ -1524,7 +1582,22 @@ void create7_2(lv_obj_t *parent)
     lv_obj_set_style_border_width(scr7_2_cont, 0, LV_PART_MAIN);
     lv_obj_set_style_pad_all(scr7_2_cont, 0, LV_PART_MAIN);
 
-    
+    mic_btn = lv_btn_create(scr7_2_cont);
+    lv_obj_set_size(mic_btn, 100, 40);
+    lv_obj_set_style_border_width(mic_btn, 0, LV_PART_MAIN);
+    lv_obj_set_style_shadow_width(mic_btn, 0, LV_PART_MAIN);
+    lv_obj_remove_style(mic_btn, NULL, LV_STATE_FOCUS_KEY);
+    lv_obj_set_style_outline_pad(mic_btn, 2, LV_STATE_FOCUS_KEY);
+    lv_obj_set_style_outline_width(mic_btn, 2, LV_STATE_FOCUS_KEY);
+    lv_obj_set_style_outline_color(mic_btn, lv_color_hex(COLOR_FOCUS_ON), LV_STATE_FOCUS_KEY);
+    lv_obj_align(mic_btn, LV_ALIGN_BOTTOM_RIGHT, -20 , -40);
+    lv_obj_t *mic_lab = lv_label_create(mic_btn);
+    lv_obj_center(mic_lab);
+    lv_obj_set_style_text_color(mic_lab, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
+    lv_obj_set_style_text_font(mic_lab, FONT_MONO_BOLD, LV_PART_MAIN);
+    lv_label_set_text(mic_lab, "start");
+    lv_obj_add_flag(mic_btn, LV_OBJ_FLAG_CHECKABLE);
+    lv_obj_add_event_cb(mic_btn, mic_start_recode_event, LV_EVENT_VALUE_CHANGED, NULL);
 
     lv_obj_t *label = lv_label_create(scr7_2_cont);
     lv_obj_set_style_text_color(label, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);

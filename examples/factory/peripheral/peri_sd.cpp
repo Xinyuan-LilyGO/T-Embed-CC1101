@@ -6,6 +6,9 @@ uint32_t sd_used_Mbyte = 0;
 
 void sd_init(void)
 {
+    SPI.end();
+    SPI.begin(BOARD_SPI_SCK, BOARD_SPI_MISO, BOARD_SPI_MOSI); 
+
     if(!SD.begin(BOARD_SD_CS)){
         Serial.println("Card Mount Failed");
         return;

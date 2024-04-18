@@ -2,9 +2,11 @@
 #include "utilities.h"
 #include <XPowersLib.h>
 #include "ui.h"
+#include "TFT_eSPI.h"
 /*********************************************************************************
  *                               DEFINE
  *********************************************************************************/
+#define FORMAT_SPIFFS_IF_FAILED true
 
 #define NFC_PRIORITY     (configMAX_PRIORITIES - 1)
 #define LORA_PRIORITY    (configMAX_PRIORITIES - 2)
@@ -30,6 +32,7 @@ TaskHandle_t lora_handle;
 TaskHandle_t ws2812_handle;
 TaskHandle_t battery_handle;
 TaskHandle_t infared_handle;
+TaskHandle_t mic_handle;
 
 // wifi
 // char wifi_ssid[WIFI_SSID_MAX_LEN] = "xinyuandianzi";
@@ -156,6 +159,8 @@ void multi_thread_create(void)
     xTaskCreate(ws2812_task, "ws2812_task", 1024 * 2, NULL, WS2812_PRIORITY, &ws2812_handle);
     xTaskCreate(battery_task, "battery_task", 1024 * 2, NULL, BATTERY_PRIORITY, &battery_handle);
     xTaskCreate(infared_task, "infared_task", 1024 * 2, NULL, INFARED_PRIORITY, &infared_handle);
+
+    // xTaskCreate(mic_task, "mic_task", 1024 * 4, NULL, tskIDLE_PRIORITY + 2, &mic_handle);
 }
 
 void wifi_init(void)
@@ -223,6 +228,8 @@ static void msg_subsribe_event(void * s, lv_msg_t * msg)
 
 void setup(void)
 {
+    pinMode(ENCODER_KEY, INPUT);
+
     Serial.begin(115200);
     Serial.print("setup() running core ID: ");
     Serial.println(xPortGetCoreID());
@@ -259,6 +266,12 @@ void setup(void)
     if (nDevices == 0){
         Serial.println("No I2C devices found");
     }
+
+    // if(!SPIFFS.begin(FORMAT_SPIFFS_IF_FAILED)){
+    //     Serial.println("SPIFFS Mount Failed");
+    //     return;
+    // }
+
     eeprom_init();
 
     ui_entry(); // init UI and display
@@ -268,15 +281,17 @@ void setup(void)
     wifi_init();
     configTime(8 * 3600, 0, ntpServer1, ntpServer2);
 
-    infared_init();
+    // infared_init();
 
     lora_init(); 
-
-    sd_init();
 
     nfc_init();
 
     ws2812_init();
+
+    mic_init();
+
+    sd_init();
 
     lv_timer_create(msg_send_event, 5000, NULL);
 
@@ -287,7 +302,15 @@ void setup(void)
     lv_msg_subsribe(MSG_UI_THEME_MODE, msg_subsribe_event, NULL);
 }
 
+int file_cnt = 0;
+
 void loop(void)
 {
     lv_timer_handler();
+
+    if(mic_recode_st()) {
+        record_wav(10);
+    }
+
+    delay(1);
 }

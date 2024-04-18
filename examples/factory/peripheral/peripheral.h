@@ -1,5 +1,7 @@
 #pragma once
 #include "../utilities.h"
+#include "FS.h"
+#include "SPIFFS.h"
 
 /**----------------------------- WS2812 ----------------------------------**/
 #include <FastLED.h>
@@ -47,6 +49,12 @@ extern BQ25896 battery_charging;
 void battery_task(void *param);
 
 /**------------------------------ MIC ------------------------------------**/
+void mic_init(void);
+void mic_task(void *param);
+void mic_recode_start(uint32_t rec_time);
+void mic_recode_stop(void);
+bool mic_recode_st(void);
+void record_wav(uint32_t rec_time);
 
 /**------------------------------- IR ------------------------------------**/
 void infared_init();
