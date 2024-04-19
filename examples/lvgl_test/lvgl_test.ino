@@ -5,6 +5,11 @@
 #include "lv_demo_benchmark.h"
 #include "lv_demo_stress.h"
 
+
+/* Uncomment and select one to start testing */
+#define DEMO_BENCHMARK_TEST_EN 1
+// #define DEMO_STRESS_TEST_EN 1
+
 void setup(void)
 {
     Serial.begin(115200);
@@ -20,8 +25,13 @@ void setup(void)
     lv_port_indev_init();
 
     /* Select one to run */ 
-    // lv_demo_benchmark();
+#if (DEMO_BENCHMARK_TEST_EN == 1)
+    lv_demo_benchmark();
+#endif
+
+#if (DEMO_STRESS_TEST_EN == 1)
     lv_demo_stress();
+#endif
 }
 
 void loop(void)

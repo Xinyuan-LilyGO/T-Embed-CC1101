@@ -226,6 +226,40 @@ static void msg_subsribe_event(void * s, lv_msg_t * msg)
     }
 }
 
+
+void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
+    Serial.printf("Listing spiffs directory: %s\n", dirname);
+
+    File root = fs.open(dirname);
+    if(!root){
+        Serial.println("- failed to open directory");
+        return;
+    }
+    if(!root.isDirectory()){
+        Serial.println(" - not a directory");
+        return;
+    }
+
+    File file = root.openNextFile();
+    while(file){
+        if(file.isDirectory()){
+            Serial.print("  DIR : ");
+            Serial.println(file.name());
+            if(levels){
+                listDir(fs, file.path(), levels -1);
+            }
+        } else {
+            Serial.print("  FILE: ");
+            Serial.print(file.name());
+            Serial.print("\tSIZE: ");
+            Serial.println(file.size());
+        }
+        file = root.openNextFile();
+    }
+
+    Serial.println("----------- spiffs end -----------");
+}
+
 void setup(void)
 {
     pinMode(ENCODER_KEY, INPUT);
@@ -267,10 +301,10 @@ void setup(void)
         Serial.println("No I2C devices found");
     }
 
-    // if(!SPIFFS.begin(FORMAT_SPIFFS_IF_FAILED)){
-    //     Serial.println("SPIFFS Mount Failed");
-    //     return;
-    // }
+    if(!SPIFFS.begin(FORMAT_SPIFFS_IF_FAILED)){
+        Serial.println("SPIFFS Mount Failed");
+        return;
+    }
 
     eeprom_init();
 
@@ -281,8 +315,6 @@ void setup(void)
     wifi_init();
     configTime(8 * 3600, 0, ntpServer1, ntpServer2);
 
-    // infared_init();
-
     lora_init(); 
 
     nfc_init();
@@ -292,6 +324,10 @@ void setup(void)
     mic_init();
 
     sd_init();
+
+    listDir(SD, "/", 0);
+
+    infared_init();
 
     lv_timer_create(msg_send_event, 5000, NULL);
 
@@ -311,6 +347,5 @@ void loop(void)
     if(mic_recode_st()) {
         record_wav(10);
     }
-
     delay(1);
 }
