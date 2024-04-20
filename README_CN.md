@@ -1,7 +1,7 @@
 
 <h1 align = "center">🌟T-Embed-PN532🌟</h1>
 
-* [Switch to English](./README_EN.md)
+* [Switch to English](./README.md)
 
 ## :one:Product
 
