@@ -31,7 +31,7 @@ Some examples are provided under the Project example folder, which can run on Pl
 - [x] ws2812_test ：LED light test;
 
 
-## :three: PlatformIO 快速开始
+## :three: PlatformIO Quick Start
 
 1. Install [Visual Studio Code](https://code.visualstudio.com/) and [Python](https://www.python.org/), and clone or download the project;
 2. Search for the `PlatformIO` plugin in the `VisualStudioCode` extension and install it;
@@ -41,7 +41,7 @@ Some examples are provided under the Project example folder, which can run on Pl
 6. Click :ballot_box_with_check: under VScode to compile the project, then plug in USB and select COM under VScode;
 7. Finally, click the :arrow_right:  button to download the program to Flash;
 
-## :four: Arduion 快速开始
+## :four: Arduion Quick Start
 
 :exclamation: :exclamation: :exclamation: <font color="red"> **Notice:**</font>
 PlatformIO is more recommended because it may not be compiled with Arduion. You can refer to **2️⃣-Example** to see which examples are successfully compiled in Arduion environment.
