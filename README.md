@@ -14,16 +14,16 @@
 
 ## :two: Example
 
-Some examples are provided under the Project example folder, which can run on PlatformIO (PIO) and Arduion, but I prefer to use PIO because these examples are developed on PIO, ** All examples can run on PIO **, However, you may encounter compilation errors on Arduion, but don't worry, the author will step up to test the compilation of Arduion environment.
+Some examples are provided under the Project example folder, which can run on PlatformIO (PIO) and Arduion, but I prefer to use PIO because these examples are developed on PIO, **All examples can run on PIO**, However, you may encounter compilation errors on Arduion, but don't worry, the author will step up to test the compilation of Arduion environment.
 
-Examples of compilation in Arduion environment:
+**Examples of compilation in Arduion environment:**
 - [x] audio_test : Record 15 seconds of audio and save it to your SD card.
 - [x] bq25896_test : Battery management test. Print the battery status in the serial port.
 - [x] cc1101_recv_irq ：Wireless reception test, display received messages in the serial port.
 - [x] cc1101_send_irq ：Wireless sending test, display sent messages in the serial port.
 - [x] display_test ：Screen display test;
 - [x] encode_test ：encoder tester
-- [ ] factory ：:exclamation::exclamation::exclamation: Factory programs can currently only be compiled and downloaded on PlatformIO;
+- [ ] factory ： :exclamation: :exclamation: :exclamation: Factory programs can currently only be compiled and downloaded on PlatformIO;
 - [x] infrared_test ：Infrared test. Displays the received infrared information in the serial port.
 - [x] lvgl_test ：lvgl benchmark and stress testing;
 - [x] pn532_test ：NFC test, display the IC card information in the serial port.
@@ -38,16 +38,16 @@ Examples of compilation in Arduion environment:
 3. After the installation is complete, you need to restart `VisualStudioCode`
 4. After opening this project, PlatformIO will automatically download the required tripartite libraries and dependencies, the first time this process is relatively long, please wait patiently;
 5. After all the dependencies are installed, you can open the `platformio.ini` configuration file, uncomment in `example` to select a routine, and then press `ctrl+s` to save the `.ini` configuration file;
-6. Click [:ballot_box_with_check:] under VScode to compile the project, then plug in USB and select COM under VScode;
-7. Finally, click the [:arrow_right:] button to download the program to Flash;
+6. Click :ballot_box_with_check: under VScode to compile the project, then plug in USB and select COM under VScode;
+7. Finally, click the :arrow_right:  button to download the program to Flash;
 
 ## :four: Arduion 快速开始
 
-<font color="red"> **Notice:**</font>
-PlatformIO is more recommended because it may not be compiled with Arduion. You can refer to [example.](#2️⃣-example) to see which examples are successfully compiled in Arduion environment.
+:exclamation: :exclamation: :exclamation: <font color="red"> **Notice:**</font>
+PlatformIO is more recommended because it may not be compiled with Arduion. You can refer to **2️⃣-Example** to see which examples are successfully compiled in Arduion environment.
 
 1. Install [Arduino IDE](https://www.arduino.cc/en/software)
-2. Install the esp32 toolkit, open the Arduion IDE, click on `File->Perferences`, Then `https://espressif.github.io/arduino-esp32/package_esp32_index.json ` paste to the position of the diagram below, then click: ok:, waiting for the toolkit download is complete;
+2. Install the esp32 toolkit, open the Arduion IDE, click on `File->Perferences`, Then `https://espressif.github.io/arduino-esp32/package_esp32_index.json ` paste to the position of the diagram below, then click :ok:, waiting for the toolkit download is complete;
 
 ![alt text](./hardware/image/image.png)
 

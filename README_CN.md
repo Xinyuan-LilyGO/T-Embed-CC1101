@@ -22,7 +22,7 @@
 - [x] cc1101_send_irq ：无线发送测试，在串口中显示发送的消息。
 - [x] display_test ：屏幕显示测试；
 - [x] encode_test ：编码器测试。
-- [ ] factory ：:exclamation::exclamation::exclamation: 出厂程序目前只能在 PlatformIO 上编译下载；
+- [ ] factory ： :exclamation: :exclamation: :exclamation: 出厂程序目前只能在 PlatformIO 上编译下载；
 - [x] infrared_test ：红外测试，在串口中显示接收到的红外信息。
 - [x] lvgl_test ：lvgl benchmark 和压力测试；
 - [x] pn532_test ：NFC测试，在串口中显示 IC 卡的信息。
@@ -38,13 +38,12 @@
 3. 在 PlatformIO 插件安装完成后，需要重新启动 VScode，然后用 VScode 打开此工程；
 4. 打开此工程后，PlatformIO 会自动的下载需要的三方库和依赖，第一次这个过程比较长，情耐心等待；
 5. 当所有的依赖安装后，可以打开 `platformio.ini` 配置文件，在 `example` 中取消注释来选择一个例程，选择后按下 `ctrl+s` 保存 .ini 配置文件；
-6. 点击 VScode 下面的 [:ballot_box_with_check:] 编译工程，然后插上 USB 在 VScode 下面选择 COM 口；
-7. 最后点击 [:arrow_right:] 按键将程序下载到 Flash 中；
+6. 点击 VScode 下面的 :ballot_box_with_check: 编译工程，然后插上 USB 在 VScode 下面选择 COM 口；
+7. 最后点击 :arrow_right: 按键将程序下载到 Flash 中；
 
 ## :four: Arduion 快速开始
 
-<font color="red"> **注意：**</font>我们更推荐使用 PlatformIO，使用 Arduion 可能编译不通过，可以参考 [example.](#2️⃣-example) 查看那些例子是在 Arduion 环境测试编译成功的。
-
+:exclamation: :exclamation: :exclamation: 注意：我们更推荐使用 PlatformIO，使用 Arduion 可能编译不通过，可以参考 **2️⃣-Example** 查看那些例子是在 Arduion 环境测试编译成功的。
 
 1. 安装 [Arduino IDE](https://www.arduino.cc/en/software)，并且克隆或下载此项目；
 2. 安装 esp32 的工具包，打开 Arduion IDE，点击打开 `File->Perferences`，然后将 `https://espressif.github.io/arduino-esp32/package_esp32_index.json` 粘贴到如下图的位置，然后点击 :ok:，等待工具包下载完成；
