@@ -1,9 +1,17 @@
 
 <h1 align = "center">🌟T-Embed-PN532🌟</h1>
 
+<p> 
+  <a href="https://platformio.org/"> <img src="./hardware/image/PlatformIO_badge.png" height="20px"> </a>
+  <a href="https://www.arduino.cc/en/software"> <img src="./hardware/image/Arduino_badge.png" height="20px"></a>
+  <a href=""> <img src="https://img.shields.io/badge/Liiygo-T_Embed_PN532-blue" height="20px"></a>
+  <a href=""> <img src="https://img.shields.io/badge/language-c++-brightgreen" height="20px"></a>
+</p>
+
+
 * [Switch to English](./README.md)
 
-## :one:Product
+## :one:Product 🎁
 
 | Version |   v1.0 24-03-15   |
 |:-------:|:-----------------:|
@@ -12,22 +20,34 @@
 |  PSRAM  |        8MB        |
 |  屏幕   |      320x170      |
 
-## :two: Example
+
+~~~
+文件夹结构：
+├─boards  : 板子的一些信息，用于 platformio.ini 配置工程；
+├─data    : 程序用到的图片资源；
+├─example : 一些例子；
+├─firmare : `factory` 编译生成的固件；
+├─hardware: 板子的原理图、芯片资料；
+├─lib     : 项目中用到的库；
+~~~
+
+## :two: Example 🎯
+
 项目 example 文件夹下提供了一些例子，这些例子可以在 PlatformIO (PIO) 和 Arduion 上运行，但是我更推荐使用 PIO，因为这些例子都是在 PIO 上开发的，**所有的例子都可在 PIO 上运行**，但在 Arduion 上可能遇到编译错误，但不要担心，作者会加紧测试 Arduion 环境下的编译情况。
 
-在 Arduion 环境下编译通过的例子：
-- [x] audio_test : 录制 15 秒钟的音频，并保存到 SD 卡中。
-- [x] bq25896_test : 电池管理测试，在串口中打印电池状态。
-- [x] cc1101_recv_irq ：无线接收测试，在串口中显示接收到的消息。
-- [x] cc1101_send_irq ：无线发送测试，在串口中显示发送的消息。
-- [x] display_test ：屏幕显示测试；
-- [x] encode_test ：编码器测试。
-- [ ] factory ： :exclamation: :exclamation: :exclamation: 出厂程序目前只能在 PlatformIO 上编译下载；
-- [x] infrared_test ：红外测试，在串口中显示接收到的红外信息。
-- [x] lvgl_test ：lvgl benchmark 和压力测试；
-- [x] pn532_test ：NFC测试，在串口中显示 IC 卡的信息。
-- [x] tf_card_test ：SD 卡测试，在串口中显示读取到的的文件名。
-- [x] ws2812_test ：LED 灯测试；
+**在 Arduion 环境下编译通过的例子：**
+- ✅ audio_test : 录制 15 秒钟的音频，并保存到 SD 卡中。
+- ✅ bq25896_test : 电池管理测试，在串口中打印电池状态。
+- ✅ cc1101_recv_irq ：无线接收测试，在串口中显示接收到的消息。
+- ✅ cc1101_send_irq ：无线发送测试，在串口中显示发送的消息。
+- ✅ display_test ：屏幕显示测试；
+- ✅ encode_test ：编码器测试。
+- ❌ factory ：出厂程序目前只能在 PlatformIO 上编译下载；
+- ✅ infrared_test ：红外测试，在串口中显示接收到的红外信息。
+- ✅ lvgl_test ：lvgl benchmark 和压力测试；
+- ✅ pn532_test ：NFC测试，在串口中显示 IC 卡的信息。
+- ✅ tf_card_test ：SD 卡测试，在串口中显示读取到的的文件名。
+- ✅ ws2812_test ：LED 灯测试；
 
 ## :three: PlatformIO 快速开始
 

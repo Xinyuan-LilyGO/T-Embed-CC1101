@@ -11,9 +11,15 @@
 #define DISPALY_WIDTH  TFT_HEIGHT
 #define DISPALY_HEIGHT TFT_WIDTH
 
-#define FONT_MONO_BOLD  &Font_Mono_Bold_14
-#define FONT_MONO_LIGHT &Font_Mono_Light_14
-#define FONT_MENU_ITEM  &Font_Mono_Bold_14
+
+#define FONT_BOLD_14  &Font_Mono_Bold_14
+#define FONT_BOLD_16  &Font_Mono_Bold_16
+#define FONT_BOLD_18  &Font_Mono_Bold_18
+#define FONT_BOLD_20  &Font_Mono_Bold_20
+#define FONT_LIGHT_14 &Font_Mono_Light_14
+// #define FONT_LIGHT_16 
+// #define FONT_LIGHT_18 
+
 
 // color
 

@@ -7,6 +7,7 @@ LV_IMG_DECLARE(img_lora_32);
 LV_IMG_DECLARE(img_nfc_32);
 LV_IMG_DECLARE(img_setting_32);
 LV_IMG_DECLARE(img_wifi_32);
+LV_IMG_DECLARE(img_dev_32);
 
 // font
 LV_FONT_DECLARE(Font_Mono_Bold_14);

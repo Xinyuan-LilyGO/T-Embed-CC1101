@@ -1,8 +1,16 @@
-<h1 align = "center">🌟T-Embed-PN532🌟</h1>
+<h1 align = "center">🏆T-Embed-PN532🏆</h1>
+
+<p> 
+  <a href="https://platformio.org/"> <img src="./hardware/image/PlatformIO_badge.png" height="20px"> </a>
+  <a href="https://www.arduino.cc/en/software"> <img src="./hardware/image/Arduino_badge.png" height="20px"></a>
+  <a href=""> <img src="https://img.shields.io/badge/Liiygo-T_Embed_PN532-blue" height="20px"></a>
+  <a href=""> <img src="https://img.shields.io/badge/language-c++-brightgreen" height="20px"></a>
+</p>
 
 * [切换到中文版](./README_CN.md)
 
-## :one:Product
+
+## :one:Product 🎁
 
 | Version |   v1.0 24-03-15   |
 |:-------:|:-----------------:|
@@ -11,24 +19,35 @@
 |  PSRAM  |        8MB        |
 | Screen  |      320x170      |
 
+~~~
+Folder structure:
+├─boards  : Some information about the board for the platformio.ini configuration project;
+├─data    : Picture resources used by the program;
+├─example : Some examples;
+├─firmare : `factory` compiled firmware;
+├─hardware: Schematic diagram of the board, chip data;
+├─lib     : Libraries used in the project;
+~~~
 
-## :two: Example
+## :two: Example 🎯
 
 Some examples are provided under the Project example folder, which can run on PlatformIO (PIO) and Arduion, but I prefer to use PIO because these examples are developed on PIO, **All examples can run on PIO**, However, you may encounter compilation errors on Arduion, but don't worry, the author will step up to test the compilation of Arduion environment.
 
 **Examples of compilation in Arduion environment:**
-- [x] audio_test : Record 15 seconds of audio and save it to your SD card.
-- [x] bq25896_test : Battery management test. Print the battery status in the serial port.
-- [x] cc1101_recv_irq ：Wireless reception test, display received messages in the serial port.
-- [x] cc1101_send_irq ：Wireless sending test, display sent messages in the serial port.
-- [x] display_test ：Screen display test;
-- [x] encode_test ：encoder tester
-- [ ] factory ： :exclamation: :exclamation: :exclamation: Factory programs can currently only be compiled and downloaded on PlatformIO;
-- [x] infrared_test ：Infrared test. Displays the received infrared information in the serial port.
-- [x] lvgl_test ：lvgl benchmark and stress testing;
-- [x] pn532_test ：NFC test, display the IC card information in the serial port.
-- [x] tf_card_test ：SD card test, the file name is displayed in the serial port.
-- [x] ws2812_test ：LED light test;
+
+
+- ✅ audio_test : Record 15 seconds of audio and save it to your SD card.
+- ✅ bq25896_test : Battery management test. Print the battery status in the serial port.
+- ✅ cc1101_recv_irq ：Wireless reception test, display received messages in the serial port.
+- ✅ cc1101_send_irq ：Wireless sending test, display sent messages in the serial port.
+- ✅ display_test ：Screen display test;
+- ✅ encode_test ：encoder tester
+- ❌ factory ：Factory programs can currently only be compiled and downloaded on PlatformIO;
+- ✅ infrared_test ：Infrared test. Displays the received infrared information in the serial port.
+- ✅ lvgl_test ：lvgl benchmark and stress testing;
+- ✅ pn532_test ：NFC test, display the IC card information in the serial port.
+- ✅ tf_card_test ：SD card test, the file name is displayed in the serial port.
+- ✅ ws2812_test ：LED light test;
 
 
 ## :three: PlatformIO Quick Start

@@ -35,7 +35,7 @@ void prompt_create(const char *str, uint16_t time)
     lv_obj_set_style_radius(prompt_label, 5, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(prompt_label, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_set_style_pad_hor(prompt_label, 3, LV_PART_MAIN);
-    lv_obj_set_style_text_font(prompt_label, FONT_MONO_BOLD, LV_PART_MAIN);
+    lv_obj_set_style_text_font(prompt_label, FONT_BOLD_14, LV_PART_MAIN);
     lv_obj_set_style_bg_color(prompt_label, lv_color_hex(COLOR_PROMPT_BG), LV_PART_MAIN);
     lv_obj_set_style_text_color(prompt_label, lv_color_hex(COLOR_PROMPT_TXT), LV_PART_MAIN);
     lv_obj_set_style_text_align(prompt_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
@@ -83,7 +83,8 @@ void ui_theme_setting(int ui_theme)
     extern uint32_t default_bg_color;
     if(ui_theme == UI_THEME_DARK) {
         COLOR_BG         = 0x161823;
-        COLOR_FOCUS_ON   = 0x91B821;
+        // COLOR_FOCUS_ON   = 0x91B821;
+        COLOR_FOCUS_ON   = 0xB4DC38;
         COLOR_TEXT       = 0xffffff;
         COLOR_BORDER     = 0xBBBBBB;
         COLOR_PROMPT_BG  = 0xfffee6;
@@ -169,34 +170,34 @@ static void scr0_btn_event_cb(lv_event_t * e)
         switch (data)
         { 
             case 0: 
-                lv_img_set_src(menu_icon, "A:img_lora_32.png"); 
+                lv_img_set_src(menu_icon, &img_lora_32); 
                 lv_obj_set_style_img_recolor(menu_icon, lv_palette_main(LV_PALETTE_CYAN), LV_PART_MAIN);
                 lv_obj_set_style_img_recolor_opa(menu_icon, LV_OPA_100, LV_PART_MAIN);
                 break; 
             case 1: 
-                lv_img_set_src(menu_icon, "A:img_light_32.png"); 
+                lv_img_set_src(menu_icon, &img_light_32); 
                 lv_obj_set_style_img_recolor_opa(menu_icon, LV_OPA_0, LV_PART_MAIN);
                 break;    
             case 2: 
-                lv_img_set_src(menu_icon, "A:img_nfc_32.png");
+                lv_img_set_src(menu_icon, &img_nfc_32);
                 lv_obj_set_style_img_recolor(menu_icon, lv_palette_main(LV_PALETTE_CYAN), LV_PART_MAIN);
                 lv_obj_set_style_img_recolor_opa(menu_icon, LV_OPA_100, LV_PART_MAIN);
                 break;      
             case 3: 
-                lv_img_set_src(menu_icon, "A:img_battery_32.png"); 
+                lv_img_set_src(menu_icon, &img_battery_32); 
                 lv_obj_set_style_img_recolor_opa(menu_icon, LV_OPA_0, LV_PART_MAIN);
                 break;
             case 4: 
-                lv_img_set_src(menu_icon, "A:img_wifi_32.png");
+                lv_img_set_src(menu_icon, &img_wifi_32);
                 lv_obj_set_style_img_recolor_opa(menu_icon, LV_OPA_0, LV_PART_MAIN);
                 break;     
             case 5: 
-                lv_img_set_src(menu_icon, "A:img_dev_32.png"); 
+                lv_img_set_src(menu_icon, &img_dev_32); 
                 // lv_obj_set_style_img_recolor(menu_icon, lv_palette_main(LV_PALETTE_GREEN), LV_PART_MAIN);
                 lv_obj_set_style_img_recolor_opa(menu_icon, LV_OPA_0, LV_PART_MAIN);
                 break;  
             case 6: 
-                lv_img_set_src(menu_icon, "A:img_setting_32.png"); 
+                lv_img_set_src(menu_icon, &img_setting_32); 
                 lv_obj_set_style_img_recolor_opa(menu_icon, LV_OPA_0, LV_PART_MAIN);
                 break;  
             default:
@@ -321,7 +322,7 @@ void create0(lv_obj_t *parent)
     lv_obj_set_width(menu_icon_lab, DISPALY_WIDTH * MENU_LAB_PROPORTION);
     lv_obj_set_style_text_align(menu_icon_lab, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
     lv_obj_set_style_text_color(menu_icon_lab, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
-    lv_obj_set_style_text_font(menu_icon_lab, &Font_Mono_Bold_18, LV_PART_MAIN);
+    lv_obj_set_style_text_font(menu_icon_lab, FONT_BOLD_18, LV_PART_MAIN);
     // lv_label_set_text(menu_icon_lab, "battery");
     lv_obj_align_to(menu_icon_lab, menu_cont, LV_ALIGN_BOTTOM_MID, 5, -25);
     
@@ -329,7 +330,7 @@ void create0(lv_obj_t *parent)
     lv_obj_set_width(menu_time_lab, DISPALY_WIDTH * MENU_LAB_PROPORTION);
     lv_obj_align(menu_time_lab, LV_ALIGN_TOP_MID, 5, 25);
     lv_obj_set_style_text_align(menu_time_lab, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-    lv_obj_set_style_text_font(menu_time_lab, &Font_Mono_Bold_18, LV_PART_MAIN);
+    lv_obj_set_style_text_font(menu_time_lab, FONT_BOLD_18, LV_PART_MAIN);
     // lv_obj_set_style_text_font(menu_time_lab, &lv_font_montserrat_26, LV_PART_MAIN);
     lv_label_set_recolor(menu_time_lab, true);                      /*Enable re-coloring by commands in the text*/
     lv_label_set_text_fmt(menu_time_lab, "#EE781F %02d# #C0C0C0 :# #AFCA31 %02d#", hour, minute);
@@ -368,7 +369,7 @@ void create0(lv_obj_t *parent)
 
         lv_obj_t * label = lv_label_create(btn);
         lv_obj_set_style_text_color(label, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
-        lv_obj_set_style_text_font(label, FONT_MENU_ITEM, LV_PART_MAIN);
+        lv_obj_set_style_text_font(label, FONT_BOLD_14, LV_PART_MAIN);
         lv_label_set_text(label, name_buf[i]);
     }
 
@@ -554,7 +555,8 @@ void create1(lv_obj_t *parent)
     lv_obj_set_style_outline_width(colorwheel, 2, LV_STATE_FOCUS_KEY);
     lv_obj_set_style_outline_color(colorwheel, lv_color_hex(COLOR_FOCUS_ON), LV_STATE_FOCUS_KEY);
     lv_group_add_obj(lv_group_get_default(), colorwheel);
-    lv_obj_t * label = lv_label_create(colorwheel);
+
+    lv_obj_t *label = lv_label_create(colorwheel);
     lv_obj_center(label);
     lv_label_set_text(label, "color");
     lv_obj_set_style_text_color(label, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
@@ -877,7 +879,7 @@ void nfc_chk_timer_event(lv_timer_t *t)
             lv_obj_set_style_bg_color(item, lv_color_hex(COLOR_FOCUS_ON), LV_STATE_FOCUS_KEY);
             lv_obj_set_style_bg_color(item, lv_color_hex(COLOR_BG), LV_PART_MAIN);
             lv_obj_set_style_text_color(item, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
-            lv_obj_set_style_text_font(item, FONT_MONO_BOLD, LV_PART_MAIN);
+            lv_obj_set_style_text_font(item, FONT_BOLD_14, LV_PART_MAIN);
         }
     } 
     else {
@@ -915,7 +917,7 @@ void create3(lv_obj_t *parent){
 
     lv_obj_t *label = lv_label_create(scr3_cont);
     lv_obj_set_style_text_color(label, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
-    lv_obj_set_style_text_font(label, FONT_MONO_BOLD, LV_PART_MAIN);
+    lv_obj_set_style_text_font(label, FONT_BOLD_14, LV_PART_MAIN);
     lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 10);
 
     uint32_t verisondata = nfc_get_ver_data();
@@ -931,7 +933,7 @@ void create3(lv_obj_t *parent){
 
     nfc_ledlab = lv_label_create(scr3_cont);
     lv_obj_set_style_text_color(nfc_ledlab, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
-    lv_obj_set_style_text_font(nfc_ledlab, FONT_MONO_LIGHT, LV_PART_MAIN);
+    lv_obj_set_style_text_font(nfc_ledlab, FONT_LIGHT_14, LV_PART_MAIN);
     lv_obj_align_to(nfc_ledlab, nfc_led, LV_ALIGN_OUT_LEFT_MID, -6, 0);
     lv_label_set_text(nfc_ledlab, "xx -");
 
@@ -958,7 +960,7 @@ void create3(lv_obj_t *parent){
         lv_obj_set_style_bg_color(item, lv_color_hex(COLOR_FOCUS_ON), LV_STATE_FOCUS_KEY);
         lv_obj_set_style_bg_color(item, lv_color_hex(COLOR_BG), LV_PART_MAIN);
         lv_obj_set_style_text_color(item, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
-        lv_obj_set_style_text_font(item, FONT_MONO_BOLD, LV_PART_MAIN);
+        lv_obj_set_style_text_font(item, FONT_BOLD_14, LV_PART_MAIN);
         // lv_obj_add_event_cb(item, list_item_event, LV_EVENT_CLICKED, (void *)i);
     }
 
@@ -1060,7 +1062,7 @@ void create4(lv_obj_t *parent){
 
     lv_obj_t *label = lv_label_create(scr4_cont);
     lv_obj_set_style_text_color(label, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
-    lv_obj_set_style_text_font(label, FONT_MONO_BOLD, LV_PART_MAIN);
+    lv_obj_set_style_text_font(label, FONT_BOLD_16, LV_PART_MAIN);
     lv_label_set_text(label, "Setting");
     lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 10);
 
@@ -1068,26 +1070,35 @@ void create4(lv_obj_t *parent){
     lv_obj_set_size(setting_list, LV_HOR_RES, 135);
     lv_obj_align(setting_list, LV_ALIGN_BOTTOM_MID, 0, 0);
     lv_obj_set_style_bg_color(setting_list, lv_color_hex(COLOR_BG), LV_PART_MAIN);
+    lv_obj_set_style_pad_top(setting_list, 2, LV_PART_MAIN);
     lv_obj_set_style_pad_row(setting_list, 2, LV_PART_MAIN);
     lv_obj_set_style_radius(setting_list, 0, LV_PART_MAIN);
     // lv_obj_set_style_outline_pad(setting_list, 2, LV_PART_MAIN);
     lv_obj_set_style_border_width(setting_list, 0, LV_PART_MAIN);
     lv_obj_set_style_shadow_width(setting_list, 0, LV_PART_MAIN);
 
-    lv_obj_t *setting1 = lv_list_add_btn(setting_list, LV_SYMBOL_SETTINGS, "Rotatoion");
-    lv_obj_t *setting2 = lv_list_add_btn(setting_list, LV_SYMBOL_SETTINGS, "Deep Sleep");
-    lv_obj_t *setting3 = lv_list_add_btn(setting_list, LV_SYMBOL_SETTINGS, "UI Theme");
+    lv_obj_t *setting1 = lv_list_add_btn(setting_list, NULL, "- Rotatoion");
+    lv_obj_t *setting2 = lv_list_add_btn(setting_list, NULL, "- Deep Sleep");
+    lv_obj_t *setting3 = lv_list_add_btn(setting_list, NULL, "- UI Theme");
 
     for(int i = 0; i < lv_obj_get_child_cnt(setting_list); i++) {
         lv_obj_t *item = lv_obj_get_child(setting_list, i);
-        // lv_obj_set_style_text_font(item, &Font_Mono_Bold_16, LV_PART_MAIN);
-        lv_obj_set_style_bg_color(item, lv_color_hex(COLOR_FOCUS_ON), LV_STATE_FOCUS_KEY);
+        lv_obj_set_style_text_font(item, FONT_BOLD_14, LV_PART_MAIN);
         lv_obj_set_style_bg_color(item, lv_color_hex(COLOR_BG), LV_PART_MAIN);
         lv_obj_set_style_text_color(item, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
+
+        // lv_obj_set_style_bg_color(item, lv_color_hex(COLOR_FOCUS_ON), LV_STATE_FOCUS_KEY);
+        
+        lv_obj_remove_style(item, NULL, LV_STATE_FOCUS_KEY);
+        lv_obj_set_style_radius(item, 5, LV_STATE_FOCUS_KEY);
+        lv_obj_set_style_outline_color(item, lv_color_hex(COLOR_FOCUS_ON), LV_STATE_FOCUS_KEY);
+        lv_obj_set_style_outline_width(item, 2, LV_STATE_FOCUS_KEY);
+
         lv_obj_add_event_cb(item, setting_scr_event, LV_EVENT_CLICKED, (void *)i);
     }
 
     theme_label = lv_label_create(setting3);
+    lv_obj_set_style_text_font(theme_label, FONT_BOLD_14, LV_PART_MAIN);
     lv_obj_align(theme_label, LV_ALIGN_RIGHT_MID, 0, 0);
     switch (setting_theme)
     {
@@ -1101,8 +1112,10 @@ void create4(lv_obj_t *parent){
 }
 void entry4(void) {
     entry4_anim(scr4_cont);
+    lv_group_set_wrap(lv_group_get_default(), true);
 }
 void exit4(void) {
+    lv_group_set_wrap(lv_group_get_default(), false);
 }
 void destroy4(void) {
 }
@@ -1165,7 +1178,7 @@ lv_obj_t * scr5_add_info_lab(lv_obj_t *label, const char *s)
     lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
     lv_obj_set_style_text_color(label, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(label, LV_OPA_100, LV_PART_MAIN);
-    lv_obj_set_style_text_font(label, &Font_Mono_Bold_16, LV_PART_MAIN);
+    lv_obj_set_style_text_font(label, FONT_BOLD_14, LV_PART_MAIN);
     lv_label_set_text(label, s);
     // lv_group_add_obj(lv_group_get_default(), label);
     lv_obj_center(label);
@@ -1183,12 +1196,12 @@ void create5(lv_obj_t *parent)
 
     lv_obj_t *label = lv_label_create(scr5_cont);
     lv_obj_set_style_text_color(label, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
-    lv_obj_set_style_text_font(label, FONT_MONO_BOLD, LV_PART_MAIN);
+    lv_obj_set_style_text_font(label, FONT_BOLD_16, LV_PART_MAIN);
     lv_label_set_text(label, "Battery");
     lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 10);
 
     batt_cont = lv_obj_create(scr5_cont);
-    lv_obj_set_size(batt_cont, DISPALY_WIDTH, 140);
+    lv_obj_set_size(batt_cont, DISPALY_WIDTH, 130);
     lv_obj_align(batt_cont, LV_ALIGN_BOTTOM_MID, 0, 0);
     lv_obj_set_style_radius(batt_cont, 0, LV_PART_MAIN);
     lv_obj_set_style_pad_all(batt_cont, 0, LV_PART_MAIN);
@@ -1365,19 +1378,19 @@ void wifi_info_label_create(void)
 {   
     ip_lab = lv_label_create(scr6_cont);
     lv_obj_set_style_text_color(ip_lab, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
-    lv_obj_set_style_text_font(ip_lab, FONT_MONO_BOLD, LV_PART_MAIN);
+    lv_obj_set_style_text_font(ip_lab, FONT_BOLD_14, LV_PART_MAIN);
     lv_label_set_text_fmt(ip_lab, "ip: %s", WiFi.localIP().toString());
     lv_obj_align_to(ip_lab, wifi_st_lab, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10);
 
     ssid_lab = lv_label_create(scr6_cont);
     lv_obj_set_style_text_color(ssid_lab, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
-    lv_obj_set_style_text_font(ssid_lab, FONT_MONO_BOLD, LV_PART_MAIN);
+    lv_obj_set_style_text_font(ssid_lab, FONT_BOLD_14, LV_PART_MAIN);
     lv_label_set_text_fmt(ssid_lab, "ssid: %s", wifi_ssid);
     lv_obj_align_to(ssid_lab, ip_lab, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10);
 
     pwd_lab = lv_label_create(scr6_cont);
     lv_obj_set_style_text_color(pwd_lab, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
-    lv_obj_set_style_text_font(pwd_lab, FONT_MONO_BOLD, LV_PART_MAIN);
+    lv_obj_set_style_text_font(pwd_lab, FONT_BOLD_14, LV_PART_MAIN);
     lv_label_set_text_fmt(pwd_lab, "pswd: %s", wifi_password);
     lv_obj_align_to(pwd_lab, ssid_lab, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10);
 }
@@ -1393,13 +1406,13 @@ void create6(lv_obj_t *parent)
 
     lv_obj_t *label = lv_label_create(scr6_cont);
     lv_obj_set_style_text_color(label, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
-    lv_obj_set_style_text_font(label, FONT_MONO_BOLD, LV_PART_MAIN);
+    lv_obj_set_style_text_font(label, FONT_BOLD_16, LV_PART_MAIN);
     lv_label_set_text(label, "Wifi config");
     lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 10);
 
     wifi_st_lab = lv_label_create(scr6_cont);
     lv_obj_set_style_text_color(wifi_st_lab, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
-    lv_obj_set_style_text_font(wifi_st_lab, FONT_MONO_BOLD, LV_PART_MAIN);
+    lv_obj_set_style_text_font(wifi_st_lab, FONT_BOLD_14, LV_PART_MAIN);
     lv_label_set_text(wifi_st_lab, (wifi_is_connect == true ? "Wifi Connect" : "Wifi Disconnect"));
     lv_obj_align(wifi_st_lab, LV_ALIGN_TOP_LEFT, 5, 40);
 
@@ -1419,7 +1432,7 @@ void create6(lv_obj_t *parent)
     lv_obj_t *config_lab = lv_label_create(wifi_config_btn);
     lv_obj_center(config_lab);
     lv_obj_set_style_text_color(config_lab, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
-    lv_obj_set_style_text_font(config_lab, FONT_MONO_BOLD, LV_PART_MAIN);
+    lv_obj_set_style_text_font(config_lab, FONT_BOLD_14, LV_PART_MAIN);
     lv_label_set_text(config_lab, "config");
     lv_obj_add_event_cb(wifi_config_btn, wifi_config_event_handler, LV_EVENT_CLICKED, NULL);
 
@@ -1435,14 +1448,14 @@ void create6(lv_obj_t *parent)
     lv_obj_t *help_lab = lv_label_create(wifi_help_btn);
     lv_obj_center(help_lab);
     lv_obj_set_style_text_color(help_lab, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
-    lv_obj_set_style_text_font(help_lab, FONT_MONO_BOLD, LV_PART_MAIN);
+    lv_obj_set_style_text_font(help_lab, FONT_BOLD_14, LV_PART_MAIN);
     lv_label_set_text(help_lab, "help");
     lv_obj_add_event_cb(wifi_help_btn, wifi_help_event, LV_EVENT_CLICKED, NULL);
 
     config_state_lab = lv_label_create(scr6_cont);
     lv_obj_align(config_state_lab, LV_ALIGN_BOTTOM_MID, 0, -5);
     lv_obj_set_style_text_color(config_state_lab, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
-    lv_obj_set_style_text_font(config_state_lab, FONT_MONO_BOLD, LV_PART_MAIN);
+    lv_obj_set_style_text_font(config_state_lab, FONT_BOLD_14, LV_PART_MAIN);
     lv_label_set_text(config_state_lab, " ");
 
     // back btn
@@ -1485,19 +1498,19 @@ void create7_1(lv_obj_t *parent)
     lv_obj_set_style_border_width(scr7_1_cont, 0, LV_PART_MAIN);
     lv_obj_set_style_pad_all(scr7_1_cont, 0, LV_PART_MAIN);
 
+    lv_obj_t *label = lv_label_create(scr7_1_cont);
+    lv_obj_set_style_text_color(label, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
+    lv_obj_set_style_text_font(label, FONT_BOLD_16, LV_PART_MAIN);
+    lv_label_set_text(label, "Infrared");
+    lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 10);
+
     lv_obj_t *info = lv_label_create(scr7_1_cont);
     lv_obj_set_width(info, DISPALY_WIDTH * 0.9);
     lv_obj_set_style_text_color(info, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
-    lv_obj_set_style_text_font(info, FONT_MONO_BOLD, LV_PART_MAIN);
+    lv_obj_set_style_text_font(info, FONT_BOLD_14, LV_PART_MAIN);
     lv_label_set_long_mode(info, LV_LABEL_LONG_WRAP);
     lv_label_set_text(info, "Turn on the phone's infrared remote control and search for LG TV remote control to control the device");
     lv_obj_center(info);
-
-    lv_obj_t *label = lv_label_create(scr7_1_cont);
-    lv_obj_set_style_text_color(label, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
-    lv_obj_set_style_text_font(label, FONT_MONO_BOLD, LV_PART_MAIN);
-    lv_label_set_text(label, "Infrared");
-    lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 10);
 
     // back bottom
     scr_back_btn_create(scr7_1_cont, scr7_1_btn_event_cb);
@@ -1567,9 +1580,15 @@ void create7_2(lv_obj_t *parent)
     lv_obj_set_style_border_width(scr7_2_cont, 0, LV_PART_MAIN);
     lv_obj_set_style_pad_all(scr7_2_cont, 0, LV_PART_MAIN);
 
+    lv_obj_t *label = lv_label_create(scr7_2_cont);
+    lv_obj_set_style_text_color(label, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
+    lv_obj_set_style_text_font(label, FONT_BOLD_16, LV_PART_MAIN);
+    lv_label_set_text(label, "Microphone");
+    lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 10);
+
     lv_obj_t *mic_info = lv_label_create(scr7_2_cont);
     lv_obj_set_style_text_color(mic_info, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
-    lv_obj_set_style_text_font(mic_info, FONT_MONO_BOLD, LV_PART_MAIN);
+    lv_obj_set_style_text_font(mic_info, FONT_BOLD_14, LV_PART_MAIN);
     lv_obj_set_width(mic_info, DISPALY_WIDTH);
     lv_label_set_long_mode(mic_info, LV_LABEL_LONG_WRAP);
     lv_obj_set_style_radius(mic_info, 5, LV_PART_MAIN);
@@ -1592,16 +1611,10 @@ void create7_2(lv_obj_t *parent)
     lv_obj_t *mic_lab = lv_label_create(mic_btn);
     lv_obj_center(mic_lab);
     lv_obj_set_style_text_color(mic_lab, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
-    lv_obj_set_style_text_font(mic_lab, FONT_MONO_BOLD, LV_PART_MAIN);
+    lv_obj_set_style_text_font(mic_lab, FONT_BOLD_14, LV_PART_MAIN);
     lv_label_set_text(mic_lab, "start");
     // lv_obj_add_flag(mic_btn, LV_OBJ_FLAG_CHECKABLE);
     lv_obj_add_event_cb(mic_btn, mic_start_recode_event, LV_EVENT_CLICKED, NULL);
-
-    lv_obj_t *label = lv_label_create(scr7_2_cont);
-    lv_obj_set_style_text_color(label, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
-    lv_obj_set_style_text_font(label, FONT_MONO_BOLD, LV_PART_MAIN);
-    lv_label_set_text(label, "Microphone");
-    lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 10);
 
     // back bottom
     scr_back_btn_create(scr7_2_cont, scr7_2_btn_event_cb);
@@ -1646,10 +1659,16 @@ void create7_3(lv_obj_t *parent)
     lv_obj_set_style_border_width(scr7_3_cont, 0, LV_PART_MAIN);
     lv_obj_set_style_pad_all(scr7_3_cont, 0, LV_PART_MAIN);
 
+    lv_obj_t *label = lv_label_create(scr7_3_cont);
+    lv_obj_set_style_text_color(label, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
+    lv_obj_set_style_text_font(label, FONT_BOLD_16, LV_PART_MAIN);
+    lv_label_set_text(label, "TF Card");
+    lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 10);
+
     sd_err_info = lv_label_create(scr7_3_cont);
     lv_obj_set_width(sd_err_info, DISPALY_WIDTH * 0.9);
     lv_obj_set_style_text_color(sd_err_info, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
-    lv_obj_set_style_text_font(sd_err_info, FONT_MONO_BOLD, LV_PART_MAIN);
+    lv_obj_set_style_text_font(sd_err_info, FONT_BOLD_14, LV_PART_MAIN);
     lv_label_set_long_mode(sd_err_info, LV_LABEL_LONG_WRAP);
 
     static lv_style_t style_bg;
@@ -1675,7 +1694,7 @@ void create7_3(lv_obj_t *parent)
     sd_total = lv_label_create(scr7_3_cont);
     lv_obj_set_width(sd_total, DISPALY_WIDTH * 0.4);
     lv_obj_set_style_text_color(sd_total, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
-    lv_obj_set_style_text_font(sd_total, FONT_MONO_BOLD, LV_PART_MAIN);
+    lv_obj_set_style_text_font(sd_total, FONT_BOLD_14, LV_PART_MAIN);
     lv_label_set_long_mode(sd_total, LV_LABEL_LONG_WRAP);
     lv_obj_set_style_text_align(sd_total, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
     lv_obj_align_to(sd_total, sd_slider, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 5);
@@ -1683,16 +1702,10 @@ void create7_3(lv_obj_t *parent)
     sd_used = lv_label_create(scr7_3_cont);
     lv_obj_set_width(sd_used, DISPALY_WIDTH * 0.4);
     lv_obj_set_style_text_color(sd_used, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
-    lv_obj_set_style_text_font(sd_used, FONT_MONO_BOLD, LV_PART_MAIN);
+    lv_obj_set_style_text_font(sd_used, FONT_BOLD_14, LV_PART_MAIN);
     lv_label_set_long_mode(sd_used, LV_LABEL_LONG_WRAP);
     lv_obj_set_style_text_align(sd_used, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
     lv_obj_align_to(sd_used, sd_slider, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 5);
-
-    lv_obj_t *label = lv_label_create(scr7_3_cont);
-    lv_obj_set_style_text_color(label, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
-    lv_obj_set_style_text_font(label, FONT_MONO_BOLD, LV_PART_MAIN);
-    lv_label_set_text(label, "TF Card");
-    lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 10);
 
     // back bottom
     scr_back_btn_create(scr7_3_cont, scr7_3_btn_event_cb);
@@ -1789,14 +1802,15 @@ void create7(lv_obj_t *parent)
 
     lv_obj_t *label = lv_label_create(scr7_cont);
     lv_obj_set_style_text_color(label, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
-    lv_obj_set_style_text_font(label, FONT_MONO_BOLD, LV_PART_MAIN);
-    lv_label_set_text(label, "Other device");
+    lv_obj_set_style_text_font(label, FONT_BOLD_16, LV_PART_MAIN);
+    lv_label_set_text(label, "Others");
     lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 10);
 
     other_list = lv_list_create(scr7_cont);
     lv_obj_set_size(other_list, LV_HOR_RES, 135);
     lv_obj_align(other_list, LV_ALIGN_BOTTOM_MID, 0, 0);
     lv_obj_set_style_bg_color(other_list, lv_color_hex(COLOR_BG), LV_PART_MAIN);
+    lv_obj_set_style_pad_top(other_list, 2, LV_PART_MAIN);
     lv_obj_set_style_pad_row(other_list, 2, LV_PART_MAIN);
     lv_obj_set_style_radius(other_list, 0, LV_PART_MAIN);
     // lv_obj_set_style_outline_pad(other_list, 2, LV_PART_MAIN);
@@ -1809,10 +1823,19 @@ void create7(lv_obj_t *parent)
 
     for(int i = 0; i < lv_obj_get_child_cnt(other_list); i++) {
         lv_obj_t *item = lv_obj_get_child(other_list, i);
-        lv_obj_set_style_text_font(item, FONT_MONO_BOLD, LV_PART_MAIN);
-        lv_obj_set_style_bg_color(item, lv_color_hex(COLOR_FOCUS_ON), LV_STATE_FOCUS_KEY);
+        lv_obj_set_style_text_font(item, FONT_BOLD_14, LV_PART_MAIN);
         lv_obj_set_style_bg_color(item, lv_color_hex(COLOR_BG), LV_PART_MAIN);
         lv_obj_set_style_text_color(item, lv_color_hex(COLOR_TEXT), LV_PART_MAIN);
+
+        // lv_obj_set_style_radius(item, 5, LV_STATE_FOCUS_KEY);
+        // lv_obj_set_style_bg_color(item, lv_color_hex(COLOR_FOCUS_ON), LV_STATE_FOCUS_KEY);
+        
+
+        lv_obj_remove_style(item, NULL, LV_STATE_FOCUS_KEY);
+        lv_obj_set_style_radius(item, 5, LV_STATE_FOCUS_KEY);
+        lv_obj_set_style_outline_color(item, lv_color_hex(COLOR_FOCUS_ON), LV_STATE_FOCUS_KEY);
+        lv_obj_set_style_outline_width(item, 2, LV_STATE_FOCUS_KEY);
+
         lv_obj_add_event_cb(item, other_list_event, LV_EVENT_CLICKED, (void *)i);
     }
 
@@ -1821,8 +1844,11 @@ void create7(lv_obj_t *parent)
 }
 void entry7(void) { 
     entry7_anim(scr7_cont);
+    lv_group_set_wrap(lv_group_get_default(), true);
 }
-void exit7(void) {   }
+void exit7(void) {
+    lv_group_set_wrap(lv_group_get_default(), false);
+}
 void destroy7(void) { 
 }
 
