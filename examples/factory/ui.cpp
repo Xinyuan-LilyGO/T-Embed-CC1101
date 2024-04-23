@@ -408,6 +408,14 @@ scr_lifecycle_t screen0 = {
 #endif
 //************************************[ screen 1 ]****************************************** ws2812
 #if 1
+
+/*** UI interfavce ***/
+int __attribute__((weak)) ui_scr1_get_led_mode(void) { return 0; }
+void __attribute__((weak)) ui_scr1_set_color(lv_color32_t c32) {}
+void __attribute__((weak)) ui_scr1_set_light(uint8_t light) {}
+void __attribute__((weak)) ui_scr1_set_mode(int mode) {}
+// end
+
 lv_obj_t *scr1_cont;
 lv_obj_t *light_acr;
 int ws2812_light = WS2812_DEFAULT_LIGHT;
@@ -438,8 +446,9 @@ void colorwheel_focus_event(lv_event_t *e)
         c.red = c32.ch.red;
         c.green = c32.ch.green;
         c.blue = c32.ch.blue;
-        if(ws2812_get_mode() == 0){
-            ws2812_set_color(c);
+        if(ui_scr1_get_led_mode() == 0){
+            ui_scr1_set_color(c32);
+            // ws2812_set_color(c);
         }
         lv_label_set_text_fmt(label, "0x%02X%02X%02X", c.red, c.green, c.blue);
         lv_obj_set_style_bg_color(light_acr, ws2812_color, LV_PART_KNOB);
@@ -456,7 +465,7 @@ static void value_changed_event_cb(lv_event_t * e)
 
     ws2812_light = lv_arc_get_value(arc);
     lv_label_set_text_fmt(label, "%d", ws2812_light);
-    ws2812_set_light(ws2812_light);
+    ui_scr1_set_light(ws2812_light);
     
     /*Rotate the label to the current position of the arc*/
     // lv_arc_rotate_obj_to_angle(arc, label, 25);
@@ -487,12 +496,7 @@ static void ws2812_mode_event_cb(lv_event_t * e)
             default:
                 break;
         }
-        ws2812_set_mode(ui_light_mode);
-        if(ui_light_mode == 0){
-            vTaskSuspend(ws2812_handle);
-        } else {
-            vTaskResume(ws2812_handle);
-        }
+        ui_scr1_set_mode(ui_light_mode);
     }
 }
 
@@ -633,6 +637,13 @@ scr_lifecycle_t screen1 = {
 #endif
 //************************************[ screen 2 ]****************************************** lora
 #if 1
+/*** UI interfavce ***/
+// int __attribute__((weak)) ui_scr1_get_led_mode(void) { return 0; }
+// void __attribute__((weak)) ui_scr1_set_color(lv_color32_t c32) {}
+// void __attribute__((weak)) ui_scr1_set_light(uint8_t light) {}
+// void __attribute__((weak)) ui_scr1_set_mode(int mode) {}
+// end
+
 lv_obj_t *scr2_cont;
 lv_obj_t *lora_kb;
 lv_obj_t *lora_recv_ta;
@@ -987,6 +998,13 @@ scr_lifecycle_t screen3 = {
 #endif
 //************************************[ screen 4 ]****************************************** setting
 #if 1
+/*** UI interfavce ***/
+bool __attribute__((weak)) ui_scr4_get_lora_st(void) { return false; }
+bool __attribute__((weak)) ui_scr4_get_pmu_st(void) {  return false; }
+bool __attribute__((weak)) ui_scr4_get_nfc_st(void) {  return false; }
+bool __attribute__((weak)) ui_scr4_get_sd_st(void) {   return false; }
+// end
+
 lv_obj_t *scr4_cont;
 lv_obj_t *setting_list;
 lv_obj_t *theme_label;
@@ -1012,7 +1030,7 @@ void setting_scr_event(lv_event_t *e)
             eeprom_wr(UI_ROTATION_EEPROM_ADDR, display_rotation);
             break;
         case 1: // "Deep Sleep"
-            ws2812_set_light(0);
+            ui_scr1_set_light(0);
             esp_sleep_enable_ext0_wakeup((gpio_num_t)ENCODER_KEY, 0);
             esp_deep_sleep_start();
             break;
@@ -1027,6 +1045,19 @@ void setting_scr_event(lv_event_t *e)
             ui_theme_setting(setting_theme);
             eeprom_wr(UI_THEME_EEPROM_ADDR, setting_theme);
             break;
+        case 3: // "System Sound"
+            prompt_info("No speaker found", 1000);
+            break;
+        case 4: {// "About System"
+            char buf[128];
+            lv_snprintf(buf, 128, "LORA init --- %s\n"
+                                  "PMU init ---- %s\n"
+                                  "TF card ----- %s",   
+                                  (ui_scr4_get_lora_st() ? "PASS" : "FAIL"),
+                                  (ui_scr4_get_nfc_st() ? "PASS" : "FAIL"),
+                                  (ui_scr4_get_sd_st() ? "PASS" : "FAIL"));
+            prompt_info(buf, 1000);
+            } break;
         default:
             break;
         }
@@ -1080,6 +1111,8 @@ void create4(lv_obj_t *parent){
     lv_obj_t *setting1 = lv_list_add_btn(setting_list, NULL, "- Rotatoion");
     lv_obj_t *setting2 = lv_list_add_btn(setting_list, NULL, "- Deep Sleep");
     lv_obj_t *setting3 = lv_list_add_btn(setting_list, NULL, "- UI Theme");
+    lv_obj_t *setting4 = lv_list_add_btn(setting_list, NULL, "- System Sound");
+    lv_obj_t *setting5 = lv_list_add_btn(setting_list, NULL, "- About System");
 
     for(int i = 0; i < lv_obj_get_child_cnt(setting_list); i++) {
         lv_obj_t *item = lv_obj_get_child(setting_list, i);
@@ -1820,7 +1853,7 @@ void create7(lv_obj_t *parent)
     lv_obj_t *setting1 = lv_list_add_btn(other_list, NULL, " - Infrared");
     lv_obj_t *setting2 = lv_list_add_btn(other_list, NULL, " - Microphone");
     lv_obj_t *setting3 = lv_list_add_btn(other_list, NULL, " - TF Card");
-
+   
     for(int i = 0; i < lv_obj_get_child_cnt(other_list); i++) {
         lv_obj_t *item = lv_obj_get_child(other_list, i);
         lv_obj_set_style_text_font(item, FONT_BOLD_14, LV_PART_MAIN);
@@ -1830,7 +1863,6 @@ void create7(lv_obj_t *parent)
         // lv_obj_set_style_radius(item, 5, LV_STATE_FOCUS_KEY);
         // lv_obj_set_style_bg_color(item, lv_color_hex(COLOR_FOCUS_ON), LV_STATE_FOCUS_KEY);
         
-
         lv_obj_remove_style(item, NULL, LV_STATE_FOCUS_KEY);
         lv_obj_set_style_radius(item, 5, LV_STATE_FOCUS_KEY);
         lv_obj_set_style_outline_color(item, lv_color_hex(COLOR_FOCUS_ON), LV_STATE_FOCUS_KEY);

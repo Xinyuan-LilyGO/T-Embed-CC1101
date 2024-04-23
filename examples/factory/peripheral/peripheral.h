@@ -22,6 +22,7 @@ void ws2812_task(void *param);
 #include <Adafruit_PN532.h>
 extern TaskHandle_t nfc_handle;
 void nfc_init(void);
+bool nfc_is_init(void);
 uint32_t nfc_get_ver_data(void);
 void nfc_task(void *param);
 
@@ -38,6 +39,7 @@ extern SemaphoreHandle_t radioLock;
 void lora_init(void);
 void lora_mode_sw(int m);
 int lora_get_mode(void);
+bool lora_is_init(void);
 void lora_send(const char *str);
 void lora_task(void *param);
 

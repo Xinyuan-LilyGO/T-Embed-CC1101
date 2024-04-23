@@ -5,8 +5,8 @@
 CC1101 radio = new Module(BOARD_LORA_CS, BOARD_LORA_IO0, -1, BOARD_LORA_IO2);
 int lora_mode = LORA_MODE_SEND;
 int lora_recv_success = 0;
+int lora_init_st = false;
 String lora_recv_str;
-
 
 // recv
 static volatile bool receivedFlag = false;
@@ -52,10 +52,12 @@ void lora_init(void)
     int state = radio.begin(lora_freq);
     if (state == RADIOLIB_ERR_NONE) {
         Serial.println(F("success!"));
+        lora_init_st = true;
     } else {
         Serial.print(F("failed, code "));
         Serial.println(state);
-        while (true);
+        lora_init_st = false;
+        return;
     }
 
     if(lora_mode == LORA_MODE_SEND){     // send
@@ -104,6 +106,11 @@ void lora_mode_sw(int m)
 int lora_get_mode(void)
 {
     return lora_mode;
+}
+
+bool lora_is_init(void)
+{
+    return lora_init_st;
 }
 
 void lora_send(const char *str)

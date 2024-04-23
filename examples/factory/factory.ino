@@ -262,6 +262,10 @@ void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
 
 void setup(void)
 {
+    bool pmu_ret = false;
+    bool nfc_ret = false;
+    bool lora_ret = false;
+
     pinMode(ENCODER_KEY, INPUT);
 
     Serial.begin(115200);
@@ -289,10 +293,13 @@ void setup(void)
         if(error == 0){ // 0: success.
             nDevices++;
             if(address == BOARD_I2C_ADDR_1) {
+                nfc_ret = true;
                 log_i("I2C device found PN532 at address 0x%x\n", address);
             } else if(address == BOARD_I2C_ADDR_2) {
+                pmu_ret = true;
                 log_i("I2C device found at PMU address 0x%x\n", address);
             } else if(address == BOARD_I2C_ADDR_3) {
+                lora_ret = true;
                 log_i("I2C device found at BQ25896 address 0x%x\n", address);
             }
         }
@@ -310,14 +317,17 @@ void setup(void)
 
     ui_entry(); // init UI and display
 
-    battery_charging.begin();
-
     wifi_init();
     configTime(8 * 3600, 0, ntpServer1, ntpServer2);
 
-    lora_init(); 
+    if(pmu_ret)
+        battery_charging.begin();
 
-    nfc_init();
+    if(lora_ret)
+        lora_init(); 
+
+    if(nfc_ret)
+        nfc_init();
 
     ws2812_init();
 

@@ -9,6 +9,7 @@ uint8_t success;
 uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };  // Buffer to store the returned UID
 uint8_t uidLength;                        // Length of the UID (4 or 7 bytes depending on ISO14443A card type)
 uint32_t cardid = 0;
+bool nfc_init_st = false;
 
 void nfc_init(void)
 {
@@ -29,7 +30,13 @@ void nfc_init(void)
         // the default behaviour of the PN532.
 
         Serial.println("Waiting for an ISO14443A Card ...");
+        nfc_init_st = true;
     }
+}
+
+bool nfc_is_init(void)
+{
+    return nfc_init_st;
 }
 
 uint32_t nfc_get_ver_data(void)

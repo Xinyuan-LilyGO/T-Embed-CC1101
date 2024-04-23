@@ -20,30 +20,6 @@
 // #define FONT_LIGHT_16 
 // #define FONT_LIGHT_18 
 
-
-// color
-
-// #define COLOR_BG       0x161823   // 漆黑色   0x161823
-// #define COLOR_FOCUS_ON 0x91B821   // 绿茶色   0x91B821
-// #define COLOR_TEXT     0xffffff   // 丁香淡紫 0xE9D4DF
-// #define COLOR_BORDER   0xBBBBBB   // 
-// #define COLOR_5  //
-// #define COLOR_6  //
-
-// #define COLOR_BG       0xffffff   // 漆黑色   0x161823
-// #define COLOR_FOCUS_ON 0x91B821   // 绿茶色   0x91B821
-// #define COLOR_TEXT     0x161823   // 丁香淡紫 0xE9D4DF
-// #define COLOR_BORDER   0xBBBBBB   // 
-// #define COLOR_5  //
-// #define COLOR_6  //
-
-/**
- * 漆黑色   0x161823
- * 绿茶色   0x91B821
- * 丁香淡紫 0xE9D4DF
- * 纯白色   0xffffff
-*/
-
 // screen id
 enum{
     SCREEN0_ID = 0,
