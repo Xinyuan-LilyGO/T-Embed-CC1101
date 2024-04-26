@@ -1028,6 +1028,7 @@ void setting_scr_event(lv_event_t *e)
                 display_rotation = 3;
             }
             eeprom_wr(UI_ROTATION_EEPROM_ADDR, display_rotation);
+            lv_obj_invalidate(scr4_cont);
             break;
         case 1: // "Deep Sleep"
             ui_scr1_set_light(0);
@@ -1497,7 +1498,10 @@ void create6(lv_obj_t *parent)
 void entry6(void) {
     entry6_anim(scr6_cont);
 }
-void exit6(void) {}
+void exit6(void) {
+    lv_timer_del(wifi_timer);
+    wifi_timer = NULL;
+}
 void destroy6(void) {}
 
 scr_lifecycle_t screen6 = {
