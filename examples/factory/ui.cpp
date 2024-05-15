@@ -1499,8 +1499,10 @@ void entry6(void) {
     entry6_anim(scr6_cont);
 }
 void exit6(void) {
-    lv_timer_del(wifi_timer);
-    wifi_timer = NULL;
+    if(wifi_timer) {
+        lv_timer_del(wifi_timer);
+        wifi_timer = NULL;
+    }
 }
 void destroy6(void) {}
 
