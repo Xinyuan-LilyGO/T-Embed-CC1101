@@ -55,12 +55,12 @@ void lv_port_disp_init(void)
     int height = tft.height();
 
     static lv_disp_draw_buf_t draw_buf_dsc;
-    static lv_color_t *buf1 = (lv_color_t *)ps_malloc((width * height) * sizeof(lv_color_t));
+    static lv_color_t *buf1 = (lv_color_t *)ps_malloc((width * 10) * sizeof(lv_color_t));
     assert(buf1);
-    static lv_color_t *buf2 = (lv_color_t *)ps_malloc((width * height) * sizeof(lv_color_t));
+    static lv_color_t *buf2 = (lv_color_t *)ps_malloc((width * 10) * sizeof(lv_color_t));
     assert(buf2);
 
-    lv_disp_draw_buf_init(&draw_buf_dsc, buf1, NULL, width * height);
+    lv_disp_draw_buf_init(&draw_buf_dsc, buf1, NULL, width * 10);
 
     /*-----------------------------------
      * Register the display in LVGL
@@ -82,7 +82,7 @@ void lv_port_disp_init(void)
     disp_drv.draw_buf = &draw_buf_dsc;
 
     /*Required for Example 3)*/
-    disp_drv.full_refresh = 1;
+    disp_drv.full_refresh = 0;
 
     /*Finally register the driver*/
     lv_disp_drv_register(&disp_drv);

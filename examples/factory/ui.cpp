@@ -171,6 +171,7 @@ static void scr0_btn_event_cb(lv_event_t * e)
         { 
             case 0: 
                 lv_img_set_src(menu_icon, &img_lora_32); 
+                lv_img_set_src(menu_icon, "A:/img_lora_32.png"); 
                 lv_obj_set_style_img_recolor(menu_icon, lv_palette_main(LV_PALETTE_CYAN), LV_PART_MAIN);
                 lv_obj_set_style_img_recolor_opa(menu_icon, LV_OPA_100, LV_PART_MAIN);
                 break; 

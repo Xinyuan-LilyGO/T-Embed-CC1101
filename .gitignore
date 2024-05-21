@@ -3,3 +3,7 @@
 *.xlsx
 script
 build
+新建文件夹
+lib/BQ27441
+examples/usb_msc_flash
+examples/bq27220_test

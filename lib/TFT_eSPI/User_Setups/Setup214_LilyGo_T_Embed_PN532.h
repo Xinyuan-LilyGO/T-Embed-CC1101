@@ -15,12 +15,12 @@
 #define TFT_BACKLIGHT_ON 1
 
 #define TFT_BL     21   // LED back-light
-#define TFT_MISO   -1   
+#define TFT_MISO   10   
 #define TFT_MOSI   9
 #define TFT_SCLK   11
 #define TFT_CS     41 
 #define TFT_DC     16
-#define TFT_RST    40 // Connect reset to ensure display initialises
+#define TFT_RST    -1 // Connect reset to ensure display initialises
 
 
 // #define TFT_BL     21   // LED back-light
