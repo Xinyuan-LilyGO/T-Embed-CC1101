@@ -14,6 +14,12 @@
 #define BOARD_MIC_DATA 42
 #define BOARD_MIC_CLK  39
 
+// VOICE
+// #define BOARD_VOICE_MODE  4
+#define BOARD_VOICE_BCLK  46
+#define BOARD_VOICE_LRCLK 40
+#define BOARD_VOICE_DIN   7
+
 // --------- DISPLAY ---------
 // About LCD definition in the file: lib/TFT_eSPI/User_Setups/Setup214_LilyGo_T_Embed_PN532.h
 // #define ST7789_DRIVER     // Configure all registers

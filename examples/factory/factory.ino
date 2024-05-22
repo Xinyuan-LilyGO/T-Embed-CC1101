@@ -3,6 +3,8 @@
 #include <XPowersLib.h>
 #include "ui.h"
 #include "TFT_eSPI.h"
+#include "Audio.h"
+
 /*********************************************************************************
  *                               DEFINE
  *********************************************************************************/
@@ -22,6 +24,8 @@ extern uint8_t setting_theme;
 /*********************************************************************************
  *                              TYPEDEFS
  *********************************************************************************/
+
+Audio audio(false, 3, I2S_NUM_1);
 PowersSY6970 PMU;
 uint32_t cycleInterval;
 
@@ -137,18 +141,21 @@ void eeprom_init()
         }
 
         wifi_eeprom_upd = true;
-        Serial.printf("eeprom flag: %d\n", frist_flag);
-        Serial.printf("eeprom SSID: %s\n", wifi_ssid);
-        Serial.printf("eeprom PWSD: %s\n", wifi_password);
+        
 
         uint8_t theme = EEPROM.read(UI_THEME_EEPROM_ADDR);
         uint8_t rotation = EEPROM.read(UI_ROTATION_EEPROM_ADDR);
 
         setting_theme = theme;
         display_rotation = (rotation == 1 ? 1 : 3);
-        
+
+        Serial.println("*************** eeprom ****************");
+        Serial.printf("eeprom flag: %d\n", frist_flag);
+        Serial.printf("eeprom SSID: %s\n", wifi_ssid);
+        Serial.printf("eeprom PWSD: %s\n", wifi_password);
         Serial.printf("eeprom theme: %d\n", theme);
         Serial.printf("eeprom rotation: %d\n", rotation);
+        Serial.println("***************************************");
     }
 }
 
@@ -256,8 +263,35 @@ void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
         }
         file = root.openNextFile();
     }
+}
 
-    Serial.println("----------- spiffs end -----------");
+extern int music_idx;
+extern char *music_list[20];
+
+void scr8_read_music_from_SD(void)
+{
+    File root = SD.open("/music");
+    if(!root){
+        Serial.println("Failed to open directory");
+        return;
+    }
+
+    int i = 0;
+    File file = root.openNextFile();
+    while(file) {
+        if(!file.isDirectory()) {
+            
+            char *file_name = (char *)file.name();
+            uint16_t file_name_len = strlen(file_name);
+            char *buf = (char *)ps_malloc(file_name_len + 1);
+            strcpy(buf, file_name);
+            music_list[i] = buf;
+            i++;
+
+            Serial.println(music_list[i-1]);
+        }
+        file = root.openNextFile();
+    }
 }
 
 void setup(void)
@@ -265,6 +299,9 @@ void setup(void)
     bool pmu_ret = false;
     bool nfc_ret = false;
     bool lora_ret = false;
+
+    pinMode(TFT_BL, OUTPUT);
+    digitalWrite(TFT_BL, LOW);
 
     pinMode(ENCODER_KEY, INPUT);
 
@@ -313,9 +350,11 @@ void setup(void)
         return;
     }
 
-    eeprom_init();
+    Serial.println("*************** SPIFFS ****************");
+    listDir(SPIFFS, "/", 0);
+    Serial.println("**************************************");
 
-    ui_entry(); // init UI and display
+    eeprom_init();
 
     wifi_init();
     configTime(8 * 3600, 0, ntpServer1, ntpServer2);
@@ -333,19 +372,26 @@ void setup(void)
 
     mic_init();
 
-    sd_init();
-
-    listDir(SD, "/", 0);
-
     infared_init();
-
-    lv_timer_create(msg_send_event, 5000, NULL);
 
     multi_thread_create();
 
+    audio.setPinout(BOARD_VOICE_BCLK, BOARD_VOICE_LRCLK, BOARD_VOICE_DIN);
+    audio.setVolume(21); // 0...21
+
+    // audio.connecttoFS(SD, "/music/My Anata.mp3");
+
+    // init UI and display
+    ui_entry(); 
+    lv_timer_create(msg_send_event, 5000, NULL);
     // lvgl msg
     lv_msg_subsribe(MSG_UI_ROTATION_ST, msg_subsribe_event, NULL);
     lv_msg_subsribe(MSG_UI_THEME_MODE, msg_subsribe_event, NULL);
+
+    digitalWrite(TFT_BL, HIGH);
+
+    sd_init();
+    scr8_read_music_from_SD();
 }
 
 int file_cnt = 0;
@@ -353,6 +399,8 @@ int file_cnt = 0;
 void loop(void)
 {
     lv_timer_handler();
+
+    audio.loop();
 
     if(mic_recode_st()) {
         record_wav(10);

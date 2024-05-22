@@ -121,13 +121,17 @@ static void keypad_read(lv_indev_drv_t * indev_drv, lv_indev_data_t * data)
     static uint32_t last_key = 0;
 
     if(indev_keypad_enabled == false) {
+        uint32_t act_key = infared_get_cmd();
+        if(act_key == 0x44) {
+            act_key = LV_KEY_ENTER;
+            data->key = last_key;
+            data->state = LV_INDEV_STATE_PR;
+        } else {
+            data->state = LV_INDEV_STATE_REL;
+        }
         return;
     }
 
-    /*Get the current x and y coordinates*/
-    // mouse_get_xy(&data->point.x, &data->point.y);
-
-    /*Get whether the a key is pressed and save the pressed key*/
     uint32_t act_key = infared_get_cmd();
     if(act_key != 0) {
         data->state = LV_INDEV_STATE_PR;
@@ -185,18 +189,18 @@ static void encoder_read(lv_indev_drv_t * indev_drv, lv_indev_data_t * data)
 {
     if(indev_encoder_enabled){
         indev_encoder_pos= encoder.getPosition();
-
         int encoder_dir = (int16_t)encoder.getDirection();
         if(encoder_dir != 0){
             data->enc_diff = -encoder_dir;
         }
-        if (digitalRead(ENCODER_KEY) == LOW) {
-            data->state = LV_INDEV_STATE_PR;
-        } else if (digitalRead(ENCODER_KEY) == HIGH) { 
-            data->state = LV_INDEV_STATE_REL;
-        }
     } else {
         data->enc_diff = 0;
+        data->state = LV_INDEV_STATE_REL;
+    }
+
+    if (digitalRead(ENCODER_KEY) == LOW) {
+        data->state = LV_INDEV_STATE_PR;
+    } else if (digitalRead(ENCODER_KEY) == HIGH) { 
         data->state = LV_INDEV_STATE_REL;
     }
     // Serial.printf("enc_diff:%d, sta:%d\n",data->enc_diff, data->state);

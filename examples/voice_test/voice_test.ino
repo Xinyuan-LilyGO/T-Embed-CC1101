@@ -85,7 +85,7 @@ void setup() {
 
 
     audio.setPinout(I2S_BCLK, I2S_LRC, I2S_DOUT);
-    audio.setVolume(255); // 0...21
+    audio.setVolume(21); // 0...21
     ticker.attach(1, tckr1s);
 }
 

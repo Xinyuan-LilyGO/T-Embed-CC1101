@@ -76,6 +76,9 @@ void setup() {
 
     pinMode(BOARD_IR_EN, OUTPUT);
     digitalWrite(BOARD_IR_EN, HIGH);
+
+    pinMode(21, OUTPUT);
+    digitalWrite(21, LOW);
     
     // Just to know which program is running on my Arduino
     Serial.println(F("START " __FILE__ " from " __DATE__ "\r\nUsing library version " VERSION_IRREMOTE));

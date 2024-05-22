@@ -12,7 +12,7 @@
 
 #define TFT_INVERSION_ON
 //#define TFT_INVERSION_OFF
-#define TFT_BACKLIGHT_ON 1
+// #define TFT_BACKLIGHT_ON 1
 
 #define TFT_BL     21   // LED back-light
 #define TFT_MISO   10   

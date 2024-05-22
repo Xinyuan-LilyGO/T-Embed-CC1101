@@ -83,12 +83,12 @@ extern bool wifi_is_connect;
 
 /**---------------------------- EEPROM -----------------------------------**/
 #include <EEPROM.h>
-#define EEPROM_UPDATA_FLAG_NUM  0xAA
-#define WIFI_SSID_EEPROM_ADDR   (1)
-#define WIFI_PSWD_EEPROM_ADDR   (WIFI_SSID_EEPROM_ADDR + WIFI_SSID_MAX_LEN)
-#define UI_THEME_EEPROM_ADDR    (WIFI_PSWD_EEPROM_ADDR + WIFI_PSWD_MAX_LEN)
-#define UI_ROTATION_EEPROM_ADDR (UI_THEME_EEPROM_ADDR + 1)
-#define EEPROM_SIZE_MAX 64
+#define EEPROM_UPDATA_FLAG_NUM   0xAA
+#define WIFI_SSID_EEPROM_ADDR    (1)
+#define WIFI_PSWD_EEPROM_ADDR    (WIFI_SSID_EEPROM_ADDR + WIFI_SSID_MAX_LEN)
+#define UI_THEME_EEPROM_ADDR     (WIFI_PSWD_EEPROM_ADDR + WIFI_PSWD_MAX_LEN)
+#define UI_ROTATION_EEPROM_ADDR  (UI_THEME_EEPROM_ADDR + 1)
+#define EEPROM_SIZE_MAX 128
 
 void eeprom_wr(int addr, uint8_t val);
 void eeprom_wr_wifi(const char *ssid, uint16_t ssid_len, const char *pwsd, uint16_t pwsd_len);
