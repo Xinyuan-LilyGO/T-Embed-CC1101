@@ -1015,6 +1015,23 @@ bool __attribute__((weak)) ui_scr4_get_sd_st(void) {   return false; }
 lv_obj_t *scr4_cont;
 lv_obj_t *setting_list;
 lv_obj_t *theme_label;
+int rotation_setting = 0;
+
+static void transform_angle_cb(void * var, int32_t v) {
+    lv_obj_set_style_transform_angle((lv_obj_t *)var, v , LV_PART_MAIN);
+}
+
+static void transform_angle_anim(lv_obj_t *obj, int angle)
+{
+    lv_anim_t a;
+    lv_anim_init(&a);
+    lv_anim_set_var(&a, obj);
+    lv_anim_set_values(&a, angle*1800, (angle+1) * 1800);
+    lv_anim_set_time(&a, 500);
+    lv_anim_set_path_cb(&a, lv_anim_path_linear);
+    lv_anim_set_exec_cb(&a, transform_angle_cb);
+    lv_anim_start(&a);
+}
 
 void setting_scr_event(lv_event_t *e)
 {
@@ -1025,17 +1042,20 @@ void setting_scr_event(lv_event_t *e)
         switch (data)
         {
         case 0: // "Rotatoion"
+            lv_obj_set_style_transform_pivot_x(scr4_cont, LV_HOR_RES/2, LV_PART_MAIN);
+            lv_obj_set_style_transform_pivot_y(scr4_cont, LV_VER_RES/2, LV_PART_MAIN);
+
             if(display_rotation == 3){
-                // tft.fillScreen(TFT_BLACK);
-                tft.setRotation(1);
+                transform_angle_anim(scr4_cont, rotation_setting);
                 display_rotation = 1;
             } else if(display_rotation == 1){
-                // tft.fillScreen(TFT_BLACK);
-                tft.setRotation(3);
                 display_rotation = 3;
+                transform_angle_anim(scr4_cont, rotation_setting);
             }
+            rotation_setting = !rotation_setting;
             eeprom_wr(UI_ROTATION_EEPROM_ADDR, display_rotation);
-            lv_obj_invalidate(scr4_cont);
+
+            // lv_obj_invalidate(scr4_cont);
             break;
         case 1: // "Deep Sleep"
             ui_scr1_set_light(0);
@@ -1159,6 +1179,8 @@ void exit4(void) {
     lv_group_set_wrap(lv_group_get_default(), false);
 }
 void destroy4(void) {
+    tft.setRotation(display_rotation);
+    rotation_setting = 0;
 }
 scr_lifecycle_t screen4 = {
     .create = create4,

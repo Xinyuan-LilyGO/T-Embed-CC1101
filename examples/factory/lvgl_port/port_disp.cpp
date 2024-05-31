@@ -28,7 +28,6 @@ static void disp_init(void);
 
 static void disp_flush(lv_disp_drv_t * disp_drv, const lv_area_t * area, lv_color_t * color_p);
 
-
 /**********************
  *  STATIC VARIABLES
  **********************/
@@ -55,12 +54,12 @@ void lv_port_disp_init(void)
     int height = tft.height();
 
     static lv_disp_draw_buf_t draw_buf_dsc;
-    static lv_color_t *buf1 = (lv_color_t *)ps_malloc((width * 10) * sizeof(lv_color_t));
+    static lv_color_t *buf1 = (lv_color_t *)ps_malloc((width * height) * sizeof(lv_color_t));
     assert(buf1);
-    static lv_color_t *buf2 = (lv_color_t *)ps_malloc((width * 10) * sizeof(lv_color_t));
+    static lv_color_t *buf2 = (lv_color_t *)ps_malloc((width * height) * sizeof(lv_color_t));
     assert(buf2);
 
-    lv_disp_draw_buf_init(&draw_buf_dsc, buf1, NULL, width * 10);
+    lv_disp_draw_buf_init(&draw_buf_dsc, buf1, NULL, width * height);
 
     /*-----------------------------------
      * Register the display in LVGL
@@ -77,12 +76,12 @@ void lv_port_disp_init(void)
 
     /*Used to copy the buffer's content to the display*/
     disp_drv.flush_cb = disp_flush;
-
+    
     /*Set a display buffer*/
     disp_drv.draw_buf = &draw_buf_dsc;
 
     /*Required for Example 3)*/
-    disp_drv.full_refresh = 0;
+    disp_drv.full_refresh = 1;
 
     /*Finally register the driver*/
     lv_disp_drv_register(&disp_drv);
