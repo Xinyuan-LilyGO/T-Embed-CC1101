@@ -1,6 +1,6 @@
 {
   "name": "XPowersLib",
-  "version": "0.2.2",
+  "version": "0.2.4",
   "description": "Arduino,CircuitPython,Micropython library for x-powers power management series",
   "keywords": "AXP192 AXP202 AXP2101 x-powers",
   "authors": [
@@ -68,6 +68,16 @@
       "files": ["AXP2101_Sleep_Example.ino"]
     },
     {
+      "name": "AXP2101_Charge_Current_Setting",
+      "base": "examples/AXP2101_Charge_Current_Setting",
+      "files": ["AXP2101_Charge_Current_Setting.ino"]
+    },
+    {
+      "name": "AXP2101_LowBatteryWarningExample",
+      "base": "examples/AXP2101_LowBatteryWarningExample",
+      "files": ["AXP2101_LowBatteryWarningExample.ino"]
+    },
+    {
       "name": "ESP_IDF_Example",
       "base": "examples/ESP_IDF_Example/main",
       "files": [
@@ -91,6 +101,11 @@
       "name": "SY6970_Watchdog_Example",
       "base": "examples/SY6970_Watchdog_Example",
       "files": ["SY6970_Watchdog_Example.ino"]
+    },
+    {
+      "name": "SY6970_Shutdown_Example",
+      "base": "examples/SY6970_Shutdown_Example",
+      "files": ["SY6970_Shutdown_Example.ino"]
     }
   ],
   "frameworks": ["arduino", "espidf"],

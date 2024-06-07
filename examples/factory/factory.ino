@@ -26,9 +26,9 @@ extern uint8_t setting_theme;
  *********************************************************************************/
 
 Audio audio(false, 3, I2S_NUM_1);
-PowersSY6970 PMU;
+XPowersPPM PPM;
+BQ27220 bq27220;
 uint32_t cycleInterval;
-
 SemaphoreHandle_t radioLock;
 
 TaskHandle_t nfc_handle;
@@ -334,7 +334,7 @@ void setup(void)
                 log_i("I2C device found PN532 at address 0x%x\n", address);
             } else if(address == BOARD_I2C_ADDR_2) {
                 pmu_ret = true;
-                log_i("I2C device found at PMU address 0x%x\n", address);
+                log_i("I2C device found at BQ27220 address 0x%x\n", address);
             } else if(address == BOARD_I2C_ADDR_3) {
                 lora_ret = true;
                 log_i("I2C device found at BQ25896 address 0x%x\n", address);
@@ -359,9 +359,21 @@ void setup(void)
     wifi_init();
     configTime(8 * 3600, 0, ntpServer1, ntpServer2);
 
-    if(pmu_ret)
-        battery_charging.begin();
-
+    pmu_ret = PPM.init(Wire, BOARD_I2C_SDA, BOARD_I2C_SCL, BQ25896_SLAVE_ADDRESS);
+    if(pmu_ret) {
+        PPM.setSysPowerDownVoltage(3300);
+        PPM.setInputCurrentLimit(3250);
+        Serial.printf("getInputCurrentLimit: %d mA\n",PPM.getInputCurrentLimit());
+        PPM.disableCurrentLimitPin();
+        PPM.setChargeTargetVoltage(4208);
+        PPM.setPrechargeCurr(64);
+        PPM.setChargerConstantCurr(832);
+        PPM.getChargerConstantCurr();
+        Serial.printf("getChargerConstantCurr: %d mA\n",PPM.getChargerConstantCurr());
+        PPM.enableADCMeasure();
+        PPM.enableCharge();
+    }
+   
     if(lora_ret)
         lora_init(); 
 

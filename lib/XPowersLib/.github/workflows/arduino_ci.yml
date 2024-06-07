@@ -1,0 +1,60 @@
+name: Arduino_CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    paths:
+      - "src/**"
+      - "examples/**"
+      - ".github/workflows/arduino_ci.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        board: ["esp32:esp32:esp32s3"]
+        examples:
+          - examples/AXP192_Example/AXP192_Example.ino
+          - examples/AXP202_Example/AXP202_Example.ino
+          - examples/AXP2101_ADC_Example/AXP2101_ADC_Example.ino
+          - examples/AXP2101_Charge_Example/AXP2101_Charge_Example.ino
+          - examples/AXP2101_Charge_Current_Setting/AXP2101_Charge_Current_Setting.ino
+          - examples/AXP2101_Example/AXP2101_Example.ino
+          - examples/AXP2101_InterruptExample/AXP2101_InterruptExample.ino
+          - examples/AXP2101_Sleep_Example/AXP2101_Sleep_Example.ino
+          - examples/AXP2101_Voltage_Example/AXP2101_Voltage_Example.ino
+          - examples/SY6970_Example/SY6970_Example.ino
+          - examples/SY6970_Watchdog_Example/SY6970_Watchdog_Example.ino
+          - examples/SY6970_Shutdown_Example/SY6970_Shutdown_Example.ino
+          - examples/XPowersLibInterface_Example/XPowersLibInterface_Example.ino
+          - examples/AXP2101_LowBatteryWarningExample/AXP2101_LowBatteryWarningExample.ino
+          - examples/BQ25896_Example/BQ25896_Example.ino
+          - examples/BQ25896_Shutdown_Example/BQ25896_Shutdown_Example.ino
+
+    env:
+      BOARD: ${{ matrix.board }}
+      EXAMPLES: ${{matrix.examples}}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Arduino Ci
+        run: |
+          if [[ "$BOARD" =~ "esp32:esp32:" ]]; then
+            wget https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Linux_64bit.tar.gz -O arduino-cli.tar.gz ;
+            sudo tar xf arduino-cli.tar.gz -C /usr/local/bin arduino-cli ;
+            arduino-cli config init ;
+            arduino-cli config add board_manager.additional_urls https://espressif.github.io/arduino-esp32/package_esp32_dev_index.json ;
+            arduino-cli core update-index ;
+            arduino-cli core install esp32:esp32 ;
+          fi
+
+      - name: Build examples
+        run: |
+          cd $GITHUB_WORKSPACE ;
+          if [[ "$BOARD" =~ "esp32:esp32:"        ]]; then
+            arduino-cli compile -besp32:esp32:esp32s3 --library . --build-property build.extra_flags=-DXPOWERS_NO_ERROR $PWD/$EXAMPLES ;
+          fi ;

@@ -672,31 +672,37 @@ public:
 
     /**
      * @brief  Low battery warning threshold 5-20%, 1% per step
-     * @param  opt:   5 ~ 20
+     * @param  percentage:   5 ~ 20
      * @retval None
      */
-    void setLowBatWarnThreshold(uint8_t opt)
+    void setLowBatWarnThreshold(uint8_t percentage)
     {
-        if (opt < 5 || opt > 20)return;
+        if (percentage < 5 || percentage > 20)return;
         int val = readRegister(XPOWERS_AXP2101_LOW_BAT_WARN_SET);
         if (val == -1)return;
         val &= 0x0F;
-        writeRegister(XPOWERS_AXP2101_LOW_BAT_WARN_SET, val | (opt << 4));
+        writeRegister(XPOWERS_AXP2101_LOW_BAT_WARN_SET, val | ((percentage - 5) << 4));
     }
 
     uint8_t getLowBatWarnThreshold(void)
     {
-        return (readRegister(XPOWERS_AXP2101_LOW_BAT_WARN_SET) & 0xF0) >> 4;
+        int val = readRegister(XPOWERS_AXP2101_LOW_BAT_WARN_SET);
+        if (val == -1)return 0;
+        val &= 0xF0;
+        val >>= 4;
+        return val;
     }
 
     /**
-     * @brief  Low battery shutdown threshold 5-20%, 1% per step
-     * @param  opt:   5 ~ 20
+     * @brief  Low battery shutdown threshold 0-15%, 1% per step
+     * @param  opt:   0 ~ 15
      * @retval None
      */
     void setLowBatShutdownThreshold(uint8_t opt)
     {
-        if (opt < 5 || opt > 20)return;
+        if (opt > 15) {
+            opt = 15;
+        }
         int val = readRegister(XPOWERS_AXP2101_LOW_BAT_WARN_SET);
         if (val == -1)return;
         val &= 0xF0;
@@ -2442,7 +2448,7 @@ public:
         int val = readRegister(XPOWERS_AXP2101_ITERM_CHG_SET_CTRL);
         if (val == -1)return;
         val &= 0xF0;
-        writeRegister(XPOWERS_AXP2101_ICC_CHG_SET, val | opt);
+        writeRegister(XPOWERS_AXP2101_ITERM_CHG_SET_CTRL, val | opt);
     }
 
     xpowers_axp2101_chg_iterm_t getChargerTerminationCurr(void)
@@ -2480,7 +2486,7 @@ public:
         if (opt >= XPOWERS_AXP2101_CHG_VOL_MAX)return false;
         int val = readRegister(XPOWERS_AXP2101_CV_CHG_VOL_SET);
         if (val == -1)return false;
-        val &= 0xFC;
+        val &= 0xF8;
         return 0 == writeRegister(XPOWERS_AXP2101_CV_CHG_VOL_SET, val | opt);
     }
 
@@ -2490,7 +2496,7 @@ public:
      */
     uint8_t getChargeTargetVoltage(void)
     {
-        return (readRegister(XPOWERS_AXP2101_CV_CHG_VOL_SET) & 0x03);
+        return (readRegister(XPOWERS_AXP2101_CV_CHG_VOL_SET) & 0x07);
     }
 
 

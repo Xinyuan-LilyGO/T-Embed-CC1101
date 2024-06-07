@@ -94,6 +94,17 @@ enum FastChargeTimer {
     FAST_CHARGE_TIMER_20H,
 };
 
+enum BoostCurrentLimit {
+    BOOST_CUR_LIMIT_500MA,
+    BOOST_CUR_LIMIT_750MA,
+    BOOST_CUR_LIMIT_1200MA,
+    BOOST_CUR_LIMIT_1400MA,
+    BOOST_CUR_LIMIT_1650MA,
+    BOOST_CUR_LIMIT_1875MA,
+    BOOST_CUR_LIMIT_2150MA,
+    BOOST_CUR_LIMIT_2450MA,
+} ;
+
 class PowersSY6970 :
     public XPowersCommon<PowersSY6970> //, public XPowersLibInterface
 {
@@ -142,6 +153,7 @@ public:
         __sda = sda;
         __scl = scl;
         __addr = addr;
+        __irq_mask = 0;
         return begin();
     }
 #endif
@@ -391,9 +403,6 @@ public:
     {
         setRegisterBit(POWERS_SY6970_REG_03H, 7);
     }
-
-
-
 
     PowersSY6970BusStatus getBusStatus()
     {
@@ -661,6 +670,8 @@ public:
         return (val * POWERS_SY6970_IN_CURRENT_STEP) + POWERS_SY6970_IN_CURRENT_MIN;
     }
 
+    // USB input path is disabled and can only be reset by disconnecting
+    // the power supply, otherwise the power cannot be turned on
     void enableHIZ()
     {
         setRegisterBit(POWERS_SY6970_REG_00H, 7);
@@ -712,6 +723,21 @@ public:
     {
         int val = readRegister(POWERS_SY6970_REG_0FH);
         return (POWERS_SY6970_VSYS_MASK_VAL(val) * POWERS_SY6970_VSYS_VOL_STEP) + POWERS_SY6970_VSYS_BASE_VAL;
+    }
+
+    float getNTCPercentage()
+    {
+        int val = readRegister(POWERS_SY6970_REG_10H);
+        return (POWERS_SY6970_NTC_MASK_VAL(val) * POWERS_SY6970_NTC_VOL_STEP) + POWERS_SY6970_NTC_BASE_VAL;
+    }
+
+    uint16_t getChargeCurrent()
+    {
+        int val = readRegister(POWERS_SY6970_REG_12H);
+        if (val == 0)return 0;
+        val = (val & 0x7F);
+        return (val * POWERS_SY6970_CHG_STEP_VAL) ;
+
     }
 
     // Range: 64mA ~ 1024mA ,step:64mA
@@ -795,25 +821,183 @@ public:
         return  writeRegister(POWERS_SY6970_REG_06H, val) != -1;
     }
 
+    // Turn off the battery power supply path. It can only be turned off when the
+    // battery is powered. It cannot be turned off when USB is connected.
+    void shutdown()
+    {
+        disableBATFET();
+    }
+
+    // Close battery power path
+    void disableBATFET()
+    {
+        setRegisterBit(POWERS_SY6970_REG_09H, 5);       //Force BATFET Off : BATFET_DIS
+    }
+
+    // Enable battery power path
+    void enableBATFET()
+    {
+        clrRegisterBit(POWERS_SY6970_REG_09H, 5);       //Force BATFET Off : BATFET_DIS
+    }
+
+    // Boost Mode Voltage Regulation: 4550mV ~ 5510mV
+    bool setBoostVoltage(uint16_t millivolt)
+    {
+        if (millivolt % POWERS_SY6970_BOOTS_VOL_STEP) {
+            log_e("Mistake ! The steps is must %u mV", POWERS_SY6970_BOOTS_VOL_STEP);
+            return false;
+        }
+        if (millivolt < POWERS_SY6970_BOOST_VOL_MIN) {
+            millivolt = POWERS_SY6970_BOOST_VOL_MIN;
+        }
+        if (millivolt > POWERS_SY6970_BOOST_VOL_MAX) {
+            millivolt = POWERS_SY6970_BOOST_VOL_MAX;
+        }
+        int val = readRegister(POWERS_SY6970_REG_0AH);
+        val &= 0x03;
+        val |= (((millivolt - POWERS_SY6970_BOOTS_VOL_BASE) / POWERS_SY6970_BOOTS_VOL_STEP) << 2);
+        return  writeRegister(POWERS_SY6970_REG_0AH, val) != -1;
+    }
+
+    // Boost Current Limit: 500mA ~2450mA
+    bool setBoostCurrentLimit(BoostCurrentLimit milliampere)
+    {
+        if (milliampere > BOOST_CUR_LIMIT_2450MA) {
+            return false;
+        }
+        int val = readRegister(POWERS_SY6970_REG_0AH);
+        val &= 0x03;
+        val |= milliampere;
+        return  writeRegister(POWERS_SY6970_REG_0AH, val) != -1;
+    }
+
+    uint64_t getIrqStatus(void)
+    {
+        int val = readRegister(POWERS_SY6970_REG_0CH);
+        if (val == -1) {
+            return 0;
+        }
+        __irq_mask = val;
+
+        val = readRegister(POWERS_SY6970_REG_0BH);
+        if (val == -1) {
+            return 0;
+        }
+        __irq_mask |= ((val >> 7) & 0x1) << 8;
+        return __irq_mask;
+    }
+
+    void getReadOnlyRegisterValue()
+    {
+#ifdef ARDUINO //debug ..
+        static uint8_t last_val[8] = {0};
+        const uint8_t regis[] = {
+            POWERS_SY6970_REG_0BH,
+            POWERS_SY6970_REG_0CH,
+            // POWERS_SY6970_REG_0EH, //BATTERY VOLTAGE
+            // POWERS_SY6970_REG_0FH, //SYSTEM VOLTAGE
+            // POWERS_SY6970_REG_10H, //NTC PERCENTAGE
+            // POWERS_SY6970_REG_11H, //VBUS VOLTAGE
+            POWERS_SY6970_REG_12H,
+            POWERS_SY6970_REG_13H
+        };
+        Serial.println();
+        Serial.println("-------------------------");
+        for (int i = 0; i < sizeof(regis) / sizeof(regis[0]); ++i) {
+            int val = readRegister(regis[i]);
+            if (val == -1) {
+                continue;
+            }
+            if (last_val[i] != val) {
+                Serial.printf("\t---> REG%02X Prev:0x%02X ", regis[i], last_val[i]);
+                Serial.print(" BIN:"); Serial.print(last_val[i], BIN);
+                Serial.printf(" Curr: 0x%02X", val);
+                Serial.print(" BIN:"); Serial.println(val, BIN);
+                last_val[i] = val;
+            }
+            Serial.printf("\tREG%02XH:0x%X BIN:0b", regis[i], val);
+            Serial.println(val, BIN);
+        }
+        Serial.println("-------------------------");
+#endif
+    }
+
+
+    bool isWatchdogFault()
+    {
+        return POWERS_SY6970_IRQ_WTD_FAULT(__irq_mask);
+    }
+
+    bool isBoostFault()
+    {
+        return POWERS_SY6970_IRQ_BOOST_FAULT(__irq_mask);
+    }
+
+    bool isChargeFault()
+    {
+        return POWERS_SY6970_IRQ_CHG_FAULT(__irq_mask);
+    }
+
+    bool isBatteryFault()
+    {
+        return POWERS_SY6970_IRQ_BAT_FAULT(__irq_mask);
+    }
+
+    bool isNTCFault()
+    {
+        return POWERS_SY6970_IRQ_NTC_FAULT(__irq_mask);
+    }
+
+    // True: In VSYSMIN regulation (BAT<VSYSMIN)
+    // False: Not in VSYSMIN regulation (BAT>VSYSMIN)
+    bool isVsysLowVoltageWarning()
+    {
+        uint8_t tmp = __irq_mask >> 8;
+        return (bool)(tmp & 0x01);
+    }
+
+    bool setVinDpmThreshold(uint16_t millivolt)
+    {
+        if (millivolt % POWERS_SY6970_VINDPM_VOL_STEPS) {
+            log_e("Mistake ! The steps is must %u mV", POWERS_SY6970_VINDPM_VOL_STEPS);
+            return false;
+        }
+        if (millivolt < POWERS_SY6970_VINDPM_VOL_MIN) {
+            millivolt = POWERS_SY6970_VINDPM_VOL_MIN;
+        }
+        if (millivolt > POWERS_SY6970_VINDPM_VOL_MAX) {
+            millivolt = POWERS_SY6970_VINDPM_VOL_MAX;
+        }
+        int val = readRegister(POWERS_SY6970_REG_0DH);
+        val &= 0x80;
+        val |= (((millivolt - POWERS_SY6970_VINDPM_VOL_BASE) / POWERS_SY6970_VINDPM_VOL_STEPS));
+        return  writeRegister(POWERS_SY6970_REG_0DH, val) != -1;
+    }
+
+
 private:
 
     bool initImpl()
     {
         __user_disable_charge = false;
-        if (getChipID() != 0x00) {
+
+        uint8_t rev = getChipID();
+        if (rev != SY6970_DEV_REV && rev != BQ25896_DEV_REV) {
             return false;
         }
         // Set the minimum operating voltage. Below this voltage, the PMU will protect
         setSysPowerDownVoltage(3300);
 
-        //Default disbale Watchdog
+        //Default disable Watchdog
         disableWatchdog();
 
         return true;
     }
 
     bool __user_disable_charge;
+    uint32_t __irq_mask;
 };
 
 
 
+typedef PowersSY6970 XPowersPPM;

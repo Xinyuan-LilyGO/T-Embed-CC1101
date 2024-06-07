@@ -44,11 +44,14 @@ void lora_send(const char *str);
 void lora_task(void *param);
 
 /**---------------------------- BATTERY ----------------------------------**/
-#include "BQ25896.h"
+#include "XPowersLib.h"
 
 extern TaskHandle_t battery_handle;
-extern BQ25896 battery_charging;
+extern XPowersPPM PPM;
 void battery_task(void *param);
+
+#include "bq27220.h"
+extern BQ27220 bq27220;
 
 /**------------------------------ MIC ------------------------------------**/
 void mic_init(void);

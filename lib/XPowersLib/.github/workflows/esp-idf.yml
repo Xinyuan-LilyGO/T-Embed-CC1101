@@ -1,0 +1,32 @@
+name: Build esp-idf examples
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    paths:
+      - "src/**"
+      - "examples/ESP_IDF_Example/**"
+      - ".github/workflows/esp-idf.yml"
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        idf_ver: ["latest"]
+    runs-on: ubuntu-latest
+
+    container: espressif/idf:${{ matrix.idf_ver }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+      - name: Build esp-idf examples
+        shell: bash
+        run: |
+          . ${IDF_PATH}/export.sh
+          cd examples/ESP_IDF_Example
+          export PEDANTIC_FLAGS="-DXPOWERS_NO_ERROR"
+          export EXTRA_CFLAGS="${PEDANTIC_FLAGS}"
+          export EXTRA_CXXFLAGS="${PEDANTIC_FLAGS}"
+          idf.py build
