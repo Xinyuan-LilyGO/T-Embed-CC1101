@@ -1016,6 +1016,8 @@ lv_obj_t *scr4_cont;
 lv_obj_t *setting_list;
 lv_obj_t *theme_label;
 int rotation_setting = 0;
+static lv_obj_t *shutdown_up;
+static lv_obj_t *shutdown_dp;
 
 static void transform_angle_cb(void * var, int32_t v) {
     lv_obj_set_style_transform_angle((lv_obj_t *)var, v , LV_PART_MAIN);
@@ -1031,6 +1033,18 @@ static void transform_angle_anim(lv_obj_t *obj, int angle)
     lv_anim_set_path_cb(&a, lv_anim_path_linear);
     lv_anim_set_exec_cb(&a, transform_angle_cb);
     lv_anim_start(&a);
+}
+
+static void shotdown_anim_cb(void * var, int32_t v){
+    lv_obj_set_y((lv_obj_t *)shutdown_up, v-LV_VER_RES/2);
+    lv_obj_set_y((lv_obj_t *)shutdown_dp, LV_VER_RES-v);
+}
+
+static void shutdown_anim_ready_cb(lv_anim_t *a)
+{
+    ui_scr1_set_light(0);
+    esp_sleep_enable_ext0_wakeup((gpio_num_t)ENCODER_KEY, 0);
+    esp_deep_sleep_start();
 }
 
 void setting_scr_event(lv_event_t *e)
@@ -1073,8 +1087,19 @@ void setting_scr_event(lv_event_t *e)
             ui_theme_setting(setting_theme);
             eeprom_wr(UI_THEME_EEPROM_ADDR, setting_theme);
             break;
-        case 3: // "System Sound"
-            prompt_info("No speaker found", 1000);
+        case 3: // "Shutdown"
+                lv_obj_clear_flag(shutdown_up, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_clear_flag(shutdown_dp, LV_OBJ_FLAG_HIDDEN);
+                
+                lv_anim_t a;
+                lv_anim_init(&a);
+                lv_anim_set_var(&a, shutdown_up);
+                lv_anim_set_values(&a, 0, LV_VER_RES/2);
+                lv_anim_set_time(&a, 1000);
+                lv_anim_set_path_cb(&a, lv_anim_path_linear);
+                lv_anim_set_exec_cb(&a, shotdown_anim_cb);
+                lv_anim_set_ready_cb(&a, shutdown_anim_ready_cb);
+                lv_anim_start(&a);
             break;
         case 4: {// "About System"
             char buf[128];
@@ -1125,6 +1150,24 @@ void create4(lv_obj_t *parent){
     lv_label_set_text(label, "Setting");
     lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 10);
 
+    shutdown_up = lv_obj_create(parent);
+    lv_obj_set_size(shutdown_up, lv_pct(100), lv_pct(50));
+    lv_obj_set_style_bg_color(shutdown_up, lv_color_hex(0x000000), LV_PART_MAIN);
+    lv_obj_set_scrollbar_mode(shutdown_up, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_set_style_border_width(shutdown_up, 0, LV_PART_MAIN);
+    lv_obj_set_style_radius(shutdown_up, 0, 0);
+    lv_obj_set_style_pad_all(shutdown_up, 0, LV_PART_MAIN);
+    lv_obj_add_flag(shutdown_up, LV_OBJ_FLAG_HIDDEN);
+
+    shutdown_dp = lv_obj_create(parent);
+    lv_obj_set_size(shutdown_dp, lv_pct(100), lv_pct(50));
+    lv_obj_set_style_bg_color(shutdown_dp, lv_color_hex(0x000000), LV_PART_MAIN);
+    lv_obj_set_scrollbar_mode(shutdown_dp, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_set_style_border_width(shutdown_dp, 0, LV_PART_MAIN);
+    lv_obj_set_style_radius(shutdown_dp, 0, 0);
+    lv_obj_set_style_pad_all(shutdown_dp, 0, LV_PART_MAIN);
+    lv_obj_add_flag(shutdown_dp, LV_OBJ_FLAG_HIDDEN);
+
     setting_list = lv_list_create(scr4_cont);
     lv_obj_set_size(setting_list, LV_HOR_RES, 135);
     lv_obj_align(setting_list, LV_ALIGN_BOTTOM_MID, 0, 0);
@@ -1139,7 +1182,7 @@ void create4(lv_obj_t *parent){
     lv_obj_t *setting1 = lv_list_add_btn(setting_list, NULL, "- Rotatoion");
     lv_obj_t *setting2 = lv_list_add_btn(setting_list, NULL, "- Deep Sleep");
     lv_obj_t *setting3 = lv_list_add_btn(setting_list, NULL, "- UI Theme");
-    lv_obj_t *setting4 = lv_list_add_btn(setting_list, NULL, "- IR Remote");
+    lv_obj_t *setting4 = lv_list_add_btn(setting_list, NULL, "- Shutdown");
     lv_obj_t *setting5 = lv_list_add_btn(setting_list, NULL, "- About System");
 
     for(int i = 0; i < lv_obj_get_child_cnt(setting_list); i++) {
@@ -1268,8 +1311,6 @@ void batt_timer_event(lv_timer_t *t)
         lv_snprintf(buf, 16, "%.2f", (float)(bq27220.getTemp() / 10 - 273));
         battery_set_line(batt_line[6], "TEMP:", buf);
     }
-    
-    
 }
 
 void entry5_anim(lv_obj_t *obj)
@@ -2154,6 +2195,52 @@ static scr_lifecycle_t screen8 = {
 };
 #endif
 //************************************[ UI ENTRY ]******************************************
+static lv_obj_t *starting_up;
+static lv_obj_t *starting_dp;
+
+static void starting_up_anim_cb(void * var, int32_t v)
+{
+    lv_obj_set_y((lv_obj_t *)starting_up, 0-v);
+    lv_obj_set_y((lv_obj_t *)starting_dp, LV_VER_RES/2+v);
+}
+
+static void starting_up_ready_cb(struct _lv_anim_t * a)
+{
+    lv_obj_del(starting_up);
+    lv_obj_del(starting_dp);
+}
+
+static void ui_embed_starting_up(void)
+{
+    starting_up = lv_obj_create(lv_layer_top());
+    lv_obj_set_size(starting_up, lv_pct(100), lv_pct(50));
+    lv_obj_set_style_bg_color(starting_up, lv_color_hex(0x000000), LV_PART_MAIN);
+    lv_obj_set_scrollbar_mode(starting_up, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_set_style_border_width(starting_up, 0, LV_PART_MAIN);
+    lv_obj_set_style_radius(starting_up, 0, 0);
+    lv_obj_set_style_pad_all(starting_up, 0, LV_PART_MAIN);
+    // lv_obj_add_flag(starting_up, LV_OBJ_FLAG_HIDDEN);
+
+    starting_dp = lv_obj_create(lv_layer_top());
+    lv_obj_set_size(starting_dp, lv_pct(100), lv_pct(50));
+    lv_obj_set_style_bg_color(starting_dp, lv_color_hex(0x000000), LV_PART_MAIN);
+    lv_obj_set_scrollbar_mode(starting_dp, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_set_style_border_width(starting_dp, 0, LV_PART_MAIN);
+    lv_obj_set_style_radius(starting_dp, 0, 0);
+    lv_obj_set_style_pad_all(starting_dp, 0, LV_PART_MAIN);
+    // lv_obj_add_flag(starting_dp, LV_OBJ_FLAG_HIDDEN);
+
+    lv_anim_t a;
+    lv_anim_init(&a);
+    lv_anim_set_var(&a, NULL);
+    lv_anim_set_values(&a, 0, LV_VER_RES/2);
+    lv_anim_set_time(&a, 2000);
+    lv_anim_set_path_cb(&a, lv_anim_path_linear);
+    lv_anim_set_exec_cb(&a, starting_up_anim_cb);
+    lv_anim_set_ready_cb(&a, starting_up_ready_cb);
+    lv_anim_start(&a);
+}
+
 void ui_entry(void)
 {
     lv_init();
@@ -2173,8 +2260,7 @@ void ui_entry(void)
     scr_mgr_register(SCREEN7_1_ID, &screen7_1); //   -IR
     scr_mgr_register(SCREEN7_2_ID, &screen7_2); //   -MIC
     scr_mgr_register(SCREEN7_3_ID, &screen7_3); //   -TF Card
-    scr_mgr_register(SCREEN8_ID, &screen8); 
-
+    scr_mgr_register(SCREEN8_ID, &screen8);     // music
 
     printf("EMBED_COLOR_BG:0x%x\n", EMBED_COLOR_BG);
     printf("EMBED_COLOR_FOCUS_ON:0x%x\n", EMBED_COLOR_FOCUS_ON);
@@ -2183,6 +2269,7 @@ void ui_entry(void)
     printf("EMBED_COLOR_PROMPT_BG:0x%x\n", EMBED_COLOR_PROMPT_BG);
     printf("EMBED_COLOR_PROMPT_TXT:0x%x\n", EMBED_COLOR_PROMPT_TXT);
 
-
     scr_mgr_switch(SCREEN0_ID, false); // main scr
+
+    // ui_embed_starting_up();
 }
