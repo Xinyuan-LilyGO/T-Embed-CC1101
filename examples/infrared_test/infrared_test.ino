@@ -126,4 +126,5 @@ void loop() {
             // do something else
         }
     }
+    delay(1);
 }
