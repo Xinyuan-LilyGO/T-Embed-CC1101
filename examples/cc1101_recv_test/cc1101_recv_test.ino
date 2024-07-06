@@ -91,4 +91,5 @@ void loop()
         Serial.println(state);
 
     }
+    delay(1);
 }

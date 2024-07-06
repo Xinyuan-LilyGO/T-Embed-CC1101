@@ -113,8 +113,8 @@ lv_obj_t *menu_icon_lab;
 lv_obj_t *menu_time_lab;
 
 int fouce_item = 0;
-int hour = 0;
-int minute = 0;
+int hour = 10;
+int minute = 19;
 int second = 0;
 const char *name_buf[] = { 
     "<- Lora"   ,
@@ -1075,6 +1075,7 @@ void setting_scr_event(lv_event_t *e)
             ui_scr1_set_light(0);
             esp_sleep_enable_ext0_wakeup((gpio_num_t)ENCODER_KEY, 0);
             esp_deep_sleep_start();
+            PPM.shutdown();
             break;
         case 2: // "UI Theme"
             if(setting_theme == UI_THEME_DARK) {
@@ -2081,7 +2082,7 @@ void music_player_event(lv_event_t * e)
     if(e->code == LV_EVENT_CLICKED) {
         if(tgt == pause_btn) {
             if(music_is_running == false) {
-                lv_snprintf(buf, 64, "/music/%s", music_list[music_idx]);
+                lv_snprintf(buf, 64, "/%s", music_list[music_idx]);
                 audio.connecttoFS(SD, buf);
                 Serial.printf("music : %s\n", buf);
                 music_is_running = true;

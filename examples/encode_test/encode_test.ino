@@ -62,4 +62,5 @@ void loop(void)
 
         Serial.printf("Direction = %d\n", encoder.getDirection());
     }
+    delay(1);
 }

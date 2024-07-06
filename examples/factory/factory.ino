@@ -270,7 +270,7 @@ extern char *music_list[20];
 
 void scr8_read_music_from_SD(void)
 {
-    File root = SD.open("/music");
+    File root = SD.open("/");
     if(!root){
         Serial.println("Failed to open directory");
         return;
@@ -356,7 +356,7 @@ void setup(void)
 
     eeprom_init();
 
-    wifi_init();
+    // wifi_init();
     configTime(8 * 3600, 0, ntpServer1, ntpServer2);
 
     pmu_ret = PPM.init(Wire, BOARD_I2C_SDA, BOARD_I2C_SCL, BQ25896_SLAVE_ADDRESS);
