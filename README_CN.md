@@ -37,7 +37,7 @@
 
 **在 Arduion 环境下编译通过的例子：**
 
-- ✅ audio_test : 录制 15 秒钟的音频，并保存到 SD 卡中。
+
 - ✅ bq25896_test : 电池管理测试，在串口中打印电池状态。
 - ✅ cc1101_recv_irq ：无线接收测试，在串口中显示接收到的消息。
 - ✅ cc1101_send_irq ：无线发送测试，在串口中显示发送的消息。
@@ -49,6 +49,8 @@
 - ✅ lvgl_test ：lvgl benchmark 和压力测试；
 - ✅ pn532_test ：NFC测试，在串口中显示 IC 卡的信息。
 - ✅ tf_card_test ：SD 卡测试，在串口中显示读取到的的文件名。
+- ✅ record_test : 录制 15 秒钟的音频，并保存到 SD 卡中。
+- ✅ voice_test : 扬声器测试，从SD卡读取音频。
 - ✅ ws2812_test ：LED 灯测试；
 
 ## :three: PlatformIO 快速开始
