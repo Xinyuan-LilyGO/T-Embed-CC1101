@@ -35,6 +35,7 @@ void nfc_task(void *param);
 
 extern TaskHandle_t lora_handle;
 extern SemaphoreHandle_t radioLock;
+extern CC1101 radio;
 
 void lora_init(void);
 void lora_mode_sw(int m);

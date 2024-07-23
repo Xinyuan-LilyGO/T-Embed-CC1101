@@ -26,7 +26,7 @@ uint64_t IR_recv_value = 0x10000000UL;
 #define LORA_PRIORITY    (configMAX_PRIORITIES - 2)
 #define WS2812_PRIORITY  (configMAX_PRIORITIES - 3)
 #define BATTERY_PRIORITY (configMAX_PRIORITIES - 4)
-#define INFARED_PRIORITY (configMAX_PRIORITIES - 4)
+#define INFARED_PRIORITY (configMAX_PRIORITIES - 5)
 
 /*********************************************************************************
  *                              EXTERN
@@ -158,7 +158,7 @@ void eeprom_init()
         uint8_t theme = EEPROM.read(UI_THEME_EEPROM_ADDR);
         uint8_t rotation = EEPROM.read(UI_ROTATION_EEPROM_ADDR);
 
-        setting_theme = theme;
+        setting_theme = (theme == 255 ? 0 : theme);
         display_rotation = (rotation == 1 ? 1 : 3);
 
         Serial.println("*************** eeprom ****************");
@@ -282,7 +282,7 @@ extern char *music_list[20];
 
 void scr8_read_music_from_SD(void)
 {
-    File root = SD.open("/music");
+    File root = SD.open("/");
     if(!root){
         Serial.println("Failed to open directory");
         return;

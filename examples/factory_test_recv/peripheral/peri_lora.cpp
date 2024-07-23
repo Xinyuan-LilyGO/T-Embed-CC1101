@@ -1,5 +1,6 @@
 
 #include "peripheral.h"
+#include "../lvgl_port/port_disp.h"
 
 float lora_freq = 315.0;
 
@@ -58,6 +59,49 @@ void lora_init(void)
         Serial.println(state);
         lora_init_st = false;
         return;
+    }
+
+    // set carrier frequency to 433.5 MHz
+    if (radio.setFrequency(lora_freq) == RADIOLIB_ERR_INVALID_FREQUENCY) {
+        Serial.println(F("[CC1101] Selected frequency is invalid for this module!"));
+        while (true);
+    }
+
+    radio.setOOK(true);
+    if (state == RADIOLIB_ERR_INVALID_BIT_RATE) {
+        Serial.println(F("[CC1101] set OOK is invalid for this module!"));
+        while (true);
+    }
+
+    // set bit rate to 100.0 kbps
+    state = radio.setBitRate(1.2);
+    if (state == RADIOLIB_ERR_INVALID_BIT_RATE) {
+        Serial.println(F("[CC1101] Selected bit rate is invalid for this module!"));
+        while (true);
+    }
+
+    // set receiver bandwidth to 250.0 kHz
+    if (radio.setRxBandwidth(58.0) == RADIOLIB_ERR_INVALID_RX_BANDWIDTH) {
+        Serial.println(F("[CC1101] Selected receiver bandwidth is invalid for this module!"));
+        while (true);
+    }
+
+    // set allowed frequency deviation to 10.0 kHz
+    if (radio.setFrequencyDeviation(5.2) == RADIOLIB_ERR_INVALID_FREQUENCY_DEVIATION) {
+        Serial.println(F("[CC1101] Selected frequency deviation is invalid for this module!"));
+        while (true);
+    }
+
+    // set output power to 5 dBm
+    if (radio.setOutputPower(10) == RADIOLIB_ERR_INVALID_OUTPUT_POWER) {
+        Serial.println(F("[CC1101] Selected output power is invalid for this module!"));
+        while (true);
+    }
+
+    // 2 bytes can be set as sync word
+    if (radio.setSyncWord(0x01, 0x23) == RADIOLIB_ERR_INVALID_SYNC_WORD) {
+        Serial.println(F("[CC1101] Selected sync word is invalid for this module!"));
+        while (true);
     }
 
     if(lora_mode == LORA_MODE_SEND){     // send
@@ -178,8 +222,12 @@ void lora_recv(void)
         // reset flag
         receivedFlag = false;
 
+        disp_disable_update();
+
         // you can read received data as an Arduino String
         int state = radio.readData(lora_recv_str);
+
+        disp_enable_update();
 
         if (state == RADIOLIB_ERR_NONE) {
             lora_recv_success = 1;

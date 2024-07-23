@@ -1,8 +1,8 @@
 
 #pragma once
 
-#define BOARD_SDA_PIN                       18
-#define BOARD_SCL_PIN                       8
+#define BOARD_SDA_PIN   18
+#define BOARD_SCL_PIN   8
 
 // --------- SPI ---------
 #define BOARD_SPI_SCK  11

@@ -2,9 +2,9 @@
 #include <RadioLib.h>
 #include "utilities.h"
 
-static float lora_freq = 0;
+static float CC1101_freq = 868;
 SPIClass radioSPI =  SPIClass(HSPI);
-CC1101 radio = new Module(41, 40, -1, 21, radioSPI);
+CC1101 radio = new Module(BOARD_LORA_CS, BOARD_LORA_IO0, -1, BOARD_LORA_IO2, radioSPI);
 
 void setup()
 {
@@ -14,26 +14,44 @@ void setup()
     digitalWrite(BOARD_LORA_CS, HIGH);
 
     //Set antenna frequency settings
-    // pinMode(BOARD_LORA_SW1, OUTPUT);
-    // pinMode(BOARD_LORA_SW0, OUTPUT);
+    pinMode(BOARD_LORA_SW1, OUTPUT);
+    pinMode(BOARD_LORA_SW0, OUTPUT);
+    
     // SW1:1  SW0:0 --- 315MHz
     // SW1:0  SW0:1 --- 868/915MHz
     // SW1:1  SW0:1 --- 434MHz
-    // digitalWrite(BOARD_LORA_SW1, LOW);
-    // digitalWrite(BOARD_LORA_SW0, HIGH);
-    lora_freq = 868.0;
+    if (CC1101_freq - 315 < 0.1)
+    {
+        digitalWrite(BOARD_LORA_SW1, HIGH);
+        digitalWrite(BOARD_LORA_SW0, LOW);
+    }
+    else if (CC1101_freq - 434 < 0.1)
+    {
+        digitalWrite(BOARD_LORA_SW1, HIGH);
+        digitalWrite(BOARD_LORA_SW0, HIGH);
+    }
+    else if (CC1101_freq - 868 < 0.1)
+    {
+        digitalWrite(BOARD_LORA_SW1, LOW);
+        digitalWrite(BOARD_LORA_SW0, HIGH);
+    }
+    else if (CC1101_freq - 915 < 0.1)
+    {
+        digitalWrite(BOARD_LORA_SW1, LOW);
+        digitalWrite(BOARD_LORA_SW0, HIGH);
+    }
     
     // Initialize SPI
-    radioSPI.begin(42, 45, 46);
+    radioSPI.begin(BOARD_LORA_SCK, BOARD_LORA_MISO, BOARD_LORA_MOSI);
 
     // initialize CC1101
     Serial.print(F("[CC1101] Initializing ... "));
-    Serial.print(lora_freq);
+    Serial.print(CC1101_freq);
     Serial.print(" MHz ");
 
     // initialize CC1101 with default settings
     Serial.print(F("[CC1101] Initializing ... "));
-    int state = radio.begin();
+    int state = radio.begin(CC1101_freq);
     if (state == RADIOLIB_ERR_NONE) {
         Serial.println(F("success!"));
     } else {
@@ -91,5 +109,5 @@ void loop()
         Serial.println(state);
 
     }
-    delay(1);
+    delay(1000);
 }

@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <IRremoteESP8266.h>
 #include <IRsend.h>
+#include "peripheral/peripheral.h"
 
 #define UI_THEME_DARK  0
 #define UI_THEME_LIGHT 1
@@ -141,7 +142,7 @@ int hour = 0;
 int minute = 0;
 int second = 0;
 const char *name_buf[] = { 
-    "<- Lora"       ,
+    "<- Sub-G"      ,
     "<- WS2812"     , 
     "<- NFC"        , 
     "<- Battery"    , 
@@ -679,9 +680,12 @@ lv_obj_t *lora_cont;
 lv_obj_t *lora_label;
 lv_obj_t *lora_mode_btn;
 lv_obj_t *lora_info;
+lv_obj_t *lora_freq_btn;
+lv_obj_t *lora_freq_lab;
 lv_timer_t *lora_recv_timer;
 int lora_recv_cnt = 0;
 int lora_send_cnt = 0;
+int lora_freq_sel = 315;
 
 extern int lora_recv_success;
 extern String lora_recv_str;
@@ -700,7 +704,7 @@ void lora_recv_event(lv_timer_t *t)
 
         if(idx % 2 == 0) {
             lv_label_set_text_fmt(lora_label, "# Send - %d", cnt);
-            lv_label_set_text_fmt(lora_info,    "Freq: %.1fMHz", lora_freq);
+            lv_label_set_text_fmt(lora_info,    "Freq: %d MHz", lora_freq_sel);
             data = data + cnt;
             lora_send(data.c_str());
             cnt++;
@@ -712,8 +716,8 @@ void lora_recv_event(lv_timer_t *t)
     if(lora_get_mode() == LORA_MODE_RECV) {
         if(idx % 2 == 0) {
             lv_label_set_text_fmt(lora_label, "# Recv - %s", lora_recv_str.c_str());
-            lv_label_set_text_fmt(lora_info,    "Freq: %.1fMHz\n"
-                                                "RSII: %d dBm", lora_freq, lora_recv_rssi);
+            lv_label_set_text_fmt(lora_info,    "Freq: %d MHz\n"
+                                                "RSII: %d dBm", lora_freq_sel, lora_recv_rssi);
         } else {
             lv_obj_invalidate(scr2_cont);
         }
@@ -732,12 +736,50 @@ void mode_sw_event(lv_event_t *e)
         {
             case LORA_MODE_SEND: 
                 lora_mode_sw(LORA_MODE_RECV); 
-                lv_label_set_text(data, "recv"); break;
+                lv_label_set_text(data, "recv");
+                break;
+                
                 // lv_label_set_text_fmt(lora_label, "# Recv - 0");
             case LORA_MODE_RECV: 
                 lora_mode_sw(LORA_MODE_SEND); 
-                lv_label_set_text(data, "send"); break;
+                lv_label_set_text(data, "send"); 
+                break;
+                
                 // lv_label_set_text_fmt(lora_label, "# Send - 0");
+            default: break;
+        }
+    }
+}
+
+static void lora_freq_sel_event(lv_event_t *e)
+{
+    if(e->code == LV_EVENT_CLICKED) {
+        switch (lora_freq_sel)
+        {
+            case 315: 
+                lora_freq_sel = 434;
+                digitalWrite(BOARD_LORA_SW1, HIGH);
+                digitalWrite(BOARD_LORA_SW0, HIGH);
+                lv_label_set_text(lora_freq_lab, "434M"); 
+                radio.begin(lora_freq_sel, 1.2, 5.2, 58, 10, 16);
+                radio.setOOK(true);
+                break;
+            case 434: 
+                lora_freq_sel = 868;
+                digitalWrite(BOARD_LORA_SW1, LOW);
+                digitalWrite(BOARD_LORA_SW0, HIGH);
+                lv_label_set_text(lora_freq_lab, "868M"); 
+                radio.begin(lora_freq_sel, 1.2, 5.2, 58, 10, 16);
+                radio.setOOK(true);
+                break;
+            case 868: 
+                lora_freq_sel = 315;
+                digitalWrite(BOARD_LORA_SW1, HIGH);
+                digitalWrite(BOARD_LORA_SW0, LOW);
+                lv_label_set_text(lora_freq_lab, "315M"); 
+                radio.begin(lora_freq_sel, 1.2, 5.2, 58, 10, 16);
+                radio.setOOK(true);
+                break;
             default: break;
         }
     }
@@ -777,7 +819,7 @@ void create2(lv_obj_t *parent){
     lora_info = lv_label_create(scr2_cont);
     lv_obj_set_style_text_color(lora_info, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
     lv_obj_set_style_text_font(lora_info, FONT_BOLD_16, LV_PART_MAIN);
-    lv_label_set_text_fmt(lora_info, "Freq: %.1fMHz", lora_freq);
+    lv_label_set_text_fmt(lora_info, "Freq: %d MHz", lora_freq_sel);
     lv_obj_align(lora_info, LV_ALIGN_BOTTOM_MID, 0, -6);
 
     lora_mode_btn = lv_btn_create(scr2_cont);
@@ -798,6 +840,27 @@ void create2(lv_obj_t *parent){
         default: break;
     }
     lv_obj_add_event_cb(lora_mode_btn, mode_sw_event, LV_EVENT_CLICKED, mode_lab);
+
+
+    lora_freq_btn = lv_btn_create(scr2_cont);
+    lv_obj_set_height(lora_freq_btn, 20);
+    lv_obj_set_style_shadow_width(lora_freq_btn, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_row(lora_freq_btn, 0, LV_PART_MAIN);
+    lv_obj_remove_style(lora_freq_btn, NULL, LV_STATE_FOCUS_KEY);
+    lv_obj_set_style_outline_pad(lora_freq_btn, 2, LV_STATE_FOCUS_KEY);
+    lv_obj_set_style_outline_width(lora_freq_btn, 2, LV_STATE_FOCUS_KEY);
+    lv_obj_set_style_outline_color(lora_freq_btn, lv_color_hex(EMBED_COLOR_FOCUS_ON), LV_STATE_FOCUS_KEY);
+    lv_obj_align(lora_freq_btn, LV_ALIGN_TOP_RIGHT, -8, 6);
+    lora_freq_lab= lv_label_create(lora_freq_btn);
+    lv_obj_center(lora_freq_lab);
+    switch (lora_freq_sel)
+    {
+        case 315: lv_label_set_text(lora_freq_lab, "315M"); break;
+        case 434: lv_label_set_text(lora_freq_lab, "434M"); break;
+        case 868: lv_label_set_text(lora_freq_lab, "868M"); break;
+        default: break;
+    }
+    lv_obj_add_event_cb(lora_freq_btn, lora_freq_sel_event, LV_EVENT_CLICKED, NULL);
 
     // back btn
     scr_back_btn_create(scr2_cont, scr2_btn_event_cb);
@@ -1052,6 +1115,7 @@ void setting_scr_event(lv_event_t *e)
             ui_scr1_set_light(0);
             esp_sleep_enable_ext0_wakeup((gpio_num_t)ENCODER_KEY, 0);
             esp_deep_sleep_start();
+            PPM.shutdown();
             break;
         case 2: // "UI Theme"
             if(setting_theme == UI_THEME_DARK) {
@@ -2127,7 +2191,7 @@ void music_player_event(lv_event_t * e)
     if(e->code == LV_EVENT_CLICKED) {
         if(tgt == pause_btn) {
             if(music_is_running == false) {
-                lv_snprintf(buf, 64, "/music/%s", music_list[music_idx]);
+                lv_snprintf(buf, 64, "/%s", music_list[music_idx]);
                 audio.connecttoFS(SD, buf);
                 Serial.printf("music : %s\n", buf);
                 music_is_running = true;
