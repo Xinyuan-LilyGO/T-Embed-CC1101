@@ -7,3 +7,4 @@ build
 lib/BQ27441
 examples/usb_msc_flash
 examples/bq27220_test
+firmware/T-Embed-PN532 测试/

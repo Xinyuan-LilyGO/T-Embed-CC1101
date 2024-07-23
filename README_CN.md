@@ -36,6 +36,7 @@
 项目 example 文件夹下提供了一些例子，这些例子可以在 PlatformIO (PIO) 和 Arduion 上运行，但是我更推荐使用 PIO，因为这些例子都是在 PIO 上开发的，**所有的例子都可在 PIO 上运行**，但在 Arduion 上可能遇到编译错误，但不要担心，作者会加紧测试 Arduion 环境下的编译情况。
 
 **在 Arduion 环境下编译通过的例子：**
+
 - ✅ audio_test : 录制 15 秒钟的音频，并保存到 SD 卡中。
 - ✅ bq25896_test : 电池管理测试，在串口中打印电池状态。
 - ✅ cc1101_recv_irq ：无线接收测试，在串口中显示接收到的消息。
@@ -43,7 +44,8 @@
 - ✅ display_test ：屏幕显示测试；
 - ✅ encode_test ：编码器测试。
 - ❌ factory ：出厂程序目前只能在 PlatformIO 上编译下载；
-- ✅ infrared_test ：红外测试，在串口中显示接收到的红外信息。
+- ✅ infrared_recv_test: 红外接收
+- ✅ infrared_send_test: 红外发送
 - ✅ lvgl_test ：lvgl benchmark 和压力测试；
 - ✅ pn532_test ：NFC测试，在串口中显示 IC 卡的信息。
 - ✅ tf_card_test ：SD 卡测试，在串口中显示读取到的的文件名。

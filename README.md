@@ -35,7 +35,6 @@ Some examples are provided under the Project example folder, which can run on Pl
 
 **Examples of compilation in Arduion environment:**
 
-
 - ✅ audio_test : Record 15 seconds of audio and save it to your SD card.
 - ✅ bq25896_test : Battery management test. Print the battery status in the serial port.
 - ✅ cc1101_recv_irq ：Wireless reception test, display received messages in the serial port.
@@ -43,7 +42,8 @@ Some examples are provided under the Project example folder, which can run on Pl
 - ✅ display_test ：Screen display test;
 - ✅ encode_test ：encoder tester
 - ❌ factory ：Factory programs can currently only be compiled and downloaded on PlatformIO;
-- ✅ infrared_test ：Infrared test. Displays the received infrared information in the serial port.
+- ✅ infrared_recv_test: Infrared test
+- ✅ infrared_send_test: Infrared test
 - ✅ lvgl_test ：lvgl benchmark and stress testing;
 - ✅ pn532_test ：NFC test, display the IC card information in the serial port.
 - ✅ tf_card_test ：SD card test, the file name is displayed in the serial port.

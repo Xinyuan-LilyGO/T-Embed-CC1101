@@ -37,5 +37,6 @@ void setup(void)
 void loop(void)
 {
     lv_timer_handler();
+    delay(1);
 }
 
