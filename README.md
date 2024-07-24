@@ -19,8 +19,14 @@
 |  PSRAM  |        8MB        |
 | Screen  |      320x170      |
 
+### Wireless transceiver：
+
+T-Embed-PN532 has a built-in Sub-GHz module based on a `CC1101` transceiver and a radio antenna (the maximum range is 50 meters). Both the CC1101 chip and the antenna are designed to operate at frequencies in the 300-348 MHz, 387-464 MHz, and 779-928 MHz bands.
+
+The Sub-GHz application supports external radio modules based on the CC1101 transceiver.
+
+### Folder structure:
 ~~~
-Folder structure:
 ├─boards  : Some information about the board for the platformio.ini configuration project;
 ├─data    : Picture resources used by the program;
 ├─example : Some examples;
