@@ -1082,9 +1082,7 @@ static void shotdown_anim_cb(void * var, int32_t v){
 
 static void shutdown_anim_ready_cb(lv_anim_t *a)
 {
-    ui_scr1_set_light(0);
-    esp_sleep_enable_ext0_wakeup((gpio_num_t)ENCODER_KEY, 0);
-    esp_deep_sleep_start();
+    PPM.shutdown();
 }
 
 void setting_scr_event(lv_event_t *e)
@@ -1113,9 +1111,16 @@ void setting_scr_event(lv_event_t *e)
             break;
         case 1: // "Deep Sleep"
             ui_scr1_set_light(0);
-            esp_sleep_enable_ext0_wakeup((gpio_num_t)ENCODER_KEY, 0);
+            digitalWrite(BOARD_PN532_RF_REST, LOW);     // PN532 sleep
+            tft.writecommand(ST7789_SLPIN);             // ST7798 sleep
+
+            radio.sleep();                              // CC1101 sleep
+
+            digitalWrite(BOARD_PWR_EN, LOW);            // Power off CC1101 and LED
+
+            // esp_sleep_enable_ext0_wakeup((gpio_num_t)ENCODER_KEY, 0);                            
+            esp_sleep_enable_ext1_wakeup((1UL << BOARD_USER_KEY), ESP_EXT1_WAKEUP_ANY_LOW);   // Hibernate using user keys
             esp_deep_sleep_start();
-            PPM.shutdown();
             break;
         case 2: // "UI Theme"
             if(setting_theme == UI_THEME_DARK) {
@@ -2191,7 +2196,7 @@ void music_player_event(lv_event_t * e)
     if(e->code == LV_EVENT_CLICKED) {
         if(tgt == pause_btn) {
             if(music_is_running == false) {
-                lv_snprintf(buf, 64, "/%s", music_list[music_idx]);
+                lv_snprintf(buf, 64, "/music/%s", music_list[music_idx]);
                 audio.connecttoFS(SD, buf);
                 Serial.printf("music : %s\n", buf);
                 music_is_running = true;

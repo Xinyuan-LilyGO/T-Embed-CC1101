@@ -282,7 +282,7 @@ extern char *music_list[20];
 
 void scr8_read_music_from_SD(void)
 {
-    File root = SD.open("/");
+    File root = SD.open("/music");
     if(!root){
         Serial.println("Failed to open directory");
         return;
@@ -315,7 +315,15 @@ void setup(void)
     pinMode(TFT_BL, OUTPUT);
     digitalWrite(TFT_BL, LOW);
 
+    pinMode(BOARD_PWR_EN, OUTPUT);
+    digitalWrite(BOARD_PWR_EN, HIGH);  // Power on CC1101 and LED
+
+    pinMode(BOARD_PN532_RF_REST, OUTPUT);
+    digitalWrite(BOARD_PN532_RF_REST, HIGH); 
+
     pinMode(ENCODER_KEY, INPUT);
+    pinMode(BOARD_USER_KEY, INPUT);
+
 
     Serial.begin(115200);
     Serial.print("setup() running core ID: ");
