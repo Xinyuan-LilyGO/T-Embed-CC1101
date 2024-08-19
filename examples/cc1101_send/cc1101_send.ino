@@ -13,6 +13,9 @@ void setup()
 {
     Serial.begin(115200);
 
+    pinMode(BOARD_PWR_EN, OUTPUT);
+    digitalWrite(BOARD_PWR_EN, HIGH);  // Power on CC1101 and WS2812
+
     pinMode(BOARD_LORA_CS, OUTPUT);
     digitalWrite(BOARD_LORA_CS, HIGH);
 

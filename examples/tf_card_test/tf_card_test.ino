@@ -219,7 +219,7 @@ void setup(){
     while(!Serial) { delay (10); }
 
 #ifdef REASSIGN_PINS
-    SPI.begin(sck, miso, mosi, cs);
+    SPI.begin(sck, miso, mosi);
 #endif
     //if(!SD.begin(cs)){ //Change to this function to manually change CS pin
     if(!SD.begin(cs)){
@@ -264,5 +264,5 @@ void setup(){
 }
 
 void loop(){
-
+    delay(100000);
 }

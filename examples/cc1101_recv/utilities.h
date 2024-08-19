@@ -1,6 +1,8 @@
 
 #pragma once
 
+#define BOARD_PWR_EN   15
+
 #define BOARD_SDA_PIN   18
 #define BOARD_SCL_PIN   8
 

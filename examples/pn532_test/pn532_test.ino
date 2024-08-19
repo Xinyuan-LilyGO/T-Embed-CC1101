@@ -123,4 +123,5 @@ void loop() {
         // PN532 probably timed out waiting for a card
         Serial.println("Timed out waiting for a card");
     }
+    delay(10);
 }
