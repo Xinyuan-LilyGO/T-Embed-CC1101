@@ -1,5 +1,7 @@
 <h1 align = "center">🏆T-Embed-PN532🏆</h1>
 
+![Build Status](https://github.com/Xinyuan-LilyGO/T-Embed-PN532/actions/workflows/platformio.yml/badge.svg?event=push)
+
 <p> 
   <a href="https://platformio.org/"> <img src="./hardware/image/PlatformIO_badge.png" height="20px"> </a>
   <a href="https://www.arduino.cc/en/software"> <img src="./hardware/image/Arduino_badge.png" height="20px"></a>

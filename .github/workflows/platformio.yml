@@ -1,0 +1,57 @@
+name: PlatformIO CI
+
+# GitHub Actions 的工作流语法 : https://docs.github.com/zh/actions/writing-workflows/workflow-syntax-for-github-actions
+
+on:
+  push:
+    paths: # 推送以下文件时，就会运行工作流
+      - "examples/**"
+      - ".github/workflows/platformio.yml"
+      - "platformio.ini"
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04  # 指定的运行器环境中运行 [ubuntu-latest, macos-latest, windows-latest]
+    strategy:
+      matrix:
+        example: 
+            - examples/bq25896_test
+            - examples/bq27220_test
+            - examples/bq27xxx_test
+            - examples/cc1101_recv
+            - examples/cc1101_recv_irq
+            - examples/cc1101_send
+            - examples/cc1101_send_irq
+            - examples/display_test
+            - examples/encode_test
+            - examples/factory
+            - examples/factory_test
+            - examples/infrared_recv_test
+            - examples/infrared_send_test
+            - examples/lvgl_test
+            - examples/pn532_test
+            - examples/pn532_write
+            - examples/record_test
+            - examples/tf_card_test
+            - examples/voice_test
+            - examples/ws2812_test
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+          key: ${{ runner.os }}-pio
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+        
+      - name: Install PlatformIO Core
+        run: pip install --upgrade platformio
+
+      - name: Run PlatformIO
+        run: |
+          export PLATFORMIO_SRC_DIR=${{ matrix.example }}
+          pio run
