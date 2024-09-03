@@ -1,50 +1,108 @@
 #include <Wire.h>
-#include "BQ25896.h"
+#include <XPowersLib.h>
 #include "utilities.h"
 
-BQ25896  battery_charging(Wire);
+XPowersPPM PPM;
+
+const uint8_t i2c_sda = BOARD_I2C_SDA;
+const uint8_t i2c_scl = BOARD_I2C_SCL;
+uint32_t cycleInterval;
+bool pmu_irq = false;
+
 void setup() 
 {
-  Serial.begin(115200);
-  Wire.begin(BOARD_I2C_SDA, BOARD_I2C_SCL);
-  battery_charging.begin();
+    Serial.begin(115200);
+    while (!Serial);
+
+
+    bool result =  PPM.init(Wire, i2c_sda, i2c_scl, BQ25896_SLAVE_ADDRESS);
+
+    if (result == false) {
+        while (1) {
+            Serial.println("PPM is not online...");
+            delay(50);
+        }
+    }
+
+    // Set the minimum operating voltage. Below this voltage, the PPM will protect
+    PPM.setSysPowerDownVoltage(3300);
+
+    // Set input current limit, default is 500mA
+    PPM.setInputCurrentLimit(3250);
+
+    Serial.printf("getInputCurrentLimit: %d mA\n",PPM.getInputCurrentLimit());
+
+    // Disable current limit pin
+    PPM.disableCurrentLimitPin();
+
+    // Set the charging target voltage, Range:3840 ~ 4608mV ,step:16 mV
+    PPM.setChargeTargetVoltage(4208);
+
+    // Set the precharge current , Range: 64mA ~ 1024mA ,step:64mA
+    PPM.setPrechargeCurr(64);
+
+    // The premise is that Limit Pin is disabled, or it will only follow the maximum charging current set by Limi tPin.
+    // Set the charging current , Range:0~5056mA ,step:64mA
+    PPM.setChargerConstantCurr(832);
+
+    // Get the set charging current
+    PPM.getChargerConstantCurr();
+    Serial.printf("getChargerConstantCurr: %d mA\n",PPM.getChargerConstantCurr());
+
+
+    // To obtain voltage data, the ADC must be enabled first
+    PPM.enableADCMeasure();
+    
+    // Turn on charging function
+    // If there is no battery connected, do not turn on the charging function
+    PPM.enableCharge();
+
+    // Turn off charging function
+    // If USB is used as the only power input, it is best to turn off the charging function, 
+    // otherwise the VSYS power supply will have a sawtooth wave, affecting the discharge output capability.
+    // PPM.disableCharge();
+
+
+    // The OTG function needs to enable OTG, and set the OTG control pin to HIGH
+    // After OTG is enabled, if an external power supply is plugged in, OTG will be turned off
+
+    // PPM.enableOTG();
+    // PPM.disableOTG();
+    // pinMode(OTG_ENABLE_PIN, OUTPUT);
+    // digitalWrite(OTG_ENABLE_PIN, HIGH);
+
+
+    delay(2000);
 }
 
 void loop() 
 {
+    // When VBUS is input, the battery voltage detection will not take effect
+    if (millis() > cycleInterval) {
 
-  battery_charging.properties();
-  Serial.println("Battery Management System Parameter : \n===============================================================");
-  Serial.print("VBUS : "); Serial.println(battery_charging.getVBUS());
-  Serial.print("VSYS : "); Serial.println(battery_charging.getVSYS());
-  Serial.print("VBAT : "); Serial.println(battery_charging.getVBAT());
-  Serial.print("ICHG : "); Serial.println(battery_charging.getICHG(),4);
-  Serial.print("TSPCT : "); Serial.println(battery_charging.getTSPCT());
-  Serial.print("Temperature : "); Serial.println(battery_charging.getTemperature());
-  
-  Serial.print("FS_Current Limit : "); Serial.println(battery_charging.getFast_Charge_Current_Limit());
-  Serial.print("IN_Current Limit : "); Serial.println(battery_charging.getInput_Current_Limit());
-  Serial.print("PRE_CHG_Current Limit : "); Serial.println(battery_charging.getPreCharge_Current_Limit());
-  Serial.print("TERM_Current Limit : "); Serial.println(battery_charging.getTermination_Current_Limit());
+        Serial.println("Sats        VBUS    VBAT   SYS    VbusStatus      String   ChargeStatus     String      TargetVoltage       ChargeCurrent       Precharge       NTCStatus           String");
+        Serial.println("            (mV)    (mV)   (mV)   (HEX)                         (HEX)                    (mV)                 (mA)                   (mA)           (HEX)           ");
+        Serial.println("--------------------------------------------------------------------------------------------------------------------------------");
+        Serial.print(PPM.isVbusIn() ? "Connected" : "Disconnect"); Serial.print("\t");
+        Serial.print(PPM.getVbusVoltage()); Serial.print("\t");
+        Serial.print(PPM.getBattVoltage()); Serial.print("\t");
+        Serial.print(PPM.getSystemVoltage()); Serial.print("\t");
+        Serial.print("0x");
+        Serial.print(PPM.getBusStatus(), HEX); Serial.print("\t");
+        Serial.print(PPM.getBusStatusString()); Serial.print("\t");
+        Serial.print("0x");
+        Serial.print(PPM.chargeStatus(), HEX); Serial.print("\t");
+        Serial.print(PPM.getChargeStatusString()); Serial.print("\t");
 
-  Serial.print("Charging Status : "); Serial.println(battery_charging.getCHG_STATUS()==BQ25896::CHG_STAT::NOT_CHARGING?" not charging":
-                                                          (battery_charging.getCHG_STATUS()==BQ25896::CHG_STAT::PRE_CHARGE ?" pre charging":
-                                                          (battery_charging.getCHG_STATUS()==BQ25896::CHG_STAT::FAST_CHARGE?" Fast charging":"charging done"))); 
-  
-  Serial.print("VBUS Status : "); Serial.println(battery_charging.getVBUS_STATUS()==BQ25896::VBUS_STAT::NO_INPUT?" not input":
-                                                          (battery_charging.getVBUS_STATUS()==BQ25896::VBUS_STAT::USB_HOST ?" USB host":
-                                                          (battery_charging.getVBUS_STATUS()==BQ25896::VBUS_STAT::ADAPTER?" Adapter":"OTG")));
-  
-  Serial.print("VSYS Status : "); Serial.println(battery_charging.getVSYS_STATUS()==BQ25896::VSYS_STAT::IN_VSYSMIN?" In VSYSMIN regulation (BAT < VSYSMIN)":
-                                                      "Not in VSYSMIN regulation (BAT > VSYSMIN)");
-  
-  Serial.print("Temperature rank : "); Serial.println(battery_charging.getTemp_Rank()==BQ25896::TS_RANK::NORMAL?" Normal":
-                                                          (battery_charging.getTemp_Rank()==BQ25896::TS_RANK::WARM ?" Warm":
-                                                          (battery_charging.getTemp_Rank()==BQ25896::TS_RANK::COOL?" Cool":
-                                                          (battery_charging.getTemp_Rank()==BQ25896::TS_RANK::COLD?" Cold":"HOT"))));
-  
-  Serial.print("Charger fault status  : "); Serial.println(battery_charging.getCHG_Fault_STATUS()==BQ25896::CHG_FAULT::NORMAL?" Normal":
-                                                          (battery_charging.getCHG_Fault_STATUS()==BQ25896::CHG_FAULT::INPUT_FAULT ?" Input Fault":
-                                                          (battery_charging.getCHG_Fault_STATUS()==BQ25896::CHG_FAULT::THERMAL_SHUTDOWN?" Thermal Shutdown":"TIMER_EXPIRED")));
-  delay(1000);
+        Serial.print(PPM.getChargeTargetVoltage()); Serial.print("\t");
+        Serial.print(PPM.getChargeCurrent()); Serial.print("\t");
+        Serial.print(PPM.getPrechargeCurr()); Serial.print("\t");
+        Serial.print(PPM.getNTCStatus()); Serial.print("\t");
+        Serial.print(PPM.getNTCStatusString()); Serial.print("\t");
+
+
+        Serial.println();
+        Serial.println();
+        cycleInterval = millis() + 1000;
+    }
 }

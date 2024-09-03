@@ -30,7 +30,6 @@ jobs:
             - examples/infrared_send_test
             - examples/lvgl_test
             - examples/pn532_test
-            - examples/pn532_write
             - examples/record_test
             - examples/tf_card_test
             - examples/voice_test
