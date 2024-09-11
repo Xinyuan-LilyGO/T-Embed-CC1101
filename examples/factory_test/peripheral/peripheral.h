@@ -55,12 +55,10 @@ void battery_task(void *param);
 extern BQ27220 bq27220;
 
 /**------------------------------ MIC ------------------------------------**/
-void mic_init(void);
-void mic_task(void *param);
-void mic_recode_start(uint32_t rec_time);
-void mic_recode_stop(void);
-bool mic_recode_st(void);
-void record_wav(uint32_t rec_time);
+#define SAMPLE_SIZE         (20)
+#define EXAMPLE_I2S_CH      0        // I2S Channel Number
+
+void init_microphone(void);
 
 /**------------------------------- IR ------------------------------------**/
 #define IR_MODE_SEND 1

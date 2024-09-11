@@ -46,9 +46,9 @@ void ui_scr1_set_mode(int mode) {
 bool ui_scr4_get_lora_st(void) { 
     return lora_is_init();
 }
-// bool ui_scr4_get_pmu_st(void) {
-
-// }
+bool ui_scr4_get_pmu_st(void) {
+    
+}
 bool ui_scr4_get_nfc_st(void) {
     return nfc_is_init();
 }

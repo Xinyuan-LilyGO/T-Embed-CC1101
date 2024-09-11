@@ -1150,7 +1150,7 @@ void setting_scr_event(lv_event_t *e)
         case 4: {// "About System"
             char buf[128];
             lv_snprintf(buf, 128, "LORA init --- %s\n"
-                                  "PMU init ---- %s\n"
+                                  "NFC init ---- %s\n"
                                   "TF card ----- %s",   
                                   (ui_scr4_get_lora_st() ? "PASS" : "FAIL"),
                                   (ui_scr4_get_nfc_st() ? "PASS" : "FAIL"),
@@ -1944,38 +1944,9 @@ scr_lifecycle_t screen7_1 = {
 // --------------------- screen 7.2 --------------------- MIC
 #if 1
 lv_obj_t *scr7_2_cont;
-lv_obj_t *mic_btn;
-
-extern int recode_cnt;
 
 void entry7_2_anim(lv_obj_t *obj) { entry1_anim(obj); }
 void exit7_2_anim(int user_data, lv_obj_t *obj) { exit1_anim(user_data, obj); }
-
-void mic_recode_end_event(lv_timer_t *t)
-{
-    if(mic_recode_st() == false) {
-        lv_timer_del(t);
-        prompt_info("end recording! ", 2000);
-    }
-}
-
-void mic_start_recode_event(lv_event_t *e)
-{
-    char buf[64];
-    if(e->code == LV_EVENT_CLICKED) {
-        Serial.println("click btn");
-        if(sd_is_valid()) {
-            Serial.println("open file for writing");
-            lv_memset_00(buf, 64);
-            lv_snprintf(buf, 64, "Start 10s recording, save to 'record%02d.wav'.", recode_cnt);
-            prompt_info(buf, 1000);
-            mic_recode_start(10);
-            lv_timer_create(mic_recode_end_event, 100, NULL);
-        } else {
-            prompt_info("No fond SD card!", 1000);
-        }
-    }
-}
 
 static void scr7_2_btn_event_cb(lv_event_t * e)
 {
@@ -1998,36 +1969,6 @@ void create7_2(lv_obj_t *parent)
     lv_obj_set_style_text_font(label, FONT_BOLD_16, LV_PART_MAIN);
     lv_label_set_text(label, "Microphone");
     lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 10);
-
-    lv_obj_t *mic_info = lv_label_create(scr7_2_cont);
-    lv_obj_set_style_text_color(mic_info, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
-    lv_obj_set_style_text_font(mic_info, FONT_BOLD_14, LV_PART_MAIN);
-    lv_obj_set_width(mic_info, DISPALY_WIDTH);
-    lv_label_set_long_mode(mic_info, LV_LABEL_LONG_WRAP);
-    lv_obj_set_style_radius(mic_info, 5, LV_PART_MAIN);
-    // lv_obj_set_style_bg_opa(mic_info, LV_OPA_COVER, LV_PART_MAIN);
-    lv_obj_set_style_pad_hor(mic_info, 3, LV_PART_MAIN);
-    lv_obj_set_style_text_align(mic_info, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-    lv_obj_align(mic_info, LV_ALIGN_TOP_MID, 0, 40);
-    lv_label_set_text(mic_info, "Press \'start\' to record the audio of 10s. No operation "
-                                "can be performed during the recording, and the recording is saved to the SD card.");
-
-    mic_btn = lv_btn_create(scr7_2_cont);
-    lv_obj_set_size(mic_btn, 100, 40);
-    lv_obj_set_style_border_width(mic_btn, 0, LV_PART_MAIN);
-    lv_obj_set_style_shadow_width(mic_btn, 0, LV_PART_MAIN);
-    lv_obj_remove_style(mic_btn, NULL, LV_STATE_FOCUS_KEY);
-    lv_obj_set_style_outline_pad(mic_btn, 2, LV_STATE_FOCUS_KEY);
-    lv_obj_set_style_outline_width(mic_btn, 2, LV_STATE_FOCUS_KEY);
-    lv_obj_set_style_outline_color(mic_btn, lv_color_hex(EMBED_COLOR_FOCUS_ON), LV_STATE_FOCUS_KEY);
-    lv_obj_align(mic_btn, LV_ALIGN_BOTTOM_MID, 0 , -15);
-    lv_obj_t *mic_lab = lv_label_create(mic_btn);
-    lv_obj_center(mic_lab);
-    lv_obj_set_style_text_color(mic_lab, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
-    lv_obj_set_style_text_font(mic_lab, FONT_BOLD_14, LV_PART_MAIN);
-    lv_label_set_text(mic_lab, "start");
-    // lv_obj_add_flag(mic_btn, LV_OBJ_FLAG_CHECKABLE);
-    lv_obj_add_event_cb(mic_btn, mic_start_recode_event, LV_EVENT_CLICKED, NULL);
 
     // back bottom
     scr_back_btn_create(scr7_2_cont, scr7_2_btn_event_cb);
@@ -2174,7 +2115,9 @@ static lv_obj_t *music_lab;
 static lv_obj_t *pause_btn;
 static lv_obj_t *next_btn;
 static lv_obj_t *prev_btn;
+static lv_obj_t *mic_led;
 static bool music_is_running = false;
+static lv_timer_t *mic_chk_timer = NULL;
 int music_idx = 0;
 char *music_list[20] = {0};
 
@@ -2186,6 +2129,19 @@ void entry8_anim(lv_obj_t *obj)
 void exit8_anim(int user_data, lv_obj_t *obj)
 {
     exit1_anim(user_data, obj);
+}
+
+extern int i2s_mic_cnt;
+void mic_chk_timer_event(lv_timer_t *t)
+{
+    if(i2s_mic_cnt > 3)
+    {
+        i2s_mic_cnt = 0;
+        lv_led_on(mic_led);
+    } else 
+    {
+        lv_led_off(mic_led);
+    }
 }
 
 void music_player_event(lv_event_t * e)
@@ -2257,6 +2213,11 @@ static void create8(lv_obj_t *parent) {
     lv_obj_set_style_border_width(scr8_cont, 0, LV_PART_MAIN);
     lv_obj_set_style_pad_all(scr8_cont, 0, LV_PART_MAIN);
 
+    mic_led  = lv_led_create(scr8_cont);
+    lv_obj_set_size(mic_led, 16, 16);
+    lv_obj_align(mic_led, LV_ALIGN_TOP_RIGHT, -10, 10);
+    lv_led_off(mic_led);
+
     lv_obj_t *label = lv_label_create(scr8_cont);
     lv_obj_set_style_text_color(label, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
     lv_obj_set_style_text_font(label, &Font_Mono_Bold_18, LV_PART_MAIN);
@@ -2297,8 +2258,14 @@ CREATE8_END:
 }
 static void entry8(void) {
     music_is_running = false;
+    mic_chk_timer = lv_timer_create(mic_chk_timer_event, 10, NULL);
 }
-static void exit8(void) {   }
+static void exit8(void) {
+    if(mic_chk_timer) {
+        lv_timer_del(mic_chk_timer);
+        mic_chk_timer = NULL;
+    }
+}
 static void destroy8(void) { 
 }
 

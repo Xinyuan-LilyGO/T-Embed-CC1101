@@ -48,7 +48,6 @@ TaskHandle_t lora_handle;
 TaskHandle_t ws2812_handle;
 TaskHandle_t battery_handle;
 // TaskHandle_t infared_handle;
-TaskHandle_t mic_handle;
 
 // wifi
 // char wifi_ssid[WIFI_SSID_MAX_LEN] = "xinyuandianzi";
@@ -65,6 +64,11 @@ static uint32_t last_tick;
 // eeprom
 uint8_t eeprom_ssid[WIFI_SSID_MAX_LEN];
 uint8_t eeprom_pswd[WIFI_PSWD_MAX_LEN];
+
+// mic
+int16_t i2s_readraw_buff[SAMPLE_SIZE] = {0};
+size_t bytes_read = 0;
+int i2s_mic_cnt = 0;
 
 /*********************************************************************************
  *                              FUNCTION
@@ -179,7 +183,6 @@ void multi_thread_create(void)
     xTaskCreate(battery_task, "battery_task", 1024 * 2, NULL, BATTERY_PRIORITY, &battery_handle);
     // xTaskCreate(infared_task, "infared_task", 1024 * 2, NULL, INFARED_PRIORITY, &infared_handle);
 
-    // xTaskCreate(mic_task, "mic_task", 1024 * 4, NULL, tskIDLE_PRIORITY + 2, &mic_handle);
 }
 
 void wifi_init(void)
@@ -226,7 +229,6 @@ static void msg_send_event(lv_timer_t *t)
     }
 }
 
-
 static void msg_subsribe_event(void * s, lv_msg_t * msg)
 {
     LV_UNUSED(s);
@@ -244,7 +246,6 @@ static void msg_subsribe_event(void * s, lv_msg_t * msg)
             break;
     }
 }
-
 
 void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
     Serial.printf("Listing spiffs directory: %s\n", dirname);
@@ -324,6 +325,7 @@ void setup(void)
     pinMode(ENCODER_KEY, INPUT);
     pinMode(BOARD_USER_KEY, INPUT);
 
+    pinMode(BOARD_PN532_IRQ, OPEN_DRAIN);
 
     Serial.begin(115200);
     Serial.print("setup() running core ID: ");
@@ -335,6 +337,8 @@ void setup(void)
     radioLock = xSemaphoreCreateBinary();
     assert(radioLock);
     xSemaphoreGive(radioLock);
+
+    init_microphone();
 
     // iic scan
     byte error, address;
@@ -405,8 +409,6 @@ void setup(void)
 
     ws2812_init();
 
-    mic_init();
-
     // infared_init();
 
     multi_thread_create();
@@ -437,16 +439,21 @@ void loop(void)
 
     audio.loop();
 
-    if(mic_recode_st()) {
-        record_wav(10);
-    }
-
     if (irrecv.decode(&results)) {
         // print() & println() can't handle printing long longs. (uint64_t)
         serialPrintUint64(results.value, HEX);
         IR_recv_value = results.value;
         Serial.println("");
         irrecv.resume();  // Receive the next value
+    }
+
+    i2s_read((i2s_port_t)EXAMPLE_I2S_CH, (char *)i2s_readraw_buff, SAMPLE_SIZE, &bytes_read, 100);
+    for(int i = 0; i < 10; i++) {
+        // Serial.printf("%d  ", i2s_readraw_buff[i]);
+        // if(i == 9) {
+        //     Serial.println(" ");
+        // }
+        if(i2s_readraw_buff[i] > 0) i2s_mic_cnt++;
     }
     delay(1);
 }
