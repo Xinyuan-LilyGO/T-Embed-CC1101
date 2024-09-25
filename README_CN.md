@@ -1,10 +1,10 @@
 
-<h1 align = "center">🌟T-Embed-PN532🌟</h1>
+<h1 align = "center">🌟T-Embed-CC1101🌟</h1>
 
 <p> 
   <a href="https://platformio.org/"> <img src="./hardware/image/PlatformIO_badge.png" height="20px"> </a>
   <a href="https://www.arduino.cc/en/software"> <img src="./hardware/image/Arduino_badge.png" height="20px"></a>
-  <a href=""> <img src="https://img.shields.io/badge/Liiygo-T_Embed_PN532-blue" height="20px"></a>
+  <a href=""> <img src="https://img.shields.io/badge/Liiygo-T_Embed_CC1101-blue" height="20px"></a>
   <a href=""> <img src="https://img.shields.io/badge/language-c++-brightgreen" height="20px"></a>
 </p>
 
@@ -22,7 +22,7 @@
 
 ### 关于无线收发设备
 
-T-Embed-PN532 有一个内置的 Sub-GHz 模块，基于 `CC1101` 收发器和无线电天线(最大距离50米)。CC1101芯片和天线都设计在 300-348 MHz、387-464 MHz 和 779-928 MHz 频段工作。
+T-Embed-CC1101 有一个内置的 Sub-GHz 模块，基于 `CC1101` 收发器和无线电天线(最大距离50米)。CC1101芯片和天线都设计在 300-348 MHz、387-464 MHz 和 779-928 MHz 频段工作。
 
 Sub-GHz应用支持基于CC1101收发器的外部无线电模块。
 

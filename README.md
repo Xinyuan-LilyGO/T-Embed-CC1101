@@ -1,11 +1,11 @@
-<h1 align = "center">🏆T-Embed-PN532🏆</h1>
+<h1 align = "center">🏆T-Embed-CC1101🏆</h1>
 
-![Build Status](https://github.com/Xinyuan-LilyGO/T-Embed-PN532/actions/workflows/platformio.yml/badge.svg?event=push)
+![Build Status](https://github.com/Xinyuan-LilyGO/T-Embed-CC1101/actions/workflows/platformio.yml/badge.svg?event=push)
 
 <p> 
   <a href="https://platformio.org/"> <img src="./hardware/image/PlatformIO_badge.png" height="20px"> </a>
   <a href="https://www.arduino.cc/en/software"> <img src="./hardware/image/Arduino_badge.png" height="20px"></a>
-  <a href=""> <img src="https://img.shields.io/badge/Liiygo-T_Embed_PN532-blue" height="20px"></a>
+  <a href=""> <img src="https://img.shields.io/badge/Liiygo-T_Embed_CC1101-blue" height="20px"></a>
   <a href=""> <img src="https://img.shields.io/badge/language-c++-brightgreen" height="20px"></a>
 </p>
 
@@ -23,7 +23,7 @@
 
 ### Wireless transceiver：
 
-T-Embed-PN532 has a built-in Sub-GHz module based on a `CC1101` transceiver and a radio antenna (the maximum range is 50 meters). Both the CC1101 chip and the antenna are designed to operate at frequencies in the 300-348 MHz, 387-464 MHz, and 779-928 MHz bands.
+T-Embed-CC1101 has a built-in Sub-GHz module based on a `CC1101` transceiver and a radio antenna (the maximum range is 50 meters). Both the CC1101 chip and the antenna are designed to operate at frequencies in the 300-348 MHz, 387-464 MHz, and 779-928 MHz bands.
 
 The Sub-GHz application supports external radio modules based on the CC1101 transceiver.
 
