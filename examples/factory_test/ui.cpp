@@ -2116,7 +2116,7 @@ static lv_obj_t *pause_btn;
 static lv_obj_t *next_btn;
 static lv_obj_t *prev_btn;
 static lv_obj_t *mic_led;
-static bool music_is_running = false;
+bool music_is_running = false;
 static lv_timer_t *mic_chk_timer = NULL;
 int music_idx = 0;
 char *music_list[20] = {0};

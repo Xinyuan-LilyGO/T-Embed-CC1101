@@ -18,7 +18,6 @@
 #define BOARD_MIC_CLK  39
 
 // VOICE
-// #define BOARD_VOICE_MODE  4
 #define BOARD_VOICE_BCLK  46
 #define BOARD_VOICE_LRCLK 40
 #define BOARD_VOICE_DIN   7

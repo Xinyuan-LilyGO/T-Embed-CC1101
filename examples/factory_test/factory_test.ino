@@ -182,7 +182,6 @@ void multi_thread_create(void)
     xTaskCreate(ws2812_task, "ws2812_task", 1024 * 2, NULL, WS2812_PRIORITY, &ws2812_handle);
     xTaskCreate(battery_task, "battery_task", 1024 * 2, NULL, BATTERY_PRIORITY, &battery_handle);
     // xTaskCreate(infared_task, "infared_task", 1024 * 2, NULL, INFARED_PRIORITY, &infared_handle);
-
 }
 
 void wifi_init(void)
@@ -432,28 +431,33 @@ void setup(void)
 }
 
 int file_cnt = 0;
+extern bool music_is_running;
 
 void loop(void)
 {
-    lv_timer_handler();
 
     audio.loop();
 
-    if (irrecv.decode(&results)) {
-        // print() & println() can't handle printing long longs. (uint64_t)
-        serialPrintUint64(results.value, HEX);
-        IR_recv_value = results.value;
-        Serial.println("");
-        irrecv.resume();  // Receive the next value
+    lv_timer_handler();
+
+    if(music_is_running == false) {
+        if (irrecv.decode(&results)) {
+            // print() & println() can't handle printing long longs. (uint64_t)
+            serialPrintUint64(results.value, HEX);
+            IR_recv_value = results.value;
+            Serial.println("");
+            irrecv.resume();  // Receive the next value
+        }
+
+        i2s_read((i2s_port_t)EXAMPLE_I2S_CH, (char *)i2s_readraw_buff, SAMPLE_SIZE, &bytes_read, 100);
+        for(int i = 0; i < 10; i++) {
+            // Serial.printf("%d  ", i2s_readraw_buff[i]);
+            // if(i == 9) {
+            //     Serial.println(" ");
+            // }
+            if(i2s_readraw_buff[i] > 0) i2s_mic_cnt++;
+        }
     }
 
-    i2s_read((i2s_port_t)EXAMPLE_I2S_CH, (char *)i2s_readraw_buff, SAMPLE_SIZE, &bytes_read, 100);
-    for(int i = 0; i < 10; i++) {
-        // Serial.printf("%d  ", i2s_readraw_buff[i]);
-        // if(i == 9) {
-        //     Serial.println(" ");
-        // }
-        if(i2s_readraw_buff[i] > 0) i2s_mic_cnt++;
-    }
     delay(1);
 }
