@@ -23,7 +23,6 @@ jobs:
             - examples/cc1101_send_irq
             - examples/display_test
             - examples/encode_test
-            - examples/factory
             - examples/factory_test
             - examples/infrared_recv_test
             - examples/infrared_send_test
