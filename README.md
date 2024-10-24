@@ -5,8 +5,7 @@
 <p> 
   <a href="https://platformio.org/"> <img src="./hardware/image/PlatformIO_badge.png" height="20px"> </a>
   <a href="https://www.arduino.cc/en/software"> <img src="./hardware/image/Arduino_badge.png" height="20px"></a>
-  <a href=""> <img src="https://img.shields.io/badge/Liiygo-T_Embed_CC1101-blue" height="20px"></a>
-  <a href=""> <img src="https://img.shields.io/badge/language-c++-brightgreen" height="20px"></a>
+  <a href="https://www.lilygo.cc/products/t-embed-cc1101"> <img src="https://img.shields.io/badge/Liiygo-T_Embed_CC1101-blue" height="20px"></a>
 </p>
 
 * [切换到中文版](./README_CN.md)
@@ -14,12 +13,12 @@
 
 ## :one:Product 🎁
 
-| Version |   v1.0 24-03-15   |
-|:-------:|:-----------------:|
-| Module  | ESP32-S3-WROOM-1U |
-|  Flash  |       16MB        |
-|  PSRAM  |        8MB        |
-| Screen  |      320x170      |
+| Product | [T-Embed-CC1101 ](https://www.lilygo.cc/products/t-embed-cc1101) |
+|:-------:|:----------------------------------------------------------------:|
+| Module  |                        ESP32-S3-WROOM-1U                         |
+|  Flash  |                               16MB                               |
+|  PSRAM  |                               8MB                                |
+| Screen  |                             320x170                              |
 
 ### Wireless transceiver：
 
@@ -49,7 +48,7 @@ Some examples are provided under the Project example folder, which can run on Pl
 - ✅ cc1101_send_irq ：Wireless sending test, display sent messages in the serial port.
 - ✅ display_test ：Screen display test;
 - ✅ encode_test ：encoder tester
-- ❌ factory ：Factory programs can currently only be compiled and downloaded on PlatformIO;
+- ❌ factory_test ：Factory programs can currently only be compiled and downloaded on PlatformIO;
 - ✅ infrared_recv_test: Infrared test
 - ✅ infrared_send_test: Infrared test
 - ✅ lvgl_test ：lvgl benchmark and stress testing;
