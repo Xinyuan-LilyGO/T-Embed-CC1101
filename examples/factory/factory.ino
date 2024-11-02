@@ -39,7 +39,7 @@ TaskHandle_t infared_handle;
 TaskHandle_t mic_handle;
 
 // wifi
-// char wifi_ssid[WIFI_SSID_MAX_LEN] = "xinyuandianzi";
+// char wifi_ssid[WIFI_SSID_MAX_LEN] = "// char wifi_ssid[WIFI_SSID_MAX_LEN] = "xinyuandianzi";x";
 // char wifi_password[WIFI_PSWD_MAX_LEN] = "AA15994823428";
 char wifi_ssid[WIFI_SSID_MAX_LEN] = {0};
 char wifi_password[WIFI_PSWD_MAX_LEN] = {0};
