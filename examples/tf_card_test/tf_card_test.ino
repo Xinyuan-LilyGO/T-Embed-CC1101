@@ -41,6 +41,9 @@
 #include "FS.h"
 #include "SD.h"
 #include "SPI.h"
+#include "utilities.h"
+
+#include "TFT_eSPI.h"
 
 /*
 Uncomment and set up if you want to use custom pins for the SPI communication
@@ -215,6 +218,16 @@ void testFileIO(fs::FS &fs, const char * path){
 }
 
 void setup(){
+    // LORA、SD and LCD use the same spi, in order to avoid mutual influence; 
+    // before powering on, all CS signals should be pulled high and in an unselected state;
+    pinMode(TFT_CS, OUTPUT);
+    digitalWrite(TFT_CS, HIGH);
+    pinMode(BOARD_SD_CS, OUTPUT);
+    digitalWrite(BOARD_SD_CS, HIGH);
+    pinMode(BOARD_LORA_CS, OUTPUT);
+    digitalWrite(BOARD_LORA_CS, HIGH);
+
+    // Init system
     Serial.begin(115200);
     while(!Serial) { delay (10); }
 

@@ -1,6 +1,7 @@
 
 #include <RadioLib.h>
 #include "utilities.h"
+#include "TFT_eSPI.h"
 
 static float CC1101_freq = 868;
 SPIClass radioSPI =  SPIClass(HSPI);
@@ -8,6 +9,16 @@ CC1101 radio = new Module(BOARD_LORA_CS, BOARD_LORA_IO0, -1, BOARD_LORA_IO2, rad
 
 void setup()
 {
+    // LORA、SD and LCD use the same spi, in order to avoid mutual influence; 
+    // before powering on, all CS signals should be pulled high and in an unselected state;
+    pinMode(TFT_CS, OUTPUT);
+    digitalWrite(TFT_CS, HIGH);
+    pinMode(BOARD_SD_CS, OUTPUT);
+    digitalWrite(BOARD_SD_CS, HIGH);
+    pinMode(BOARD_LORA_CS, OUTPUT);
+    digitalWrite(BOARD_LORA_CS, HIGH);
+
+    // Init system
     Serial.begin(115200);
 
     pinMode(BOARD_PWR_EN, OUTPUT);

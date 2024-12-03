@@ -8,8 +8,8 @@
 #define UI_THEME_DARK  0
 #define UI_THEME_LIGHT 1
 
-uint8_t display_rotation  = 3;
-uint8_t setting_theme     = UI_THEME_DARK;
+uint8_t display_rotation        = 3;
+uint8_t setting_theme           = UI_THEME_LIGHT;
 uint32_t EMBED_COLOR_BG         = 0x161823;  // UI 的背景色
 uint32_t EMBED_COLOR_FOCUS_ON   = 0x91B821;  // 组件选中时的颜色
 uint32_t EMBED_COLOR_TEXT       = 0xffffff;  // 文本的颜色
@@ -1044,13 +1044,78 @@ scr_lifecycle_t screen3 = {
 };
 #endif
 //************************************[ screen 4 ]****************************************** setting
-#if 1
 /*** UI interfavce ***/
 bool __attribute__((weak)) ui_scr4_get_lora_st(void) { return false; }
 bool __attribute__((weak)) ui_scr4_get_pmu_st(void) {  return false; }
 bool __attribute__((weak)) ui_scr4_get_nfc_st(void) {  return false; }
 bool __attribute__((weak)) ui_scr4_get_sd_st(void) {   return false; }
 // end
+// --------------------- screen 4.1 --------------------- About System
+#if 1
+static lv_obj_t *scr4_1_cont;
+
+static void entry4_1_anim(lv_obj_t *obj) { entry1_anim(obj); }
+static void exit4_1_anim(int user_data, lv_obj_t *obj) { exit1_anim(user_data, obj); }
+
+static void scr4_1_btn_event_cb(lv_event_t * e)
+{
+    if(e->code == LV_EVENT_CLICKED){
+        exit4_1_anim(SCREEN4_ID, scr4_1_cont);
+    }
+}
+
+static void create4_1(lv_obj_t *parent) 
+{   
+    scr4_1_cont = lv_obj_create(parent);
+    lv_obj_set_size(scr4_1_cont, lv_pct(100), lv_pct(100));
+    lv_obj_set_style_bg_color(scr4_1_cont, lv_color_hex(EMBED_COLOR_BG), LV_PART_MAIN);
+    lv_obj_set_scrollbar_mode(scr4_1_cont, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_set_style_border_width(scr4_1_cont, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(scr4_1_cont, 0, LV_PART_MAIN);
+
+    lv_obj_t *label = lv_label_create(scr4_1_cont);
+    lv_obj_set_style_text_color(label, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
+    lv_obj_set_style_text_font(label, &Font_Mono_Bold_14, LV_PART_MAIN);
+    lv_label_set_text(label, "About System");
+    lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 10);
+
+    lv_obj_t *info = lv_label_create(scr4_1_cont);
+    lv_obj_set_width(info, DISPALY_WIDTH * 0.9);
+    lv_obj_set_style_text_color(info, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
+    lv_obj_set_style_text_font(info, &Font_Mono_Bold_14, LV_PART_MAIN);
+    lv_label_set_long_mode(info, LV_LABEL_LONG_WRAP);
+    lv_label_set_text_fmt(info, "Version:              %s \n"
+                                "----------------------------------- \n"
+                                "CC1101 Init:                   %s\n"
+                                "NFC Init:                      %s\n"
+                                "TF Card Init:                  %s\n"
+                                , 
+                                T_EMBED_CC1101_SF_VER,
+                                (ui_scr4_get_lora_st() ? "PASS" : "FAIL"),
+                                (ui_scr4_get_nfc_st() ? "PASS" : "FAIL"),
+                                (ui_scr4_get_sd_st() ? "PASS" : "FAIL")
+                                );
+
+    lv_obj_align_to(info, label, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
+
+    // back bottom
+    scr_back_btn_create(scr4_1_cont, scr4_1_btn_event_cb);
+}
+static void entry4_1(void) {
+    entry4_1_anim(scr4_1_cont);
+}
+static void exit4_1(void) {}
+static void destroy4_1(void) {}
+
+static scr_lifecycle_t screen4_1 = {
+    .create = create4_1,
+    .entry = entry4_1,
+    .exit  = exit4_1,
+    .destroy = destroy4_1,
+};
+#endif
+// --------------------- screen 4 ----------------------- 
+#if 1
 
 lv_obj_t *scr4_cont;
 lv_obj_t *setting_list;
@@ -1148,14 +1213,15 @@ void setting_scr_event(lv_event_t *e)
                 lv_anim_start(&a);
             break;
         case 4: {// "About System"
-            char buf[128];
-            lv_snprintf(buf, 128, "LORA init --- %s\n"
-                                  "NFC init ---- %s\n"
-                                  "TF card ----- %s",   
-                                  (ui_scr4_get_lora_st() ? "PASS" : "FAIL"),
-                                  (ui_scr4_get_nfc_st() ? "PASS" : "FAIL"),
-                                  (ui_scr4_get_sd_st() ? "PASS" : "FAIL"));
-            prompt_info(buf, 1000);
+            // char buf[128];
+            // lv_snprintf(buf, 128, "LORA init --- %s\n"
+            //                       "NFC init ---- %s\n"
+            //                       "TF card ----- %s",   
+            //                       (ui_scr4_get_lora_st() ? "PASS" : "FAIL"),
+            //                       (ui_scr4_get_nfc_st() ? "PASS" : "FAIL"),
+            //                       (ui_scr4_get_sd_st() ? "PASS" : "FAIL"));
+            // prompt_info(buf, 1000);
+            scr_mgr_switch(SCREEN4_1_ID, false);
             } break;
         default:
             break;
@@ -1339,17 +1405,17 @@ void batt_timer_event(lv_timer_t *t)
         lv_snprintf(buf, 16, "%.2fV", (bq27220.getVolt(VOLT_CHARGING) /1000.0));
         battery_set_line(batt_line[2], "VOLT Charge:", buf);
 
-        lv_snprintf(buf, 16, "%dmA", bq27220.getCurr(CURR_AVERAGE));
-        battery_set_line(batt_line[3], "CURR Average:", buf);
-
         lv_snprintf(buf, 16, "%dmA", bq27220.getCurr(CURR_INSTANT));
-        battery_set_line(batt_line[4], "CURR Standby:", buf);
-
-        lv_snprintf(buf, 16, "%dmA", bq27220.getCurr(CURR_CHARGING));
-        battery_set_line(batt_line[5], "CURR Charging:", buf);
+        battery_set_line(batt_line[3], "CURR Standby:", buf);
 
         lv_snprintf(buf, 16, "%.2f", (float)(bq27220.getTemp() / 10 - 273));
-        battery_set_line(batt_line[6], "TEMP:", buf);
+        battery_set_line(batt_line[4], "TEMP:", buf);
+
+        lv_snprintf(buf, 16, "%d", bq27220.getRemainCap());
+        battery_set_line(batt_line[5], "CAP BATT:", buf);
+
+        lv_snprintf(buf, 16, "%d", bq27220.getFullChargeCap());
+        battery_set_line(batt_line[6], "CAP BATT FULL:", buf);
     }
 }
 
@@ -2336,6 +2402,7 @@ void ui_entry(void)
     scr_mgr_register(SCREEN2_ID, &screen2);     // lora
     scr_mgr_register(SCREEN3_ID, &screen3);     // nfc
     scr_mgr_register(SCREEN4_ID, &screen4);     // setting
+    scr_mgr_register(SCREEN4_1_ID,  &screen4_1); // setting - about
     scr_mgr_register(SCREEN5_ID, &screen5);     // battery
     scr_mgr_register(SCREEN6_ID, &screen6);     // wifi
     scr_mgr_register(SCREEN7_ID, &screen7);     // other

@@ -312,6 +312,16 @@ void setup(void)
     bool nfc_ret = false;
     bool lora_ret = false;
 
+    // LORA、SD and LCD use the same spi, in order to avoid mutual influence; 
+    // before powering on, all CS signals should be pulled high and in an unselected state;
+    pinMode(TFT_CS, OUTPUT);
+    digitalWrite(TFT_CS, HIGH);
+    pinMode(BOARD_SD_CS, OUTPUT);
+    digitalWrite(BOARD_SD_CS, HIGH);
+    pinMode(BOARD_LORA_CS, OUTPUT);
+    digitalWrite(BOARD_LORA_CS, HIGH);
+
+    // Init system
     pinMode(TFT_BL, OUTPUT);
     digitalWrite(TFT_BL, LOW);
 
