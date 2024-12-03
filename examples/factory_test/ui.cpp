@@ -9,7 +9,7 @@
 #define UI_THEME_LIGHT 1
 
 uint8_t display_rotation        = 3;
-uint8_t setting_theme           = UI_THEME_LIGHT;
+uint8_t setting_theme           = UI_THEME_DARK;
 uint32_t EMBED_COLOR_BG         = 0x161823;  // UI 的背景色
 uint32_t EMBED_COLOR_FOCUS_ON   = 0x91B821;  // 组件选中时的颜色
 uint32_t EMBED_COLOR_TEXT       = 0xffffff;  // 文本的颜色
