@@ -83,7 +83,30 @@ PlatformIO is more recommended because it may not be compiled with Arduion. You 
 4. Open the Arduion IDE and click `File->Open` in the upper left corner to open an example in `this project/example/xxx/xxx.ino` under this item;
 5. Then configure Arduion. After the configuration is completed in the following way, you can click the button in the upper left corner of Arduion to compile and download;
 
-![](./hardware/image/Arduion_config_en.png)
+| Arduino IDE Setting                  | Value                             |
+| ------------------------------------ | --------------------------------- |
+| Board                                | **ESP32S3 Dev Module**            |
+| Port                                 | Your port                         |
+| USB CDC On Boot                      | Enable                            |
+| CPU Frequency                        | 240MHZ(WiFi)                      |
+| Core Debug Level                     | None                              |
+| USB DFU On Boot                      | Disable                           |
+| Erase All Flash Before Sketch Upload | Disable                           |
+| Events Run On                        | Core1                             |
+| Flash Mode                           | QIO 80MHZ                         |
+| Flash Size                           | **16MB(128Mb)**                   |
+| Arduino Runs On                      | Core1                             |
+| USB Firmware MSC On Boot             | Disable                           |
+| Partition Scheme                     | **16M Flash(3M APP/9.9MB FATFS)** |
+| PSRAM                                | **OPI PSRAM**                     |
+| Upload Mode                          | **UART0/Hardware CDC**            |
+| Upload Speed                         | 921600                            |
+| USB Mode                             | **CDC and JTAG**                  |
 
-## :five: Other
-To be added...
+## :five: Troubleshooting
+
+|                      Problem                      |                              Link                               |
+| :-----------------------------------------------: | :-------------------------------------------------------------: |
+|           How do I enter download mode?           |     [youtube](https://www.youtube.com/watch?v=U06XI1wtp4U)      |
+| How do I turn on the device after I shut it down? | [#5](https://github.com/Xinyuan-LilyGO/T-Embed-CC1101/issues/5) |
+|      How do I configure Wifi with EspTouch?       | [#4](https://github.com/Xinyuan-LilyGO/T-Embed-CC1101/issues/4) |
