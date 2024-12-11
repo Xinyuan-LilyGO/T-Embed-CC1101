@@ -6,6 +6,7 @@
 #include "Arduino.h"
 #include <Wire.h>
 #include "bq27220.h"
+#include "bq27220_reg.h"
 
 #define DEFAULT_SCL  18
 #define DEFAULT_SDA  8
@@ -15,7 +16,17 @@
 #define BQ27220_I2C_ADDRESS 0x55
 
 // device id
-#define BQ27220_DEVICE_ID 0x0220
+#define BQ27220_ID (0x0220u)
+
+/** Timeout for common operations. */
+#define BQ27220_TIMEOUT_COMMON_US (2000000u)
+
+/** Timeout cycle interval  */
+#define BQ27220_TIMEOUT_CYCLE_INTERVAL_US (1000u)
+
+/** Timeout cycles count helper */
+#define BQ27220_TIMEOUT(timeout_us) ((timeout_us) / (BQ27220_TIMEOUT_CYCLE_INTERVAL_US))
+
 
 // commands
 #define BQ27220_COMMAND_CONTROL         0X00 // Control()
@@ -37,8 +48,6 @@
 #define BQ27220_COMMAND_CHARGING_CURR   0X32
 #define BQ27220_COMMAND_RAW_CURR        0X7A
 #define BQ27220_COMMAND_RAW_VOLT        0X7C
-
-// sub-command of control
 
 
 enum CURR_MODE{
@@ -77,6 +86,25 @@ union battery_state {
     } st;
     uint16_t full;
 };
+
+typedef union OperationStatus{
+    struct __reg
+    {
+        // Low byte, Low bit first
+        bool CALMD      : 1; /**< Calibration mode enabled */
+        uint8_t SEC     : 2; /**< Current security access */
+        bool EDV2       : 1; /**< EDV2 threshold exceeded */
+        bool VDQ        : 1; /**< Indicates if Current discharge cycle is NOT qualified or qualified for an FCC updated */
+        bool INITCOMP   : 1; /**< gauge initialization is complete */
+        bool SMTH       : 1; /**< RemainingCapacity is scaled by smooth engine */
+        bool BTPINT     : 1; /**< BTP threshold has been crossed */
+        // High byte, Low bit first
+        uint8_t RSVD1   : 2; /**< Reserved */
+        bool CFGUPDATE  : 1; /**< Gauge is in CONFIG UPDATE mode */
+        uint8_t RSVD0   : 5; /**< Reserved */
+    } reg;
+    uint16_t full;
+} BQ27220OperationStatus;
 
 class BQ27220{
 public:
@@ -163,6 +191,61 @@ public:
 // sub-commands
     uint16_t getId() {
         return 0;
+    }
+
+    bool getOperationStatus(BQ27220OperationStatus *oper_sta)
+    {
+        bool result = false;
+        uint16_t data = ReadRegU16(CommandOperationStatus);
+        if(data != 0)
+        {
+            (*oper_sta).full = data;
+            result = true;
+        }
+        return result;
+    }
+
+    bool reset(void)
+    {
+        bool result = false;
+        BQ27220OperationStatus operat = {0};
+        do{
+            controlSubCmd(Control_RESET);
+            delay(10);
+
+            uint32_t timeout = BQ27220_TIMEOUT(BQ27220_TIMEOUT_COMMON_US);
+            while (--timeout)
+            {
+                if(!getOperationStatus(&operat)){
+                    Serial.printf("Failed to get operation status, retries left %lu\n", timeout);
+                }else if(operat.reg.INITCOMP == true){
+                    break;
+                }
+                delay(2);
+            }
+            if(timeout == 0) {
+                Serial.println("INITCOMP timeout after reset");
+                break;
+            }
+            Serial.printf("Cycles left: %lu\n", timeout);
+            result = true;
+        } while(0);
+        return result;
+    }
+
+    bool controlSubCmd(uint16_t sub_cmd)
+    {
+        uint8_t msb = (sub_cmd >> 8);
+        uint8_t lsb = (sub_cmd & 0x00FF);
+        uint8_t buf[2] = { lsb, msb };
+        i2cWriteBytes(CommandControl, buf, 2);
+        return true;
+    }
+
+    uint16_t ReadRegU16(uint16_t subAddress) {
+        uint8_t data[2];
+        i2cReadBytes(subAddress, data, 2);
+        return ((uint16_t) data[1] << 8) | data[0];
     }
 
     uint16_t readCtrlWord(uint16_t fun) {

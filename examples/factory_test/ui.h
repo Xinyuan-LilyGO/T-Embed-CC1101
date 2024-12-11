@@ -8,7 +8,7 @@
 #include "peripheral/peripheral.h"
 
 
-#define T_EMBED_CC1101_SF_VER "v1.0 24.12.03"
+#define T_EMBED_CC1101_SF_VER "v1.0 20241211"
 
 // The default is landscape screen, HEIGHT and WIDTH swap
 #define DISPALY_WIDTH  TFT_HEIGHT

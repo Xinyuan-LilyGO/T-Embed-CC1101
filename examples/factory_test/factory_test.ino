@@ -409,6 +409,8 @@ void setup(void)
         PPM.enableADCMeasure();
         PPM.enableCharge();
     }
+
+    bq27220.reset();
    
     if(lora_ret)
         lora_init(); 

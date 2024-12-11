@@ -1377,7 +1377,7 @@ void batt_timer_event(lv_timer_t *t)
         lv_label_set_text(batt_label, "BQ25896");
 
         lv_label_set_text_fmt(batt_line[0], "VBUS --- %3.2f | VSYS --- %3.2f", (PPM.getVbusVoltage() *1.0 / 1000.0), (PPM.getSystemVoltage() * 1.0 / 1000.0));
-        lv_label_set_text_fmt(batt_line[1], "VBAT --- %3.2f | ICHG --- %3.2f", (PPM.getBattVoltage() * 1.0 / 1000.0), (PPM.getChargeCurrent()));
+        lv_label_set_text_fmt(batt_line[1], "VBAT --- %3.2f | ICHG --- %3.1f", (PPM.getBattVoltage() *1.0 / 1000.0), (PPM.getChargeCurrent() * 1.0));
 
         lv_snprintf(buf, 16, "%.2f", (PPM.getChargeTargetVoltage() * 1.0 / 1000.0));
         battery_set_line(batt_line[2], "VBAT Target:", buf);
