@@ -1158,7 +1158,7 @@ void setting_scr_event(lv_event_t *e)
     if(e->code == LV_EVENT_CLICKED) {
         switch (data)
         {
-        case 0: // "Rotatoion"
+        case 0: // "Rotation"
             lv_obj_set_style_transform_pivot_x(scr4_cont, LV_HOR_RES/2, LV_PART_MAIN);
             lv_obj_set_style_transform_pivot_y(scr4_cont, LV_VER_RES/2, LV_PART_MAIN);
 
@@ -1291,7 +1291,7 @@ void create4(lv_obj_t *parent){
     lv_obj_set_style_border_width(setting_list, 0, LV_PART_MAIN);
     lv_obj_set_style_shadow_width(setting_list, 0, LV_PART_MAIN);
 
-    lv_obj_t *setting1 = lv_list_add_btn(setting_list, NULL, "- Rotatoion");
+    lv_obj_t *setting1 = lv_list_add_btn(setting_list, NULL, "- Screen Rotation");
     lv_obj_t *setting2 = lv_list_add_btn(setting_list, NULL, "- Deep Sleep");
     lv_obj_t *setting3 = lv_list_add_btn(setting_list, NULL, "- UI Theme");
     lv_obj_t *setting4 = lv_list_add_btn(setting_list, NULL, "- Shutdown");
