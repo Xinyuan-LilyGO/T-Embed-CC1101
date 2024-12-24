@@ -10,15 +10,28 @@
 
 * [切换到中文版](./README_CN.md)
 
+## :zero: Troubleshooting
+
+Video about T-Embed-CC1101 :  [youtube](https://www.youtube.com/watch?v=U06XI1wtp4U) 
+
+|                      Problem                       |                                 Link                                   |
+| :------------------------------------------------: | :--------------------------------------------------------------------: |
+|           How do I enter download mode?            |                   [Download](./docs/download_mode.md)                  |
+| How do I turn on the device after I shut it down?  | [Issues #5](https://github.com/Xinyuan-LilyGO/T-Embed-CC1101/issues/5) |
+|      How do I configure Wifi with EspTouch?        | [Issues #4](https://github.com/Xinyuan-LilyGO/T-Embed-CC1101/issues/4) |
 
 ## :one:Product 🎁
 
-| Product | [T-Embed-CC1101 ](https://www.lilygo.cc/products/t-embed-cc1101) |
-|:-------:|:----------------------------------------------------------------:|
-| Module  |                        ESP32-S3-WROOM-1U                         |
-|  Flash  |                               16MB                               |
-|  PSRAM  |                               8MB                                |
-| Screen  |                             320x170                              |
+|     Product      | [T-Embed-CC1101 ](https://www.lilygo.cc/products/t-embed-cc1101) |
+| :--------------: | :--------------------------------------------------------------: |
+|       MCU        |                         ESP32-S3-WROOM-1                         |
+|  Flash / PSRAM   |                             16M / 8M                             |
+|      Sub-G       |                              CC1101                              |
+|       NFC        |                              PN532                               |
+|    Display IC    |                         ST7789 (320x170)                         |
+| Battery Capacity |                           3.7V-1500mAh                           |
+|   Battery Chip   |                         BQ25896, BQ27220                         |
+|    LED Driver    |                              WS2812                              |
 
 ### Wireless transceiver：
 
@@ -102,11 +115,3 @@ PlatformIO is more recommended because it may not be compiled with Arduion. You 
 | Upload Mode                          | **UART0/Hardware CDC**            |
 | Upload Speed                         | 921600                            |
 | USB Mode                             | **CDC and JTAG**                  |
-
-## :five: Troubleshooting
-
-|                      Problem                      |                              Link                               |
-| :-----------------------------------------------: | :-------------------------------------------------------------: |
-|           How do I enter download mode?           |     [youtube](https://www.youtube.com/watch?v=U06XI1wtp4U)      |
-| How do I turn on the device after I shut it down? | [#5](https://github.com/Xinyuan-LilyGO/T-Embed-CC1101/issues/5) |
-|      How do I configure Wifi with EspTouch?       | [#4](https://github.com/Xinyuan-LilyGO/T-Embed-CC1101/issues/4) |
