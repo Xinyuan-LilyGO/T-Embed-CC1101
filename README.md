@@ -14,11 +14,12 @@
 
 Video about T-Embed-CC1101 :  [youtube](https://www.youtube.com/watch?v=U06XI1wtp4U) 
 
-|                      Problem                       |                                 Link                                   |
-| :------------------------------------------------: | :--------------------------------------------------------------------: |
-|           How do I enter download mode?            |                   [Download](./docs/download_mode.md)                  |
-| How do I turn on the device after I shut it down?  | [Issues #5](https://github.com/Xinyuan-LilyGO/T-Embed-CC1101/issues/5) |
-|      How do I configure Wifi with EspTouch?        | [Issues #4](https://github.com/Xinyuan-LilyGO/T-Embed-CC1101/issues/4) |
+|                       Problem                       |                                 Link                                   |
+| :-------------------------------------------------: | :--------------------------------------------------------------------: |
+|            How do I enter download mode?            |                  [Download](./docs/download_mode.md)                   |
+|  How do I turn on the device after I shut it down?  | [Issues #5](https://github.com/Xinyuan-LilyGO/T-Embed-CC1101/issues/5) |
+|      How do I configure Wifi with EspTouch?         | [Issues #4](https://github.com/Xinyuan-LilyGO/T-Embed-CC1101/issues/4) |
+|            Why won't the battery charge？            | [Issues #9](https://github.com/Xinyuan-LilyGO/T-Embed-CC1101/issues/9) |
 
 ## :one:Product 🎁
 
