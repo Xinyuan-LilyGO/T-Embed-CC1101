@@ -1,17 +1,111 @@
 
 #include "bq27220.h"
-#include "TFT_eSPI.h" 
-#include "Free_Fonts.h" 
+#include "TFT_eSPI.h"
+#include "Wire.h"
 
 #define BOARD_I2C_SDA  8
 #define BOARD_I2C_SCL  18
 
 #define I2C_DEV_ADDR 0x55
 
+#define LINEY(x) ((x++)*16)
+
+char buf[32];
+int line = 0;
+
 BQ27220 bq;
 TFT_eSPI tft;
 
-char buf[32];
+BQ27220BatteryStatus batt;
+
+void i2c_scan(void);
+void showLine(char *buf);
+
+void setup()
+{
+    Serial.begin(115200);
+
+    tft.begin();
+    tft.setRotation(2);
+    tft.fillScreen(TFT_BLACK);
+    tft.setFreeFont(&FreeSans12pt7b); 
+
+    delay(3000);
+
+    i2c_scan();
+
+    Serial.printf("device number:0x%x\n", bq.getDeviceNumber());
+
+    BQ27220OperationStatus opr_st;
+    bq.getOperationStatus(&opr_st);
+    Serial.printf("1 OperationStatus.SEC: %d\n", opr_st.reg.SEC);
+
+    delay(2000);
+    bq.fullAccess();
+    bq.getOperationStatus(&opr_st);
+    Serial.printf("full access: %d\n", opr_st.reg.SEC);
+
+    delay(2000);
+    bq.sealAccess();
+    bq.getOperationStatus(&opr_st);
+    Serial.printf("sealAccess: %d\n", opr_st.reg.SEC);
+
+    delay(2000);
+    bq.unsealAccess();
+    bq.getOperationStatus(&opr_st);
+    Serial.printf("unsealAccess: %d\n", opr_st.reg.SEC);
+    // bq.reset();
+}
+
+void loop() 
+{
+    line = 0;
+
+    bq.getBatteryStatus(&batt);
+    snprintf(buf, 32, "Status = %x", batt.full);
+    showLine(buf);
+
+    snprintf(buf, 32, "Status = %s", bq.getIsCharging() ? "Charging" : "Discharging");
+    showLine(buf);
+
+    snprintf(buf, 32, "Volt = %d mV", bq.getVoltage());
+    showLine(buf);
+
+    snprintf(buf, 32, "Curr = %d mA", bq.getCurrent());
+    showLine(buf);
+
+    snprintf(buf, 32, "Temp = %.2f K", (float)(bq.getTemperature() / 10.0));
+    showLine(buf);
+
+    snprintf(buf, 32, "full cap= %d mAh", bq.getFullChargeCapacity());
+    showLine(buf);
+
+    snprintf(buf, 32, "design cap = %d mAh", bq.getDesignCapacity());
+    showLine(buf);
+
+    snprintf(buf, 32, "remain cap = %d mAh", bq.getRemainingCapacity());
+    showLine(buf);
+
+    snprintf(buf, 32, "state of charge = %d", bq.getStateOfCharge());
+    showLine(buf);
+
+    snprintf(buf, 32, "state of health = %d", bq.getStateOfHealth());
+    showLine(buf);
+
+    
+
+    delay(1000);
+}
+
+void showLine(char *buf)
+{
+    int len = strlen(buf);
+    for(int i = len; i < 23; i++) {
+        buf[i] = ' ';
+    }
+    buf[23] = '\0';
+    tft.drawString(buf, 10, LINEY(line), 2);
+}
 
 void i2c_scan(void)
 {
@@ -38,87 +132,5 @@ void i2c_scan(void)
     }
 }
 
-void setup()
-{
-    Serial.begin(115200);
-
-    tft.begin();
-    tft.setRotation(2);
-    tft.fillScreen(TFT_BLACK);
-    tft.setFreeFont(FF18); 
-
-    delay(3000);
-
-    i2c_scan();
-}
-
-int line = 0;
-#define LINEY ((line++)*16)
-
-void showLine(char *buf)
-{
-    int len = strlen(buf);
-    for(int i = len; i < 23; i++) {
-        buf[i] = ' ';
-    }
-    buf[23] = '\0';
-    tft.drawString(buf, 10, LINEY, 2);
-}
-
-union battery_state batt;
-
-
-
-void loop() 
-{
-    line = 0;
-
-    
-
-    batt.full = bq.getBatterySt();
-    snprintf(buf, 32, "Status = %x", batt.full);
-    showLine(buf);
-
-    printf("%d %d %d %d %d %d %d %d\n", batt.st.DSG,batt.st.SYSDWN, batt.st.TDA, batt.st.BATTPRES,
-    batt.st.AUTH_GD, batt.st.OCVGD, batt.st.TCA, batt.st.RSVD);
-
-    printf("%d\n", batt.st.FD);
-
-    snprintf(buf, 32, "Status = %s", bq.getIsCharging() ? "Charging" : "Discharging");
-    showLine(buf);
-
-    snprintf(buf, 32, "Temp = %.2f K", (float)(bq.getTemp() / 10));
-    showLine(buf);
-
-    snprintf(buf, 32, "battery = %d mAh", bq.getRemainCap());
-    showLine(buf);
-
-    snprintf(buf, 32, "battery full= %d mAh", bq.getRemainCap());
-    showLine(buf);
-
-    tft.drawString("------- Voltage -------", 10, LINEY, 2);
-
-    snprintf(buf, 32, "Volt = %d mV", bq.getVolt(VOLT));
-    showLine(buf);
-
-    snprintf(buf, 32, "Volt Charg= %d mV", bq.getVolt(VOLT_CHARGING));
-    showLine(buf);
-
-    tft.drawString("------- Current -------", 10, LINEY, 2);
-
-    snprintf(buf, 32, "Curr Average=%d mA", bq.getCurr(CURR_AVERAGE));
-    showLine(buf);
-
-    snprintf(buf, 32, "Curr Instant=%d mA", bq.getCurr(CURR_INSTANT));
-    showLine(buf);
-
-    snprintf(buf, 32, "Curr Standby=%d mA", bq.getCurr(CURR_STANDBY));
-    showLine(buf);
-
-    snprintf(buf, 32, "Curr Charging=%d mA", bq.getCurr(CURR_CHARGING));
-    showLine(buf);
-
-    delay(1000);
-}
 
 
