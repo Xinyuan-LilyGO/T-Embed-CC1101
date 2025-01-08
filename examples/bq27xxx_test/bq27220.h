@@ -11,7 +11,7 @@
 #define DEFAULT_SCL  18
 #define DEFAULT_SDA  8
 
-typedef union {
+typedef union ControlStatus{
     struct __reg
     {
         // Low byte, Low bit first
@@ -76,6 +76,29 @@ typedef union OperationStatus{
     uint16_t full;
 } BQ27220OperationStatus;
 
+typedef union GaugingStatus{
+    struct __reg
+    {
+        // Low byte, Low bit first
+        bool FD       : 1; /**< Full Discharge */
+        bool FC       : 1; /**< Full Charge */
+        bool TD       : 1; /**< Terminate Discharge */
+        bool TC       : 1; /**< Terminate Charge */
+        bool RSVD0    : 1; /**< Reserved */
+        bool EDV      : 1; /**< Cell voltage is above or below EDV0 threshold */
+        bool DSG      : 1; /**< DISCHARGE or RELAXATION */
+        bool CF       : 1; /**< Battery conditioning is needed */
+        // High byte, Low bit first
+        uint8_t RSVD1 : 2; /**< Reserved */
+        bool FCCX     : 1; /**< fcc1hz clock going into CC: 0 = 1 Hz, 1 = 16 Hz*/
+        uint8_t RSVD2 : 2; /**< Reserved */
+        bool EDV1     : 1; /**< Cell voltage is above or below EDV1 threshold */
+        bool EDV2     : 1; /**< Cell voltage is above or below EDV2 threshold */
+        bool VDQ      : 1; /**< Charge cycle FCC update qualification */
+    } reg;
+    uint16_t full;
+} BQ27220GaugingStatus;
+
 class BQ27220{
 public:
     BQ27220() : addr{BQ27220_I2C_ADDRESS}, wire(&Wire), scl(DEFAULT_SCL), sda(DEFAULT_SDA)
@@ -94,10 +117,10 @@ public:
         return false;
     }
 
-    bool parameterCheck(uint16_t addr, uint32_t value, bool update);
+    bool parameterCheck(uint16_t address, uint32_t value, size_t size, bool update);
     bool dateMemoryCheck(const BQ27220DMData *data_memory, bool update);
 
-    bool init(const BQ27220DMData *data_memory);
+    bool init(const BQ27220DMData *data_memory = gauge_data_memory);
     bool reset(void);
 
     // Sealed Access
@@ -112,7 +135,7 @@ public:
     bool getControlStatus(BQ27220ControlStatus *ctrl_sta);
     bool getBatteryStatus(BQ27220BatteryStatus *batt_sta);
     bool getOperationStatus(BQ27220OperationStatus *oper_sta);
-    bool getGaugingStatus(void);
+    bool getGaugingStatus(BQ27220GaugingStatus *gauging_sta);
     uint16_t getTemperature(void);
     uint16_t getFullChargeCapacity(void);
     uint16_t getDesignCapacity(void);

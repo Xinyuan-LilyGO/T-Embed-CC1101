@@ -36,25 +36,7 @@ void setup()
 
     Serial.printf("device number:0x%x\n", bq.getDeviceNumber());
 
-    BQ27220OperationStatus opr_st;
-    bq.getOperationStatus(&opr_st);
-    Serial.printf("1 OperationStatus.SEC: %d\n", opr_st.reg.SEC);
-
-    delay(2000);
-    bq.fullAccess();
-    bq.getOperationStatus(&opr_st);
-    Serial.printf("full access: %d\n", opr_st.reg.SEC);
-
-    delay(2000);
-    bq.sealAccess();
-    bq.getOperationStatus(&opr_st);
-    Serial.printf("sealAccess: %d\n", opr_st.reg.SEC);
-
-    delay(2000);
-    bq.unsealAccess();
-    bq.getOperationStatus(&opr_st);
-    Serial.printf("unsealAccess: %d\n", opr_st.reg.SEC);
-    // bq.reset();
+    bq.init();
 }
 
 void loop() 
