@@ -14,9 +14,10 @@
 
 Video about T-Embed-CC1101 :  [youtube](https://www.youtube.com/watch?v=U06XI1wtp4U) 
 
-|                       Problem                       |                                 Link                                   |
+|                       Problem                       |                                  Link                                  |
 | :-------------------------------------------------: | :--------------------------------------------------------------------: |
-|            How do I enter download mode?            |                  [Download](./docs/download_mode.md)                   |
+|            How do I enter download mode?            |                    [docs](./docs/download_mode.md)                     |
+|            How to download the program?             |                 [dosc](./docs/flash_download_tool.md)                  |
 |  How do I turn on the device after I shut it down?  | [Issues #5](https://github.com/Xinyuan-LilyGO/T-Embed-CC1101/issues/5) |
 |      How do I configure Wifi with EspTouch?         | [Issues #4](https://github.com/Xinyuan-LilyGO/T-Embed-CC1101/issues/4) |
 |            Why won't the battery charge？            | [Issues #9](https://github.com/Xinyuan-LilyGO/T-Embed-CC1101/issues/9) |
@@ -30,7 +31,7 @@ Video about T-Embed-CC1101 :  [youtube](https://www.youtube.com/watch?v=U06XI1wt
 |      Sub-G       |                              CC1101                              |
 |       NFC        |                              PN532                               |
 |    Display IC    |                         ST7789 (320x170)                         |
-| Battery Capacity |                           3.7V-1500mAh                           |
+| Battery Capacity |                           3.7V-1300mAh                           |
 |   Battery Chip   |                         BQ25896, BQ27220                         |
 |    LED Driver    |                              WS2812                              |
 
