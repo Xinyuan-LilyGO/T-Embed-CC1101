@@ -22,11 +22,32 @@ uint32_t EMBED_COLOR_PROMPT_TXT = 0x1e1e00;  // 提示弹窗的文本色
 lv_obj_t *batt_line[BAT_INFO_LIEN_NUM];
 lv_obj_t *lora_line[BAT_INFO_LIEN_NUM];
 
+lv_timer_t *taskbar_timer = NULL;
+
+#define GLOBAL_BUF_LEN 48
+static char global_buf[GLOBAL_BUF_LEN];
 //************************************[ Other fun ]******************************************
 #if 1
 bool prompt_is_busy = false;
 lv_timer_t *prompt_time;
 lv_obj_t *prompt_label;
+
+const char * ui_get_battert_level()
+{
+    int percent = bq27220.getStateOfCharge();
+    char * str = NULL;
+     if(percent < 20)
+        str =  LV_SYMBOL_BATTERY_EMPTY;
+    else if(percent < 40)
+        str =  LV_SYMBOL_BATTERY_1;
+    else if(percent < 65)
+        str =  LV_SYMBOL_BATTERY_2;
+    else if(percent < 90)
+        str =  LV_SYMBOL_BATTERY_3;
+    else
+        str =  LV_SYMBOL_BATTERY_FULL;
+    return str;
+}
 
 void prompt_label_timer(lv_timer_t *t)
 {
@@ -124,6 +145,49 @@ lv_obj_t * scr5_add_info_lab(lv_obj_t *parent, lv_obj_t *label, const char *s)
     lv_obj_center(label);
     return label;
 }
+
+static const char *line_full_format(int max_c, const char *str1, const char *str2)
+{
+    int len1 = 0, len2 = 0;
+    int j;
+
+    len1 = strlen(str1);
+
+    strncpy(global_buf, str1, len1);
+
+    len2 = strlen(str2);
+    for(j = len1; j < max_c -1 - len2; j++){
+        global_buf[j] = ' ';
+    }
+    strncpy(global_buf + j, str2, len2);
+    j = j + len2;
+    
+    global_buf[j] = '\0'; 
+
+    return (const char *)global_buf;
+}
+
+void ui_setting_get_sd_capacity(uint64_t *total, uint64_t *used)
+{
+    if(sd_init_flag)
+    {
+        if(total)
+            *total = SD.totalBytes() / (1024 * 1024);
+        if(used)
+            *used = SD.usedBytes() / (1024 * 1024);
+
+        printf("total=%lluMB, used=%lluMB\n", *total, *used);
+
+        uint64_t cardSize = SD.cardSize() / (1024 * 1024);
+        Serial.printf("SD Card Size: %lluMB\n", cardSize);
+
+        uint64_t totalSize = SD.totalBytes() / (1024 * 1024);
+        Serial.printf("SD Card Total: %lluMB\n", totalSize);
+
+        uint64_t usedSize = SD.usedBytes() / (1024 * 1024);
+        Serial.printf("SD Card Used: %lluMB\n", usedSize);
+    }
+}
 #endif
 //************************************[ screen 0 ]****************************************** menu
 #if 1
@@ -131,7 +195,14 @@ lv_obj_t * scr5_add_info_lab(lv_obj_t *parent, lv_obj_t *label, const char *s)
 #define MENU_PROPORTION     (0.55)
 #define MENU_LAB_PROPORTION (1 - MENU_PROPORTION)
 
-static lv_obj_t *menu_batt_lab = NULL;
+
+static lv_obj_t *menu_taskbar = NULL;
+static lv_obj_t *menu_taskbar_charge = NULL;
+static lv_obj_t *menu_taskbar_battery = NULL;
+static lv_obj_t *menu_taskbar_battery_percent = NULL;
+static lv_obj_t *menu_taskbar_wifi = NULL;
+static lv_obj_t *menu_taskbar_sd = NULL;
+
 lv_obj_t *item_cont;
 lv_obj_t *menu_cont;
 lv_obj_t *menu_icon;
@@ -416,13 +487,53 @@ void create0(lv_obj_t *parent)
 
     lv_group_set_wrap(lv_group_get_default(), false);
 
-    // battery label
-    menu_batt_lab = lv_label_create(parent);
-    lv_obj_align(menu_batt_lab, LV_ALIGN_TOP_RIGHT, -10, 10);
-    lv_obj_set_style_text_align(menu_batt_lab, LV_TEXT_ALIGN_RIGHT, 0);
-    lv_label_set_recolor(menu_batt_lab, true);
-    lv_label_set_text_fmt(menu_batt_lab, "#0000ff %s %s #", LV_SYMBOL_BATTERY_2, LV_SYMBOL_CHARGE);
-    lv_obj_add_flag(menu_batt_lab, LV_OBJ_FLAG_HIDDEN);
+    // tackbar
+    int status_bar_height = 25;
+
+    menu_taskbar = lv_obj_create(parent);
+    lv_obj_set_size(menu_taskbar, LV_HOR_RES, status_bar_height);
+    lv_obj_set_style_pad_all(menu_taskbar, 0, LV_PART_MAIN);
+    lv_obj_set_style_border_width(menu_taskbar, 0, LV_PART_MAIN);
+    lv_obj_set_flex_flow(menu_taskbar, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(menu_taskbar, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_left(menu_taskbar, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_right(menu_taskbar, 5, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_top(menu_taskbar, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_bottom(menu_taskbar, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_row(menu_taskbar, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_column(menu_taskbar, 3, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_scrollbar_mode(menu_taskbar, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_clear_flag(menu_taskbar, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_style_bg_opa(menu_taskbar, 0, LV_PART_MAIN);
+    lv_obj_align(menu_taskbar, LV_ALIGN_TOP_MID, 0, 0);
+
+    menu_taskbar_wifi = lv_label_create(menu_taskbar);
+    lv_label_set_recolor(menu_taskbar_wifi, true);
+    lv_label_set_text_fmt(menu_taskbar_wifi, "#%x %s #", EMBED_COLOR_TEXT, LV_SYMBOL_WIFI);
+    lv_obj_add_flag(menu_taskbar_wifi, LV_OBJ_FLAG_HIDDEN);
+
+    menu_taskbar_sd = lv_label_create(menu_taskbar);
+    lv_label_set_recolor(menu_taskbar_sd, true);
+    lv_label_set_text_fmt(menu_taskbar_sd, "#%x %s #", EMBED_COLOR_TEXT, LV_SYMBOL_SD_CARD);
+    lv_obj_add_flag(menu_taskbar_sd, LV_OBJ_FLAG_HIDDEN);
+
+    menu_taskbar_charge = lv_label_create(menu_taskbar);
+    lv_obj_align(menu_taskbar_charge, LV_ALIGN_TOP_RIGHT, -10, 10);
+    lv_obj_set_style_text_align(menu_taskbar_charge, LV_TEXT_ALIGN_RIGHT, 0);
+    lv_label_set_recolor(menu_taskbar_charge, true);
+    lv_label_set_text_fmt(menu_taskbar_charge, "#%x %s #", EMBED_COLOR_TEXT, LV_SYMBOL_CHARGE);
+    lv_obj_add_flag(menu_taskbar_charge, LV_OBJ_FLAG_HIDDEN);
+
+    menu_taskbar_battery = lv_label_create(menu_taskbar);
+    lv_label_set_recolor(menu_taskbar_battery, true);
+    lv_label_set_text_fmt(menu_taskbar_battery, "#%x %s #", EMBED_COLOR_TEXT, LV_SYMBOL_BATTERY_FULL);
+    // lv_obj_add_flag(menu_taskbar_battery, LV_OBJ_FLAG_HIDDEN);
+
+    menu_taskbar_battery_percent = lv_label_create(menu_taskbar);
+    lv_label_set_recolor(menu_taskbar_battery_percent, true);
+    lv_obj_set_style_text_font(menu_taskbar_battery_percent, FONT_BOLD_14, LV_PART_MAIN);
+    lv_label_set_text_fmt(menu_taskbar_battery_percent, "#%x %d #", EMBED_COLOR_TEXT, bq27220.getStateOfCharge());
+    // lv_obj_add_flag(menu_taskbar_battery_percent, LV_OBJ_FLAG_HIDDEN);
 }
 
 void entry0(void) {   
@@ -431,18 +542,22 @@ void entry0(void) {
     lv_msg_subsribe_obj(MSG_CLOCK_HOUR, menu_time_lab, (void *)MSG_CLOCK_HOUR);
     lv_msg_subsribe_obj(MSG_CLOCK_MINUTE, menu_time_lab, (void *)MSG_CLOCK_MINUTE);
     lv_msg_subsribe_obj(MSG_CLOCK_SECOND, menu_time_lab, (void *)MSG_CLOCK_SECOND);
+
+    lv_timer_resume(taskbar_timer);
 }
 void exit0(void) {
     lv_obj_remove_event_cb(menu_time_lab, clock_upd_event);
     lv_msg_unsubscribe_obj(MSG_CLOCK_HOUR, menu_time_lab);
     lv_msg_unsubscribe_obj(MSG_CLOCK_MINUTE, menu_time_lab);
     lv_msg_unsubscribe_obj(MSG_CLOCK_SECOND, menu_time_lab);
+
+    lv_timer_pause(taskbar_timer);
 }
 void destroy0(void) {
-    if(menu_batt_lab){
-        lv_obj_del(menu_batt_lab);
-        menu_batt_lab = NULL;
-    }
+    // if(menu_taskbar_charge){
+    //     lv_obj_del(menu_taskbar_charge);
+    //     menu_taskbar_charge = NULL;
+    // }
 }
 
 scr_lifecycle_t screen0 = {
@@ -1098,17 +1213,32 @@ static void create4_1(lv_obj_t *parent)
     lv_obj_set_style_text_color(info, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
     lv_obj_set_style_text_font(info, &Font_Mono_Bold_14, LV_PART_MAIN);
     lv_label_set_long_mode(info, LV_LABEL_LONG_WRAP);
-    lv_label_set_text_fmt(info, "Version:              %s \n"
-                                "----------------------------------- \n"
-                                "CC1101 Init:                   %s\n"
-                                "NFC Init:                      %s\n"
-                                "TF Card Init:                  %s\n"
-                                , 
-                                T_EMBED_CC1101_SF_VER,
-                                (ui_scr4_get_lora_st() ? "PASS" : "FAIL"),
-                                (ui_scr4_get_nfc_st() ? "PASS" : "FAIL"),
-                                (ui_scr4_get_sd_st() ? "PASS" : "FAIL")
-                                );
+
+    String str = "";
+
+    str += line_full_format(36, "SF Version:", T_EMBED_CC1101_SF_VER);
+    str += "\n";
+
+    str += line_full_format(36, "HD Version:", T_EMBED_CC1101_HD_VER);
+    str += "\n";
+
+    str += line_full_format(36, "CC1101 Init:", (ui_scr4_get_lora_st() ? "PASS" : "FAIL"));
+    str += "\n";
+
+    str += line_full_format(36, "NFC Init:", (ui_scr4_get_nfc_st() ? "PASS" : "FAIL"));
+    str += "\n";
+
+    str += line_full_format(36, "TF Card Init:", (ui_scr4_get_sd_st() ? "PASS" : "FAIL"));
+    str += "\n";
+
+    char buf[30];
+    uint64_t total=0, used=0;
+    ui_setting_get_sd_capacity(&total, &used);
+    lv_snprintf(buf, 30, "%llu/%llu MB", used, total);
+    str += line_full_format(36, "TF Card Cap:", (const char *)buf);
+    str += "\n";
+
+    lv_label_set_text(info, str.c_str());
 
     lv_obj_align_to(info, label, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
 
@@ -1410,26 +1540,38 @@ void batt_timer_event(lv_timer_t *t)
     } else {
         lv_label_set_text(batt_label, "BQ27220");
 
-        lv_snprintf(buf, 16, "%s", (bq27220.getIsCharging() == true ? "Charging" : "Not charged"));
-        battery_set_line(batt_line[0], "Charging Statu:", buf);
+        lv_snprintf(buf, 16, "%s", (bq27220.getIsCharging() == true ? "Connected" : "Disonnected"));
+        battery_set_line(batt_line[0], "VBUS Input:", buf);
 
-        lv_snprintf(buf, 16, "%.2fV", (bq27220.getVolt(VOLT)/1000.0));
-        battery_set_line(batt_line[1], "VOLT:", buf);
+        // BQ27220BatteryStatus batt;
+        // bq27220.getBatteryStatus(&batt);
+        // lv_snprintf(buf, 16, "0x%x", batt.full);
+        // battery_set_line(batt_line[1], "Battery Status:", buf);
 
-        lv_snprintf(buf, 16, "%.2fV", (bq27220.getVolt(VOLT_CHARGING) /1000.0));
-        battery_set_line(batt_line[2], "VOLT Charge:", buf);
+        if(bq27220.getIsCharging() == true ){
+            lv_snprintf(buf, 16, "%s", (bq27220.getCharingFinish()? "Finsish":"Charging"));
+        } else {
+            lv_snprintf(buf, 16, "%s", "Discharge");
+        }
+        battery_set_line(batt_line[1], "Charing Status:", buf);
 
-        lv_snprintf(buf, 16, "%dmA", bq27220.getCurr(CURR_INSTANT));
-        battery_set_line(batt_line[3], "CURR Standby:", buf);
+        lv_snprintf(buf, 16, "%dmV", bq27220.getVoltage());
+        battery_set_line(batt_line[2], "Voltage:", buf);
 
-        lv_snprintf(buf, 16, "%.2f", (float)(bq27220.getTemp() / 10 - 273));
-        battery_set_line(batt_line[4], "TEMP:", buf);
+        lv_snprintf(buf, 16, "%dmA", bq27220.getCurrent());
+        battery_set_line(batt_line[3], "Current:", buf);
 
-        lv_snprintf(buf, 16, "%d", bq27220.getRemainCap());
-        battery_set_line(batt_line[5], "CAP BATT:", buf);
+        lv_snprintf(buf, 16, "%dmv", bq27220.getChargeVoltageMax());
+        battery_set_line(batt_line[4], "Max Volt:", buf);
 
-        lv_snprintf(buf, 16, "%d", bq27220.getFullChargeCap());
-        battery_set_line(batt_line[6], "CAP BATT FULL:", buf);
+        lv_snprintf(buf, 16, "%.2f", (float)(bq27220.getTemperature() / 10.0 - 273.0));
+        battery_set_line(batt_line[4], "Temperature:", buf);
+
+        lv_snprintf(buf, 16, "%d/%d", bq27220.getRemainingCapacity(), bq27220.getFullChargeCapacity());
+        battery_set_line(batt_line[5], "Capacity:", buf);
+
+        lv_snprintf(buf, 16, "%d", bq27220.getStateOfCharge());
+        battery_set_line(batt_line[6], "Capacity Percent:", buf);
     }
 }
 
@@ -1506,7 +1648,7 @@ void create5(lv_obj_t *parent)
 }
 void entry5(void) {   
     entry5_anim(scr5_cont);
-    batt_timer = lv_timer_create(batt_timer_event, 500, NULL);
+    batt_timer = lv_timer_create(batt_timer_event, 1000, NULL);
     vTaskResume(battery_handle);
     lv_group_set_wrap(lv_group_get_default(), true);
 }
@@ -2332,7 +2474,7 @@ static void create8(lv_obj_t *parent) {
     lv_obj_align(prev_btn, LV_ALIGN_BOTTOM_LEFT, 30, -15);
 
 CREATE8_END:
-    lv_obj_align(music_lab, LV_ALIGN_CENTER, 0, -10);
+    lv_obj_align(music_lab, LV_ALIGN_CENTER, 0, 0);
     // back btn
     scr_back_btn_create(scr8_cont, scr8_btn_event_cb);
 }
@@ -2360,48 +2502,47 @@ static scr_lifecycle_t screen8 = {
 
 void charge_detection_timer_cb(lv_timer_t *t)
 {
-    if(!PPM.isCharging() || (menu_batt_lab == NULL)) {
-        if(menu_batt_lab)
-            lv_obj_add_flag(menu_batt_lab, LV_OBJ_FLAG_HIDDEN);
-        return;
+    // wifi
+    if(wifi_is_connect) {
+        lv_obj_clear_flag(menu_taskbar_wifi, LV_OBJ_FLAG_HIDDEN);
+    } else {
+        lv_obj_add_flag(menu_taskbar_wifi, LV_OBJ_FLAG_HIDDEN);
     }
 
-    static int sec = 0;
-    lv_obj_clear_flag(menu_batt_lab, LV_OBJ_FLAG_HIDDEN);
-    lv_label_set_text_fmt(menu_batt_lab, "#%x %s #", EMBED_COLOR_TEXT, LV_SYMBOL_CHARGE);
+    // wifi
+    if(sd_init_flag) {
+        lv_obj_clear_flag(menu_taskbar_sd, LV_OBJ_FLAG_HIDDEN);
+    } else {
+        lv_obj_add_flag(menu_taskbar_sd, LV_OBJ_FLAG_HIDDEN);
+    }
 
-    // switch (sec)
-    // {
-    // case 0:
-    //     lv_label_set_text_fmt(menu_batt_lab, "#%x %s %s #", EMBED_COLOR_TEXT, LV_SYMBOL_BATTERY_EMPTY, LV_SYMBOL_CHARGE);
-    //     break;
-    // case 1:
-    //     lv_label_set_text_fmt(menu_batt_lab, "#%x %s %s #", EMBED_COLOR_TEXT, LV_SYMBOL_BATTERY_1, LV_SYMBOL_CHARGE);
-    //     break;
-    // case 2:
-    //     lv_label_set_text_fmt(menu_batt_lab, "#%x %s %s #", EMBED_COLOR_TEXT, LV_SYMBOL_BATTERY_2, LV_SYMBOL_CHARGE);
-    //     break;
-    // case 3:
-    //     lv_label_set_text_fmt(menu_batt_lab, "#%x %s %s #", EMBED_COLOR_TEXT, LV_SYMBOL_BATTERY_3, LV_SYMBOL_CHARGE);
-    //     break;
-    // case 4:
-    //     lv_label_set_text_fmt(menu_batt_lab, "#%x %s %s #", EMBED_COLOR_TEXT, LV_SYMBOL_BATTERY_FULL, LV_SYMBOL_CHARGE);
-    //     break;
-    // default:
-    //     break;
-    // }
-    // sec++;
-    // if(sec > 4){
-    //     sec = 0;
-    // }
+    // charge
+    if(PPM.isCharging()) {
+        lv_obj_clear_flag(menu_taskbar_charge, LV_OBJ_FLAG_HIDDEN);
+    } else {
+        lv_obj_add_flag(menu_taskbar_charge, LV_OBJ_FLAG_HIDDEN);
+    }
+    if(bq27220.getCharingFinish()){
+        lv_label_set_text_fmt(menu_taskbar_charge, "#%x %s #", EMBED_COLOR_TEXT, LV_SYMBOL_OK);
+    } else {
+        lv_label_set_text_fmt(menu_taskbar_charge, "#%x %s #", EMBED_COLOR_TEXT, LV_SYMBOL_CHARGE);
+    }
+
+    // battery
+    lv_label_set_text_fmt(menu_taskbar_battery, "#%x %s #", EMBED_COLOR_TEXT, ui_get_battert_level());
+    
+    // battery percent
+    lv_label_set_text_fmt(menu_taskbar_battery_percent, "#%x %d #", EMBED_COLOR_TEXT, bq27220.getStateOfCharge());
 }
-
 
 void ui_entry(void)
 {
     lv_init();
     lv_port_disp_init();
     lv_port_indev_init();
+
+    taskbar_timer = lv_timer_create(charge_detection_timer_cb, 1000, NULL);
+    lv_timer_pause(taskbar_timer);
 
     scr_mgr_init();
     ui_theme_setting(setting_theme);
@@ -2419,16 +2560,12 @@ void ui_entry(void)
     scr_mgr_register(SCREEN7_3_ID, &screen7_3); //   -TF Card
     scr_mgr_register(SCREEN8_ID, &screen8);     // music
 
-    printf("EMBED_COLOR_BG:0x%x\n", EMBED_COLOR_BG);
-    printf("EMBED_COLOR_FOCUS_ON:0x%x\n", EMBED_COLOR_FOCUS_ON);
-    printf("EMBED_COLOR_TEXT:0x%x\n", EMBED_COLOR_TEXT);
-    printf("EMBED_COLOR_BORDER:0x%x\n", EMBED_COLOR_BORDER);
-    printf("EMBED_COLOR_PROMPT_BG:0x%x\n", EMBED_COLOR_PROMPT_BG);
-    printf("EMBED_COLOR_PROMPT_TXT:0x%x\n", EMBED_COLOR_PROMPT_TXT);
+    // printf("EMBED_COLOR_BG:0x%x\n", EMBED_COLOR_BG);
+    // printf("EMBED_COLOR_FOCUS_ON:0x%x\n", EMBED_COLOR_FOCUS_ON);
+    // printf("EMBED_COLOR_TEXT:0x%x\n", EMBED_COLOR_TEXT);
+    // printf("EMBED_COLOR_BORDER:0x%x\n", EMBED_COLOR_BORDER);
+    // printf("EMBED_COLOR_PROMPT_BG:0x%x\n", EMBED_COLOR_PROMPT_BG);
+    // printf("EMBED_COLOR_PROMPT_TXT:0x%x\n", EMBED_COLOR_PROMPT_TXT);
 
     scr_mgr_switch(SCREEN0_ID, false); // main scr
-
-
-    
-    lv_timer_create(charge_detection_timer_cb, 1000, NULL);
 }

@@ -408,9 +408,22 @@ void setup(void)
         Serial.printf("getChargerConstantCurr: %d mA\n",PPM.getChargerConstantCurr());
         PPM.enableADCMeasure();
         PPM.enableCharge();
+        // Turn off charging function
+        // If USB is used as the only power input, it is best to turn off the charging function,
+        // otherwise the VSYS power supply will have a sawtooth wave, affecting the discharge output capability.
+        // PPM.disableCharge();
+
+
+        // The OTG function needs to enable OTG, and set the OTG control pin to HIGH
+        // After OTG is enabled, if an external power supply is plugged in, OTG will be turned off
+
+        PPM.enableOTG();
+        PPM.disableOTG();
+        // pinMode(OTG_ENABLE_PIN, OUTPUT);
+        // digitalWrite(OTG_ENABLE_PIN, HIGH);
     }
 
-    bq27220.reset();
+    bq27220.init();
    
     if(lora_ret)
         lora_init(); 

@@ -71,7 +71,7 @@ void init_microphone(void);
 #include "FS.h"
 #include "SD.h"
 #include "SPI.h"
-
+extern bool sd_init_flag;
 void sd_init(void);
 bool sd_is_valid(void);
 uint32_t sd_get_sum_Mbyte(void);

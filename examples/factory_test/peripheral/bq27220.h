@@ -5,87 +5,57 @@
 
 #include "Arduino.h"
 #include <Wire.h>
-#include "bq27220.h"
-#include "bq27220_reg.h"
+#include "bq27220_def.h"
+#include "bq27220_data_memory.h"
 
 #define DEFAULT_SCL  18
 #define DEFAULT_SDA  8
 
-
-// device addr
-#define BQ27220_I2C_ADDRESS 0x55
-
-// device id
-#define BQ27220_ID (0x0220u)
-
-/** Timeout for common operations. */
-#define BQ27220_TIMEOUT_COMMON_US (2000000u)
-
-/** Timeout cycle interval  */
-#define BQ27220_TIMEOUT_CYCLE_INTERVAL_US (1000u)
-
-/** Timeout cycles count helper */
-#define BQ27220_TIMEOUT(timeout_us) ((timeout_us) / (BQ27220_TIMEOUT_CYCLE_INTERVAL_US))
-
-
-// commands
-#define BQ27220_COMMAND_CONTROL         0X00 // Control()
-#define BQ27220_COMMAND_TEMP            0X06 // Temperature()
-#define BQ27220_COMMAND_BATTERY_ST      0X0A // BatteryStatus()
-#define BQ27220_COMMAND_VOLT            0X08 // Voltage()
-#define BQ27220_COMMAND_BAT_STA         0X0A // BatteryStatus()
-#define BQ27220_COMMAND_CURR            0X0C // Current()
-#define BQ27220_COMMAND_REMAIN_CAPACITY 0X10 // RemaininfCapacity()
-#define BQ27220_COMMAND_FCHG_CAPATICY   0X12 // FullCharageCapacity()
-#define BQ27220_COMMAND_AVG_CURR        0x14 // AverageCurrent();
-#define BQ27220_COMMAND_TTE             0X16 // TimeToEmpty()
-#define BQ27220_COMMAND_TTF             0X18 // TimeToFull()
-#define BQ27220_COMMAND_STANDBY_CURR    0X1A // StandbyCurrent()
-#define BQ27220_COMMAND_STTE            0X1C // StandbyTimeToEmpty()
-#define BQ27220_COMMAND_STATE_CHARGE    0X2C
-#define BQ27220_COMMAND_STATE_HEALTH    0X2E
-#define BQ27220_COMMAND_CHARGING_VOLT   0X30
-#define BQ27220_COMMAND_CHARGING_CURR   0X32
-#define BQ27220_COMMAND_RAW_CURR        0X7A
-#define BQ27220_COMMAND_RAW_VOLT        0X7C
-
-
-enum CURR_MODE{
-    CURR_RAW,
-    CURR_INSTANT,
-    CURR_STANDBY,
-    CURR_CHARGING,
-    CURR_AVERAGE,
-};
-
-enum VOLT_MODE{
-    VOLT,
-    VOLT_CHARGING,
-    VOLT_RWA
-};
-
-union battery_state {
-    struct __st
+typedef union ControlStatus{
+    struct __reg
     {
-        uint16_t DSG : 1;
-        uint16_t SYSDWN : 1;
-        uint16_t TDA : 1;
-        uint16_t BATTPRES : 1;
-        uint16_t AUTH_GD : 1;
-        uint16_t OCVGD : 1;
-        uint16_t TCA : 1;
-        uint16_t RSVD : 1;
-        uint16_t CHGING : 1;
-        uint16_t FC : 1;
-        uint16_t OTD : 1;
-        uint16_t OTC : 1;
-        uint16_t SLEEP : 1;
-        uint16_t OCVFALL : 1;
-        uint16_t OCVCOMP : 1;
-        uint16_t FD : 1;
-    } st;
+        // Low byte, Low bit first
+        uint8_t BATT_ID : 3; /**< Battery Identification */
+        bool SNOOZE     : 1; /**< SNOOZE mode is enabled */
+        bool BCA        : 1; /**< fuel gauge board calibration routine is active */
+        bool CCA        : 1; /**< Coulomb Counter Calibration routine is active */
+        uint8_t RSVD0   : 2; /**< Reserved */
+        // High byte, Low bit first
+        uint8_t RSVD1; /**< Reserved */
+    } reg;
     uint16_t full;
-};
+} BQ27220ControlStatus;
+
+typedef union BatteryStatus {
+    struct __reg
+    {
+        // Low byte, Low bit first
+        uint16_t DSG        : 1; /**< The device is in DISCHARGE */
+        uint16_t SYSDWN     : 1; /**< System down bit indicating the system should shut down */
+        uint16_t TDA        : 1; /**< Terminate Discharge Alarm */
+        uint16_t BATTPRES   : 1; /**< Battery Present detected */
+        uint16_t AUTH_GD    : 1; /**< Detect inserted battery */
+        uint16_t OCVGD      : 1; /**< Good OCV measurement taken */
+        uint16_t TCA        : 1; /**< Terminate Charge Alarm */
+        uint16_t RSVD       : 1; /**< Reserved */
+        // High byte, Low bit first
+        uint16_t CHGING     : 1; /**< Charge inhibit */
+        uint16_t FC         : 1; /**< Full-charged is detected */
+        uint16_t OTD        : 1; /**< Overtemperature in discharge condition is detected */
+        uint16_t OTC        : 1; /**< Overtemperature in charge condition is detected */
+        uint16_t SLEEP      : 1; /**< Device is operating in SLEEP mode when set */
+        uint16_t OCVFALL    : 1; /**< Status bit indicating that the OCV reading failed due to current */
+        uint16_t OCVCOMP    : 1; /**< An OCV measurement update is complete */
+        uint16_t FD         : 1; /**< Full-discharge is detected */
+    } reg;
+    uint16_t full;
+}BQ27220BatteryStatus;
+
+typedef enum {
+    Bq27220OperationStatusSecSealed = 0b11,
+    Bq27220OperationStatusSecUnsealed = 0b10,
+    Bq27220OperationStatusSecFull = 0b01,
+} Bq27220OperationStatusSec;
 
 typedef union OperationStatus{
     struct __reg
@@ -106,6 +76,29 @@ typedef union OperationStatus{
     uint16_t full;
 } BQ27220OperationStatus;
 
+typedef union GaugingStatus{
+    struct __reg
+    {
+        // Low byte, Low bit first
+        bool FD       : 1; /**< Full Discharge */
+        bool FC       : 1; /**< Full Charge */
+        bool TD       : 1; /**< Terminate Discharge */
+        bool TC       : 1; /**< Terminate Charge */
+        bool RSVD0    : 1; /**< Reserved */
+        bool EDV      : 1; /**< Cell voltage is above or below EDV0 threshold */
+        bool DSG      : 1; /**< DISCHARGE or RELAXATION */
+        bool CF       : 1; /**< Battery conditioning is needed */
+        // High byte, Low bit first
+        uint8_t RSVD1 : 2; /**< Reserved */
+        bool FCCX     : 1; /**< fcc1hz clock going into CC: 0 = 1 Hz, 1 = 16 Hz*/
+        uint8_t RSVD2 : 2; /**< Reserved */
+        bool EDV1     : 1; /**< Cell voltage is above or below EDV1 threshold */
+        bool EDV2     : 1; /**< Cell voltage is above or below EDV2 threshold */
+        bool VDQ      : 1; /**< Charge cycle FCC update qualification */
+    } reg;
+    uint16_t full;
+} BQ27220GaugingStatus;
+
 class BQ27220{
 public:
     BQ27220() : addr{BQ27220_I2C_ADDRESS}, wire(&Wire), scl(DEFAULT_SCL), sda(DEFAULT_SDA)
@@ -113,125 +106,73 @@ public:
 
     bool begin()
     {
-        Wire.begin(DEFAULT_SDA, DEFAULT_SCL);
-        return true;
-    }
-
-    uint16_t getTemp() {
-        return readWord(BQ27220_COMMAND_TEMP);
-    }
-
-    uint16_t getBatterySt(void){
-        return readWord(BQ27220_COMMAND_BATTERY_ST);
+        return wire->begin(DEFAULT_SDA, DEFAULT_SCL);
     }
 
     bool getIsCharging(void){
-        uint16_t ret = readWord(BQ27220_COMMAND_BATTERY_ST);
-        bat_st.full = ret;
-        return !bat_st.st.DSG;
-    }
-
-    uint16_t getRemainCap() {
-        return readWord(BQ27220_COMMAND_REMAIN_CAPACITY);
-    }
-
-    uint16_t getFullChargeCap(void){
-        return readWord(BQ27220_COMMAND_FCHG_CAPATICY);
-    }
-
-    uint16_t getVolt(VOLT_MODE type) {
-        switch (type)
-        {
-        case VOLT:
-            return readWord(BQ27220_COMMAND_VOLT);
-            break;
-        case VOLT_CHARGING:
-            return readWord(BQ27220_COMMAND_CHARGING_VOLT);
-            break;
-        case VOLT_RWA:
-            return readWord(BQ27220_COMMAND_RAW_VOLT);
-            break;
-        default:
-            break;
+        BQ27220BatteryStatus batt;
+        if(getBatteryStatus(&batt)) {
+            return !batt.reg.DSG;
         }
-        return 0;
+        return false;
     }
 
-    int16_t getCurr(CURR_MODE type) {
-        switch (type)
-        {
-        case CURR_RAW:
-            return (int16_t)readWord(BQ27220_COMMAND_RAW_CURR);
-            break;
-        case CURR_INSTANT:
-            return (int16_t)readWord(BQ27220_COMMAND_CURR);
-            break;
-        case CURR_STANDBY:
-            return (int16_t)readWord(BQ27220_COMMAND_STANDBY_CURR);
-            break;
-        case CURR_CHARGING:
-            return (int16_t)readWord(BQ27220_COMMAND_CHARGING_CURR);
-            break;
-        case CURR_AVERAGE:
-            return (int16_t)readWord(BQ27220_COMMAND_AVG_CURR);
-            break;
-        
-        default:
-            break;
-        }
-        return -1;
+    bool getCharingFinish(void)
+    {
+        BQ27220BatteryStatus batt;
+        getBatteryStatus(&batt);
+        if(!(batt.reg.DSG || getCurrent()) )
+            return true;
+        return false;
     }
 
-    uint16_t readWord(uint16_t subAddress) {
+    bool parameterCheck(uint16_t address, uint32_t value, size_t size, bool update);
+    bool dateMemoryCheck(const BQ27220DMData *data_memory, bool update);
+
+    bool init(const BQ27220DMData *data_memory = gauge_data_memory);
+    bool reset(void);
+
+    // Sealed Access
+    bool sealAccess(void);
+    bool unsealAccess(void);
+    bool fullAccess(void);
+
+    // get
+    uint16_t getDeviceNumber(void);  // sub-commands
+    uint16_t getVoltage(void);
+    int16_t getCurrent(void);
+    bool getControlStatus(BQ27220ControlStatus *ctrl_sta);
+    bool getBatteryStatus(BQ27220BatteryStatus *batt_sta);
+    bool getOperationStatus(BQ27220OperationStatus *oper_sta);
+    bool getGaugingStatus(BQ27220GaugingStatus *gauging_sta);
+    uint16_t getTemperature(void);
+    uint16_t getFullChargeCapacity(void);
+    uint16_t getDesignCapacity(void);
+    uint16_t getRemainingCapacity(void);
+    uint16_t getStateOfCharge(void);
+    uint16_t getStateOfHealth(void);
+    uint16_t getChargeVoltageMax(void);
+
+    // i2c
+    uint16_t readRegU16(uint16_t reg) {
         uint8_t data[2];
-        i2cReadBytes(subAddress, data, 2);
+        i2cReadBytes(reg, data, 2);
         return ((uint16_t) data[1] << 8) | data[0];
     }
 
-// sub-commands
-    uint16_t getId() {
-        return 0;
-    }
+    // uint16_t readCtrlWord(uint16_t fun) {
+    //     uint8_t msb = (fun >> 8);
+    //     uint8_t lsb = (fun & 0x00FF);
+    //     uint8_t cmd[2] = { lsb, msb };
+    //     uint8_t data[2] = {0};
 
-    bool getOperationStatus(BQ27220OperationStatus *oper_sta)
-    {
-        bool result = false;
-        uint16_t data = ReadRegU16(CommandOperationStatus);
-        if(data != 0)
-        {
-            (*oper_sta).full = data;
-            result = true;
-        }
-        return result;
-    }
+    //     i2cWriteBytes((uint8_t)BQ27220_COMMAND_CONTROL, cmd, 2);
 
-    bool reset(void)
-    {
-        bool result = false;
-        BQ27220OperationStatus operat = {0};
-        do{
-            controlSubCmd(Control_RESET);
-            delay(10);
-
-            uint32_t timeout = BQ27220_TIMEOUT(BQ27220_TIMEOUT_COMMON_US);
-            while (--timeout)
-            {
-                if(!getOperationStatus(&operat)){
-                    Serial.printf("Failed to get operation status, retries left %lu\n", timeout);
-                }else if(operat.reg.INITCOMP == true){
-                    break;
-                }
-                delay(2);
-            }
-            if(timeout == 0) {
-                Serial.println("INITCOMP timeout after reset");
-                break;
-            }
-            Serial.printf("Cycles left: %lu\n", timeout);
-            result = true;
-        } while(0);
-        return result;
-    }
+    //     if (i2cReadBytes((uint8_t) 0, data, 2)) {
+    //         return ((uint16_t)data[1] << 8) | data[0];
+    //     }
+    //     return 0;
+    // }
 
     bool controlSubCmd(uint16_t sub_cmd)
     {
@@ -242,24 +183,26 @@ public:
         return true;
     }
 
-    uint16_t ReadRegU16(uint16_t subAddress) {
-        uint8_t data[2];
-        i2cReadBytes(subAddress, data, 2);
-        return ((uint16_t) data[1] << 8) | data[0];
+    bool i2cReadBytes(uint8_t reg, uint8_t * dest, uint8_t count) {
+        wire->beginTransmission(addr);
+        wire->write(reg);
+        wire->endTransmission(true);
+
+        wire->requestFrom(addr, count);
+        for(int i = 0; i < count; i++) {
+            dest[i] = wire->read();
+        }
+        return true;
     }
 
-    uint16_t readCtrlWord(uint16_t fun) {
-        uint8_t msb = (fun >> 8);
-        uint8_t lsb = (fun & 0x00FF);
-        uint8_t cmd[2] = { lsb, msb };
-        uint8_t data[2] = {0};
-
-        i2cWriteBytes((uint8_t)BQ27220_COMMAND_CONTROL, cmd, 2);
-
-        if (i2cReadBytes((uint8_t) 0, data, 2)) {
-            return ((uint16_t)data[1] << 8) | data[0];
+    bool i2cWriteBytes(uint8_t reg, uint8_t * src, uint8_t count) {
+        wire->beginTransmission(addr);
+        wire->write(reg);
+        for(int i = 0; i < count; i++) {
+            wire->write(src[i]);
         }
-        return 0;
+        wire->endTransmission(true);
+        return true;
     }
 
 private:
@@ -267,30 +210,7 @@ private:
     uint8_t addr = 0;
     int scl = -1;
     int sda = -1;
-    union battery_state bat_st;
-
-    bool i2cReadBytes(uint8_t subAddress, uint8_t * dest, uint8_t count) {
-        Wire.beginTransmission(addr);
-        Wire.write(subAddress);
-        Wire.endTransmission(true);
-
-        Wire.requestFrom(addr, count);
-        for(int i = 0; i < count; i++) {
-            dest[i] = Wire.read();
-        }
-        return true;
-    }
-
-    bool i2cWriteBytes(uint8_t subAddress, uint8_t * src, uint8_t count) {
-        Wire.beginTransmission(addr);
-        Wire.write(subAddress);
-        for(int i = 0; i < count; i++) {
-            Wire.write(src[i]);
-        }
-        Wire.endTransmission(true);
-        return true;
-    }
-    
+    BQ27220BatteryStatus bat_st;
 };
 
 #endif
