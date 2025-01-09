@@ -8,7 +8,7 @@
   <a href="https://www.lilygo.cc/products/t-embed-cc1101"> <img src="https://img.shields.io/badge/Liiygo-T_Embed_CC1101-blue" height="20px"></a>
 </p>
 
-* [切换到中文版](./README_CN.md)
+<!-- * [切换到中文版](./README_CN.md) -->
 
 ## :zero: Troubleshooting
 
@@ -34,6 +34,14 @@ Video about T-Embed-CC1101 :  [youtube](https://www.youtube.com/watch?v=U06XI1wt
 | Battery Capacity |                           3.7V-1300mAh                           |
 |   Battery Chip   |                         BQ25896, BQ27220                         |
 |    LED Driver    |                              WS2812                              |
+
+
+### About SD Card：
+We were able to successfully test SD with SanDisk no larger than 32GB; But some other cards don't, and it's not clear why;
+
+Therefore, when the SD card is not detected, it is recommended to change a SanDisk card not larger than 32G;
+
+![alt text](./docs/image-sd.png)
 
 ### Wireless transceiver：
 
