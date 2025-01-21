@@ -439,6 +439,7 @@ void setup(void)
 
     audio.setPinout(BOARD_VOICE_BCLK, BOARD_VOICE_LRCLK, BOARD_VOICE_DIN);
     audio.setVolume(21); // 0...21
+    audio.connecttoFS(SPIFFS, "/001.mp3");
 
     // audio.connecttoFS(SD, "/music/My Anata.mp3");
 
@@ -460,7 +461,6 @@ extern bool music_is_running;
 
 void loop(void)
 {
-
     audio.loop();
 
     lv_timer_handler();

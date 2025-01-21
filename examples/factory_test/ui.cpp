@@ -4,6 +4,7 @@
 #include <IRremoteESP8266.h>
 #include <IRsend.h>
 #include "peripheral/peripheral.h"
+#include "utilities.h"
 
 #define UI_THEME_DARK  0
 #define UI_THEME_LIGHT 1
@@ -1561,8 +1562,8 @@ void batt_timer_event(lv_timer_t *t)
         lv_snprintf(buf, 16, "%dmA", bq27220.getCurrent());
         battery_set_line(batt_line[3], "Current:", buf);
 
-        lv_snprintf(buf, 16, "%dmv", bq27220.getChargeVoltageMax());
-        battery_set_line(batt_line[4], "Max Volt:", buf);
+        // lv_snprintf(buf, 16, "%dmv", bq27220.getChargeVoltageMax());
+        // battery_set_line(batt_line[4], "Max Volt:", buf);
 
         lv_snprintf(buf, 16, "%.2f", (float)(bq27220.getTemperature() / 10.0 - 273.0));
         battery_set_line(batt_line[4], "Temperature:", buf);
