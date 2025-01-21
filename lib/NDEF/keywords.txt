@@ -1,0 +1,55 @@
+#######################################
+# Syntax Coloring Map For Ndef
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+MifareClassic KEYWORD1
+MifareUltralight KEYWORD1
+NdefMessage KEYWORD1
+NdefRecord KEYWORD1
+NfcAdapter KEYWORD1
+NfcDriver KEYWORD1
+NfcTag KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+addEmptyRecord KEYWORD2
+addMimeMediaRecord KEYWORD2
+addRecord KEYWORD2
+addTextRecord KEYWORD2
+addUriRecord KEYWORD2
+begin KEYWORD2
+encode KEYWORD2
+erase KEYWORD2
+format KEYWORD2
+getEncodedSize KEYWORD2
+getId KEYWORD2
+getIdLength KEYWORD2
+getNdefMessage KEYWORD2
+getPayload KEYWORD2
+getPayloadLength KEYWORD2
+getRecord KEYWORD2
+getRecordCount KEYWORD2
+getTagType KEYWORD2
+getTnf KEYWORD2
+getType KEYWORD2
+getTypeLength KEYWORD2
+getUid KEYWORD2
+getUidLength KEYWORD2
+getUidString KEYWORD2
+hasNdefMessage KEYWORD2
+print KEYWORD2
+read KEYWORD2
+setId KEYWORD2
+setPayload KEYWORD2
+setTnf KEYWORD2
+setType KEYWORD2
+share KEYWORD2
+tagPresent KEYWORD2
+unshare KEYWORD2
+write KEYWORD2

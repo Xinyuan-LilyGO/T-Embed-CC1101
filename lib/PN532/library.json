@@ -1,0 +1,124 @@
+{
+  "$schema": "https://raw.githubusercontent.com/platformio/platformio-core/develop/platformio/assets/schema/library.json",
+  "name": "PN532-Arduino",
+  "description": "This is Seeed-Studio's library for PN532 to use NFC technology.",
+  "authors": [
+    {
+      "maintainer": true,
+      "name": "Baozhu Zuo",
+      "email": "zuobaozhu@gmail.com",
+      "url": "https://github.com/Pillar1989"
+    },
+    {
+      "name": "Yihui Xiong",
+      "url": "https://github.com/xiongyihui"
+    },
+    {
+      "url": "https://github.com/awieser"
+    },
+    {
+      "name": "Jiapeng Li",
+      "email": "mail@jiapeng.me",
+      "url": "https://github.com/JiapengLi"
+    },
+    {
+      "url": "https://github.com/wilson-elechouse"
+    }
+  ],
+  "frameworks": ["arduino"],
+  "platforms": ["*"],
+  "keywords": ["PN532", "NFC"],
+  "headers": [
+    "PN532.h",
+    "PN532_HSU.h",
+    "PN532_I2C.h",
+    "PN532_SPI.h",
+    "PN532_SWHSU.h"
+  ],
+  "repository": {
+    "url": "https://github.com/Seeed-Studio/PN532.git",
+    "branch": "arduino",
+    "type": "git"
+  },
+  "dependencies": [
+    {
+      "name": "external-repo",
+      "version": "https://github.com/don/NDEF"
+    }
+  ],
+  "build": {
+    "includeDir": "src"
+  },
+  "examples": [
+    {
+      "name": "FeliCa card detection",
+      "base": "examples/FeliCa_card_detection",
+      "files": ["FeliCa_card_detection.pde"]
+    },
+    {
+      "name": "FeliCa card read",
+      "base": "examples/FeliCa_card_read",
+      "files": ["FeliCa_card_read.pde"]
+    },
+    {
+      "name": "Android Host-based card emulation",
+      "base": "examples/android_hce",
+      "files": ["android_hce.ino"]
+    },
+    {
+      "name": "Emulate tag ndef",
+      "base": "examples/emulate_tag_ndef",
+      "files": ["emulate_tag_ndef.ino"]
+    },
+    {
+      "name": "Read ISO14443A UID",
+      "base": "examples/iso14443a_uid",
+      "files": ["iso14443a_uid.pde"]
+    },
+    {
+      "name": "Format a clean Mifare Classic 1K card as an NFC Forum tag",
+      "base": "examples/mifareclassic_formatndef",
+      "files": ["mifareclassic_formatndef.pde"]
+    },
+    {
+      "name": "Dump the contents of a Mifare Classic 1K card",
+      "base": "examples/mifareclassic_memdump",
+      "files": ["mifareclassic_memdump.pde"]
+    },
+    {
+      "name": "Resets the authentication keys back to the Mifare Classic defaults",
+      "base": "examples/mifareclassic_ndeftoclassic",
+      "files": ["mifareclassic_ndeftoclassic.pde"]
+    },
+    {
+      "name": "Updates a Mifare Classic that is already formatted for NDEF",
+      "base": "examples/mifareclassic_updatendef",
+      "files": ["mifareclassic_updatendef.pde"]
+    },
+    {
+      "name": "NTAG21x password protection",
+      "base": "examples/ntag21x_protect",
+      "files": ["ntag21x_protect.ino"]
+    },
+    {
+      "name": "Factory reset a tag",
+      "base": "examples/ntag21x_rw",
+      "files": ["ntag21x_rw.ino"]
+    },
+    {
+      "name": "Send a SNEP message to Android and get a message from Android",
+      "base": "examples/p2p_raw",
+      "files": ["p2p_raw.ino"]
+    },
+    {
+      "name": "Send a NDEF message to Android or get a NDEF message",
+      "base": "examples/p2p_with_ndef_library",
+      "files": ["p2p_with_ndef_library.ino"]
+    },
+    {
+      "name": "Read Mifare card",
+      "base": "examples/readMifare",
+      "files": ["readMifare.pde"]
+    }
+  ]
+}

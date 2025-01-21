@@ -1,0 +1,54 @@
+name: Run Ci Arduino
+
+on:
+  push:
+  pull_request:
+  repository_dispatch:
+    types: [trigger-workflow]
+
+jobs:
+  ci-arduino:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Checkout script repository
+        uses: actions/checkout@v4
+        with:
+            repository: Seeed-Studio/ci-arduino
+            path: ci
+
+
+      - name: Setup arduino cli
+        uses: arduino/setup-arduino-cli@v2.0.0
+
+      - name: Create a depend.list file
+        run: |
+          # eg: echo "<repo>" >> depend.list
+          echo "OSSLibraries/Arduino_MFRC522v2" >> depend.list
+          echo "don/NDEF" >> depend.list
+          
+        
+      - name: Create a ignore.list file
+        run: |
+          # eg: echo "<path>,<fqbn>" >> ignore.list
+
+
+
+      - name: Build sketch
+        run: ./ci/tools/compile.sh
+
+      - name: Build result
+        run: |
+            cat build.log
+            if [ ${{ github.event_name }} == 'pull_request' ] && [ -f compile.failed ]; then
+                exit 1
+            fi
+
+      - name: Generate issue
+        if: ${{ github.event_name != 'pull_request' }}
+        run: ./ci/tools/issue.sh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
