@@ -217,6 +217,11 @@ The PN532 is a highly integrated transceiver module for contactless communicatio
 #define BOARD_LORA_SW1  47
 #define BOARD_LORA_SW0  48
 ~~~
+
+### Extension interface
+
+![alt text](./docs/README_img/image-2.png)
+
 ## :five: Test 🎁
 
 Sleep power consumption.
