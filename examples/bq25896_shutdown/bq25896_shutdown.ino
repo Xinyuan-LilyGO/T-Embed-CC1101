@@ -7,13 +7,13 @@ XPowersPPM PPM;
 const uint8_t i2c_sda = BOARD_I2C_SDA;
 const uint8_t i2c_scl = BOARD_I2C_SCL;
 uint32_t cycleInterval;
-uint32_t countdown = 10;
+uint32_t countdown = 5;
 
 
 void setup()
 {
     Serial.begin(115200);
-    while (!Serial);
+    // while (!Serial);
 
     bool result =  PPM.init(Wire, i2c_sda, i2c_scl, BQ25896_SLAVE_ADDRESS);
     if (result == false) {
@@ -22,7 +22,6 @@ void setup()
             delay(1000);
         }
     }
-
 }
 
 
@@ -42,6 +41,7 @@ void loop()
         }
         cycleInterval = millis() + 1000;
     }
+    delay(1);
 }
 
 
