@@ -16,6 +16,7 @@ jobs:
       matrix:
         example: 
             - examples/bq25896_test
+            - examples/bq25896_shutdown
             - examples/bq27xxx_test
             - examples/cc1101_recv
             - examples/cc1101_recv_irq
