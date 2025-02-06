@@ -6,7 +6,6 @@ XPowersPPM PPM;
 
 const uint8_t i2c_sda = BOARD_I2C_SDA;
 const uint8_t i2c_scl = BOARD_I2C_SCL;
-const uint8_t pmu_irq_pin = CONFIG_PMU_IRQ;
 uint32_t cycleInterval;
 uint32_t countdown = 10;
 
