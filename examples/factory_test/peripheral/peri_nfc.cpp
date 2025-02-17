@@ -54,14 +54,14 @@ void nfc_task(void *param)
         // 'uid' will be populated with the UID, and uidLength will indicate
         // if the uid is 4 bytes (Mifare Classic) or 7 bytes (Mifare Ultralight)
         success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
-        Serial.print("readPassiveTargetID:");
-        Serial.println(success);
+        // Serial.print("readPassiveTargetID:");
+        // Serial.println(success);
         if (success) {
             nfc_upd_falg = true;
             // Display some basic information about the card
-            Serial.println("Found an ISO14443A card");
-            Serial.print("  UID Length: "); Serial.print(uidLength, DEC); Serial.println(" bytes");
-            Serial.print("  UID Value: ");
+            // Serial.println("Found an ISO14443A card");
+            // Serial.print("  UID Length: "); Serial.print(uidLength, DEC); Serial.println(" bytes");
+            // Serial.print("  UID Value: ");
             nfc.PrintHex(uid, uidLength);
 
             String str = "NFC";
@@ -80,10 +80,10 @@ void nfc_task(void *param)
                 cardid |= uid[2];
                 cardid <<= 8;
                 cardid |= uid[3];
-                Serial.print("Seems to be a Mifare Classic card #");
-                Serial.println(cardid);
+                // Serial.print("Seems to be a Mifare Classic card #");
+                // Serial.println(cardid);
             }
-            Serial.println("");
+            // Serial.println("");
         } else {
             // PN532 probably timed out waiting for a card
             Serial.println("Timed out waiting for a card");

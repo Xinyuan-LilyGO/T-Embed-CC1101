@@ -994,20 +994,25 @@ void create2(lv_obj_t *parent){
 
     // back btn
     scr_back_btn_create(scr2_cont, scr2_btn_event_cb);
-}
-void entry2(void) {
+
     entry2_anim(scr2_cont);
     lv_group_set_wrap(lv_group_get_default(), true);
     lora_recv_timer = lv_timer_create(lora_recv_event, 500, NULL);
+    lv_timer_pause(lora_recv_timer);
+}
+void entry2(void) {
+    lv_timer_resume(lora_recv_timer);
     vTaskResume(lora_handle);
 }
 void exit2(void) {
-    lv_timer_del(lora_recv_timer);
-    lora_recv_timer = NULL;
-    lv_group_set_wrap(lv_group_get_default(), false);
     vTaskSuspend(lora_handle);
 }
 void destroy2(void) {
+    if(lora_recv_timer) {
+        lv_timer_del(lora_recv_timer);
+        lora_recv_timer = NULL;
+    }
+    lv_group_set_wrap(lv_group_get_default(), false);
 }
 scr_lifecycle_t screen2 = {
     .create = create2,
@@ -1055,6 +1060,7 @@ void nfc_chk_timer_event(lv_timer_t *t)
             }else{
                 lv_led_off(nfc_led);
             }
+            
             led_flag = !led_flag;
         } else {
             char buf[33];
@@ -1116,7 +1122,7 @@ void create3(lv_obj_t *parent){
 
     nfc_led  = lv_led_create(scr3_cont);
     lv_obj_set_size(nfc_led, 16, 16);
-    lv_obj_align(nfc_led, LV_ALIGN_TOP_RIGHT, -10, 10);
+    lv_obj_align(nfc_led, LV_ALIGN_TOP_RIGHT, -15, 10);
     lv_led_off(nfc_led);
 
     nfc_ledlab = lv_label_create(scr3_cont);
@@ -1153,18 +1159,23 @@ void create3(lv_obj_t *parent){
     }
 
     scr_back_btn_create(scr3_cont, scr3_btn_event_cb);
+    entry3_anim(scr3_cont);
+    nfc_chk_timer = lv_timer_create(nfc_chk_timer_event, 200, NULL);
+    lv_timer_pause(nfc_chk_timer);
 }
 void entry3(void) {
-    entry3_anim(scr3_cont);
-    nfc_chk_timer = lv_timer_create(nfc_chk_timer_event, 100, NULL);
+    lv_timer_resume(nfc_chk_timer);
     vTaskResume(nfc_handle);
 }
 void exit3(void) {
-    lv_timer_del(nfc_chk_timer);
-    nfc_chk_timer = NULL;
     vTaskSuspend(nfc_handle);
 }
 void destroy3(void) {
+    if(nfc_chk_timer) {
+        lv_timer_del(nfc_chk_timer);
+        nfc_chk_timer = NULL;
+    }
+    lv_anim_del_all();
 }
 scr_lifecycle_t screen3 = {
     .create = create3,
