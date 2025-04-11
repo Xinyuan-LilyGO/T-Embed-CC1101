@@ -1,6 +1,8 @@
 
 <h1 align = "center">🏆T-Embed-CC1101🏆</h1>
 
+* [切换到中文](./README_CN.md)
+
 ![Build Status](https://github.com/Xinyuan-LilyGO/T-Embed-CC1101/actions/workflows/platformio.yml/badge.svg?event=push)
 
 <p> 
@@ -120,6 +122,7 @@ The PN532 is a highly integrated transceiver module for contactless communicatio
 
 ### 3、Folder structure:
 ~~~
+├─3D_files: Store 3D structure files
 ├─boards  : Some information about the board for the platformio.ini configuration project;
 ├─data    : Picture resources used by the program;
 ├─example : Some examples;
@@ -265,4 +268,4 @@ CC1101 Schematic : [CC1101](./hardware/cc1101-shield.pdf)
 
 CC1101 Pins : [CC1101 Pins](./hardware/CC1101_pin.png)
 
-3D Files : To be added ...
+3D Files : [T-Embed CC1101.stp](./3D_files/T-Embed%20CC1101.stp)
