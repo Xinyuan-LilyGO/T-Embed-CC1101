@@ -68,13 +68,17 @@ The Sub-GHz application supports external radio modules based on the CC1101 tran
 
 ### 2、PN532
 
-The PN532 is a highly integrated transceiver module for contactless communication at 13.56 MHz based on the 80C51 microcontroller core. It supports 6 different operating modes:
-- ISO/IEC 14443A/MIFARE Reader/Writer
-- FeliCa Reader/Writer
-- ISO/IEC 14443B Reader/Writer
-- ISO/IEC 14443A/MIFARE Card MIFARE Classic 1K or MIFARE Classic 4K card emulation mode
-- FeliCa Card emulation
-- ISO/IEC 18092, ECMA 340 Peer-to-Peer
+The PN532 only supports high-frequency cards at 13.56MHz, does not support low-frequency cards at 125K, does not support CPU cards, and does not support encryption cards.
+
+"✅" represents a card of support.
+|       **Type**       |       **Encryption Method**       | **Anti-Copy Capability** |                               **Attack Risk**                               |                              Typical uses                              |
+| :------------------: | :-------------------------------: | :----------------------: | :-------------------------------------------------------------------------: | :--------------------------------------------------------------------: |
+| **Mifare Classic** ✅ | Weak (CRYPTO1 algorithm, cracked) |           Low            |                  Easily cloned (e.g., via Proxmark3 tools)                  |     Access control cards, public transportation cards (old system)     |
+|     **NTAG**  ✅      |   No encryption (UID lockable)    |         Very Low         |                        Data can be arbitrarily read                         | Smart labels, advertising interaction, and product anti-counterfeiting |
+|   **Mifare Plus**    |        AES-128 encryption         |       Medium-High        |                      Requires physical access to crack                      |                                   -                                    |
+|      **Felica**      |  Dynamic encryption (SAM module)  |           High           |                  Hard to crack (Japan-exclusive protocol)                   |           Japanese transportation cards, electronic wallets            |
+|     **DESFire**      |        AES/TDES encryption        |        Very High         |         Supports multi-app isolation, resists side-channel attacks          |   High-security access control, campus one-card, electronic passport   |
+|     **CPU Card**     | Hardware encryption (SM4/ECC/RSA) |        Very High         | Supports China's national cryptographic standards, financial-grade security |                Bank card, ID card, social security card                |
 
 ## :three: Quick Start 🎁
 
