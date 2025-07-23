@@ -22,36 +22,33 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
- * @file      XPowersLib.h
+ * @file      XPowersLib_Version.h
  * @author    Lewis He (lewishe@outlook.com)
- * @date      2024-10-30
+ * @date      2024-12-12
  *
  */
 
 #pragma once
 
-#if defined(XPOWERS_CHIP_AXP192)
-#include "XPowersAXP192.tpp"
-typedef XPowersAXP192 XPowersPMU;
-#elif defined(XPOWERS_CHIP_AXP202)
-#include "XPowersAXP202.tpp"
-typedef XPowersAXP202 XPowersPMU;
-#elif defined(XPOWERS_CHIP_AXP2101)
-#include "XPowersAXP2101.tpp"
-typedef XPowersAXP2101 XPowersPMU;
-#elif defined(XPOWERS_CHIP_SY6970)
-#include "PowersSY6970.tpp"
-typedef PowersSY6970 XPowersPPM;
-#elif defined(XPOWERS_CHIP_BQ25896)
-#include "PowersBQ25896.tpp"
-typedef PowersBQ25896 XPowersPPM;
-#else
-#include "XPowersAXP192.tpp"
-#include "XPowersAXP202.tpp"
-#include "XPowersAXP2101.tpp"
-#include "PowersSY6970.tpp"
-#endif
+/** Major version number (X.x.x) */
+#define XPOWERSLIB_VERSION_MAJOR   0
+/** Minor version number (x.X.x) */
+#define XPOWERSLIB_VERSION_MINOR   3
+/** Patch version number (x.x.X) */
+#define XPOWERSLIB_VERSION_PATCH   0
 
-#include "PowerDeliveryHUSB238.hpp"
+/**
+ * Macro to convert XPowersLib version number into an integer
+ *
+ * To be used in comparisons, such as XPOWERSLIB_VERSION >= XPOWERSLIB_VERSION_VAL(2, 0, 0)
+ */
+#define XPOWERSLIB_VERSION_VAL(major, minor, patch) ((major << 16) | (minor << 8) | (patch))
 
-#include "XPowersLib_Version.h"
+/**
+ * Current XPowersLib version, as an integer
+ *
+ * To be used in comparisons, such as XPOWERSLIB_VERSION >= XPOWERSLIB_VERSION_VAL(2, 0, 0)
+ */
+#define XPOWERSLIB_VERSION  XPOWERSLIB_VERSION_VAL(XPOWERSLIB_VERSION_MAJOR, \
+                                             XPOWERSLIB_VERSION_MINOR, \
+                                             XPOWERSLIB_VERSION_PATCH)

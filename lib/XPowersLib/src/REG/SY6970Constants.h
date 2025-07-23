@@ -30,45 +30,8 @@
 #pragma once
 
 #define SY6970_SLAVE_ADDRESS                                    (0x6A)
-// https://www.ti.com/product/BQ25896
-#define BQ25896_SLAVE_ADDRESS                                   (0x6B)
-// https://www.sg-micro.com/cnproduct/SGM41511
-#define SGM41511_SLAVE_ADDRESS                                  (0x6B)
 
 #define SY6970_DEV_REV                                          (0x00)
-#define BQ25896_DEV_REV                                         (0x02)
-
-#define POWERS_SY6970_REG_00H                                   (0x00)
-#define POWERS_SY6970_REG_01H                                   (0x01)
-#define POWERS_SY6970_REG_02H                                   (0x02)
-#define POWERS_SY6970_REG_03H                                   (0x03)
-#define POWERS_SY6970_REG_04H                                   (0x04)
-#define POWERS_SY6970_REG_05H                                   (0x05)
-#define POWERS_SY6970_REG_06H                                   (0x06)
-#define POWERS_SY6970_REG_07H                                   (0x07)
-#define POWERS_SY6970_REG_08H                                   (0x08)
-#define POWERS_SY6970_REG_09H                                   (0x09)
-#define POWERS_SY6970_REG_0AH                                   (0x0A)
-// Read only STATUS REG
-#define POWERS_SY6970_REG_0BH                                   (0x0B)
-// Read only CHARGE IRQ REG
-#define POWERS_SY6970_REG_0CH                                   (0x0C)
-// Absolute VINDPM Threshold
-#define POWERS_SY6970_REG_0DH                                   (0x0D)
-// Read only BATTERY VOLTAGE
-#define POWERS_SY6970_REG_0EH                                   (0x0E)
-// Read only SYSTEM VOLTAGE
-#define POWERS_SY6970_REG_0FH                                   (0x0F)
-// Read only NTC PERCENTAGE
-#define POWERS_SY6970_REG_10H                                   (0x10)
-// Read only VBUS VOLTAGE
-#define POWERS_SY6970_REG_11H                                   (0x11)
-// Read only CHARGE CURRENT
-#define POWERS_SY6970_REG_12H                                   (0x12)
-// Read only VINDPM/IINDPM STATUS/CURR LIMIT SETTING 
-#define POWERS_SY6970_REG_13H                                   (0x13)
-// RESET REG
-#define POWERS_SY6970_REG_14H                                   (0x14)
 
 #define POWERS_SY6970_VBUS_MASK_VAL(val)                        (val & 0x7F)
 #define POWERS_SY6970_VBAT_MASK_VAL(val)                        (val & 0x7F)
@@ -90,16 +53,15 @@
 #define POWERS_SY6970_FAST_CHG_CUR_STEP                         (64)
 #define POWERS_SY6970_PRE_CHG_CUR_STEP                          (64)
 
-#define POWERS_FAST_CHG_CURRENT_MIN                             (0)
-#define POWERS_FAST_CHG_CURRENT_MAX                             (5056)
+#define POWERS_SY6970_FAST_CHG_CURRENT_MAX                      (5056)
 
-#define POWERS_PRE_CHG_CURRENT_MIN                              (64)
-#define POWERS_PRE_CHG_CURRENT_MAX                              (1024)
+#define POWERS_SY6970_PRE_CHG_CURRENT_MIN                       (64)
+#define POWERS_SY6970_PRE_CHG_CURRENT_MAX                       (1024)
 
 #define POWERS_SY6970_CHG_VOL_BASE                              (3840)
 #define POWERS_SY6970_CHG_VOL_STEP                              (16)
-#define POWERS_FAST_CHG_VOL_MIN                                 (3840)
-#define POWERS_FAST_CHG_VOL_MAX                                 (4608)
+#define POWERS_SY6970_FAST_CHG_VOL_MIN                          (3840)
+#define POWERS_SY6970_FAST_CHG_VOL_MAX                          (4608)
 
 #define POWERS_SY6970_SYS_VOL_STEPS                             (100)
 #define POWERS_SY6970_SYS_VOFF_VOL_MIN                          (3000)

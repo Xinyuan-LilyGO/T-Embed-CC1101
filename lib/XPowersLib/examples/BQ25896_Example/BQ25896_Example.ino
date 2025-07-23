@@ -6,6 +6,9 @@
  * @date      2024-06-04
  *
  */
+
+#define XPOWERS_CHIP_BQ25896
+
 #include <XPowersLib.h>
 
 XPowersPPM PPM;
@@ -50,7 +53,7 @@ void setup()
     // Set input current limit, default is 500mA
     PPM.setInputCurrentLimit(3250);
 
-    Serial.printf("getInputCurrentLimit: %d mA\n",PPM.getInputCurrentLimit());
+    Serial.printf("getInputCurrentLimit: %d mA\n", PPM.getInputCurrentLimit());
 
     // Disable current limit pin
     PPM.disableCurrentLimitPin();
@@ -63,22 +66,22 @@ void setup()
 
     // The premise is that Limit Pin is disabled, or it will only follow the maximum charging current set by Limi tPin.
     // Set the charging current , Range:0~5056mA ,step:64mA
-    PPM.setChargerConstantCurr(832);
+    PPM.setChargerConstantCurr(1024);
 
     // Get the set charging current
     PPM.getChargerConstantCurr();
-    Serial.printf("getChargerConstantCurr: %d mA\n",PPM.getChargerConstantCurr());
+    Serial.printf("getChargerConstantCurr: %d mA\n", PPM.getChargerConstantCurr());
 
 
     // To obtain voltage data, the ADC must be enabled first
-    PPM.enableADCMeasure();
-    
+    PPM.enableMeasure();
+
     // Turn on charging function
     // If there is no battery connected, do not turn on the charging function
     PPM.enableCharge();
 
     // Turn off charging function
-    // If USB is used as the only power input, it is best to turn off the charging function, 
+    // If USB is used as the only power input, it is best to turn off the charging function,
     // otherwise the VSYS power supply will have a sawtooth wave, affecting the discharge output capability.
     // PPM.disableCharge();
 
@@ -91,80 +94,77 @@ void setup()
     // pinMode(OTG_ENABLE_PIN, OUTPUT);
     // digitalWrite(OTG_ENABLE_PIN, HIGH);
 
-
+    pinMode(pmu_irq_pin, INPUT_PULLUP);
     attachInterrupt(pmu_irq_pin, []() {
         pmu_irq = true;
     }, FALLING);
 
-    delay(2000);
 }
 
 
 void loop()
 {
-
     if (pmu_irq) {
         pmu_irq = false;
+
+        // Get PPM interrupt status
+        PPM.getFaultStatus();
+
         Serial.print("-> [");
         Serial.print(millis() / 1000);
         Serial.print("] ");
 
-        // Get PPM interrupt status
-        PPM.getIrqStatus();
-
-
         if (PPM.isWatchdogFault()) {
+
             Serial.println("Watchdog Fault");
-        }
-        if (PPM.isBoostFault()) {
+
+        } else if (PPM.isBoostFault()) {
+
             Serial.println("Boost Fault");
-        }
-        if (PPM.isChargeFault()) {
+
+        } else if (PPM.isChargeFault()) {
+
             Serial.println("Charge Fault");
-        }
-        if (PPM.isBatteryFault()) {
+
+        } else if (PPM.isBatteryFault()) {
+
             Serial.println("Batter Fault");
-        }
-        if (PPM.isNTCFault()) {
+
+        } else if (PPM.isNTCFault()) {
+
             Serial.print("NTC Fault:");
             Serial.print(PPM.getNTCStatusString());
-
             Serial.print(" Percentage:");
             Serial.print(PPM.getNTCPercentage()); Serial.println("%");
-        }   
-        // The battery may be disconnected or damaged.
-        if (PPM.isVsysLowVoltageWarning()) {
-            Serial.println("In VSYSMIN regulation (BAT<VSYSMIN)");
-        }
+        } else {
+            /*
+            * When the battery is removed, INT will send an interrupt every 100ms. If the battery is not connected,
+            * you can use PPM.disableCharge() to turn off the charging function.
+            * */
+            // PPM.disableCharge();
 
+            Serial.println("Battery remove");
+        }
     }
 
-    // When VBUS is input, the battery voltage detection will not take effect
+    /*
+    * Obtaining the battery voltage and battery charging status does not directly read the register,
+    * but determines whether the charging current register is normal.
+    * If read directly, the reading will be inaccurate.
+    * The premise for obtaining these two states is that the NTC temperature measurement circuit is normal.
+    * If the NTC detection is abnormal, it will return 0
+    * * */
     if (millis() > cycleInterval) {
-
-        Serial.println("Sats        VBUS    VBAT   SYS    VbusStatus      String   ChargeStatus     String      TargetVoltage       ChargeCurrent       Precharge       NTCStatus           String");
-        Serial.println("            (mV)    (mV)   (mV)   (HEX)                         (HEX)                    (mV)                 (mA)                   (mA)           (HEX)           ");
-        Serial.println("--------------------------------------------------------------------------------------------------------------------------------");
-        Serial.print(PPM.isVbusIn() ? "Connected" : "Disconnect"); Serial.print("\t");
-        Serial.print(PPM.getVbusVoltage()); Serial.print("\t");
-        Serial.print(PPM.getBattVoltage()); Serial.print("\t");
-        Serial.print(PPM.getSystemVoltage()); Serial.print("\t");
-        Serial.print("0x");
-        Serial.print(PPM.getBusStatus(), HEX); Serial.print("\t");
-        Serial.print(PPM.getBusStatusString()); Serial.print("\t");
-        Serial.print("0x");
-        Serial.print(PPM.chargeStatus(), HEX); Serial.print("\t");
-        Serial.print(PPM.getChargeStatusString()); Serial.print("\t");
-
-        Serial.print(PPM.getChargeTargetVoltage()); Serial.print("\t");
-        Serial.print(PPM.getChargeCurrent()); Serial.print("\t");
-        Serial.print(PPM.getPrechargeCurr()); Serial.print("\t");
-        Serial.print(PPM.getNTCStatus()); Serial.print("\t");
-        Serial.print(PPM.getNTCStatusString()); Serial.print("\t");
-
-
-        Serial.println();
-        Serial.println();
+        Serial.printf("CHG TARGET VOLTAGE :%04dmV CURRENT:%04dmA PER_CHARGE_CUR %04dmA\n",
+                      PPM.getChargeTargetVoltage(), PPM.getChargerConstantCurr(), PPM.getPrechargeCurr());
+        Serial.printf("VBUS:%s %04dmV VBAT:%04dmV VSYS:%04dmV\n", PPM.isVbusIn() ? "Connected" : "Disconnect",
+                      PPM.getVbusVoltage(),
+                      PPM.getBattVoltage(),
+                      PPM.getSystemVoltage());
+        Serial.printf("BUS STATE:%d STR:%s\n", PPM.getBusStatus(), PPM.getBusStatusString());
+        Serial.printf("CHG STATE:%d STR:%s CURRENT:%04dmA\n", PPM.chargeStatus(), PPM.getChargeStatusString(), PPM.getChargeCurrent());
+        Serial.printf("[%lu]", millis() / 1000);
+        Serial.println("----------------------------------------------------------------------------------");
         cycleInterval = millis() + 1000;
     }
 

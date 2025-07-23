@@ -2,7 +2,7 @@
  *
  * @license MIT License
  *
- * Copyright (c) 2024 lewis he
+ * Copyright (c) 2022 lewis he
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,36 +22,24 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
- * @file      XPowersLib.h
+ * @file      HUSB238Constants.h
  * @author    Lewis He (lewishe@outlook.com)
- * @date      2024-10-30
+ * @date      2024-07-24
  *
  */
-
 #pragma once
 
-#if defined(XPOWERS_CHIP_AXP192)
-#include "XPowersAXP192.tpp"
-typedef XPowersAXP192 XPowersPMU;
-#elif defined(XPOWERS_CHIP_AXP202)
-#include "XPowersAXP202.tpp"
-typedef XPowersAXP202 XPowersPMU;
-#elif defined(XPOWERS_CHIP_AXP2101)
-#include "XPowersAXP2101.tpp"
-typedef XPowersAXP2101 XPowersPMU;
-#elif defined(XPOWERS_CHIP_SY6970)
-#include "PowersSY6970.tpp"
-typedef PowersSY6970 XPowersPPM;
-#elif defined(XPOWERS_CHIP_BQ25896)
-#include "PowersBQ25896.tpp"
-typedef PowersBQ25896 XPowersPPM;
-#else
-#include "XPowersAXP192.tpp"
-#include "XPowersAXP202.tpp"
-#include "XPowersAXP2101.tpp"
-#include "PowersSY6970.tpp"
-#endif
+#define HUSB238_SLAVE_ADDRESS                                    (0x8)
 
-#include "PowerDeliveryHUSB238.hpp"
+#define HUSB238_PD_STATUS0                                       (0x0)
+#define HUSB238_PD_STATUS1                                       (0x1)
+#define HUSB238_SRC_PDO_5V                                       (0x2)
+#define HUSB238_SRC_PDO_9V                                       (0x3)
+#define HUSB238_SRC_PDO_12V                                      (0x4)
+#define HUSB238_SRC_PDO_15V                                      (0x5)
+#define HUSB238_SRC_PDO_18V                                      (0x6)
+#define HUSB238_SRC_PDO_20V                                      (0x7)
+#define HUSB238_SRC_PDO                                          (0x8)
+#define HUSB238_GO_COMMAND                                       (0x9)
 
-#include "XPowersLib_Version.h"
+

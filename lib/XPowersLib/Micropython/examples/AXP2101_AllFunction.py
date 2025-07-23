@@ -227,36 +227,36 @@ print('PowerKeyPressOnTime: %s ' % powerOn[opt])
 print('===================================')
 
 #  DCDC 120 % (130 %) high voltage turn off PMIC function
-en = PMU.getDCHighVoltagePowerDowmEn()
-print('getDCHighVoltagePowerDowmEn:%s' % ('DISABLE', 'ENABLE')[en])
+en = PMU.getDCHighVoltagePowerDownEn()
+print('getDCHighVoltagePowerDownEn:%s' % ('DISABLE', 'ENABLE')[en])
 
 #  DCDC1 85 % low voltage turn off PMIC function
-en = PMU.getDC1LowVoltagePowerDowmEn()
-print('getDC1LowVoltagePowerDowmEn:%s' % ('DISABLE', 'ENABLE')[en])
+en = PMU.getDC1LowVoltagePowerDownEn()
+print('getDC1LowVoltagePowerDownEn:%s' % ('DISABLE', 'ENABLE')[en])
 
 #  DCDC2 85 % low voltage turn off PMIC function
-en = PMU.getDC2LowVoltagePowerDowmEn()
-print('getDC2LowVoltagePowerDowmEn:%s' % ('DISABLE', 'ENABLE')[en])
+en = PMU.getDC2LowVoltagePowerDownEn()
+print('getDC2LowVoltagePowerDownEn:%s' % ('DISABLE', 'ENABLE')[en])
 
 #  DCDC3 85 % low voltage turn off PMIC function
-en = PMU.getDC3LowVoltagePowerDowmEn()
-print('getDC3LowVoltagePowerDowmEn:%s' % ('DISABLE', 'ENABLE')[en])
+en = PMU.getDC3LowVoltagePowerDownEn()
+print('getDC3LowVoltagePowerDownEn:%s' % ('DISABLE', 'ENABLE')[en])
 
 #  DCDC4 85 % low voltage turn off PMIC function
-en = PMU.getDC4LowVoltagePowerDowmEn()
-print('getDC4LowVoltagePowerDowmEn:%s' % ('DISABLE', 'ENABLE')[en])
+en = PMU.getDC4LowVoltagePowerDownEn()
+print('getDC4LowVoltagePowerDownEn:%s' % ('DISABLE', 'ENABLE')[en])
 
 #  DCDC5 85 % low voltage turn off PMIC function
-en = PMU.getDC5LowVoltagePowerDowmEn()
-print('getDC5LowVoltagePowerDowmEn:%s' % ('DISABLE', 'ENABLE')[en])
+en = PMU.getDC5LowVoltagePowerDownEn()
+print('getDC5LowVoltagePowerDownEn:%s' % ('DISABLE', 'ENABLE')[en])
 
 
-#  PMU.setDCHighVoltagePowerDowm(true)
-#  PMU.setDC1LowVoltagePowerDowm(true)
-#  PMU.setDC2LowVoltagePowerDowm(true)
-#  PMU.setDC3LowVoltagePowerDowm(true)
-#  PMU.setDC4LowVoltagePowerDowm(true)
-#  PMU.setDC5LowVoltagePowerDowm(true)
+#  PMU.setDCHighVoltagePowerDown(true)
+#  PMU.setDC1LowVoltagePowerDown(true)
+#  PMU.setDC2LowVoltagePowerDown(true)
+#  PMU.setDC3LowVoltagePowerDown(true)
+#  PMU.setDC4LowVoltagePowerDown(true)
+#  PMU.setDC5LowVoltagePowerDown(true)
 
 #  It is necessary to disable the detection function of the TS pin on the board
 #  without the battery temperature detection function, otherwise it will cause abnormal charging

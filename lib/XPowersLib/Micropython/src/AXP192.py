@@ -598,7 +598,7 @@ class AXP192(I2CInterface):
     def disableBackupBattCharger(self) -> None:
         super().clrRegisterBit(_AXP192_BACKUP_CHG, 7)
 
-    def isEanbleBackupCharger(self) -> bool:
+    def isEnableBackupCharger(self) -> bool:
         return bool(super().getRegisterBit(_AXP192_BACKUP_CHG, 7))
 
     def setBackupBattChargerVoltage(self, opt: int) -> int:
@@ -777,7 +777,7 @@ class AXP192(I2CInterface):
         val = super().readRegister(_AXP192_DC2_DVM)[0] & 0xFE
         super().writeRegister(_AXP192_DC2_DVM, val | opts)
 
-    def isEanbleDC2VRC(self) -> bool:
+    def isEnableDC2VRC(self) -> bool:
         return (super().readRegister(_AXP192_DC2_DVM)[0] & 0x04) == 0x04
 
     def isEnableDC2(self) -> bool:
@@ -871,7 +871,7 @@ class AXP192(I2CInterface):
             super().writeRegister(_AXP192_INTSTS1 + i, 0xFF)
         super().writeRegister(_AXP192_INTSTS5, 0xFF)
 
-     # @brief  Eanble PMU interrupt control mask .
+     # @brief  Enable PMU interrupt control mask .
      # @ param  opt: View the related chip type _AXP192_irq_t enumeration
      # parameters in "XPowersParams.hpp"
     def enableIRQ(self, opt: int) -> None:
@@ -963,14 +963,14 @@ class AXP192(I2CInterface):
         else:
             return False
 
-    def isBatChagerStartIrq(self) -> bool:
+    def isBatChargeStartIrq(self) -> bool:
         mask = self.XPOWERS_AXP192_BAT_CHG_START_IRQ >> 8
         if self.intRegister[1] & mask:
             return super()._IS_BIT_SET(self.statusRegister[1], mask)
         else:
             return False
 
-    def isBatChagerDoneIrq(self) -> bool:
+    def isBatChargeDoneIrq(self) -> bool:
         mask = self.XPOWERS_AXP192_BAT_CHG_DONE_IRQ >> 8
         if self.intRegister[1] & mask:
             return super()._IS_BIT_SET(self.statusRegister[1], mask)

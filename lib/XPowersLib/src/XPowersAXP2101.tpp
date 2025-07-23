@@ -30,6 +30,8 @@
 
 #if defined(ARDUINO)
 #include <Arduino.h>
+#else
+#include <math.h>
 #endif /*ARDUINO*/
 
 #include "XPowersCommon.tpp"
@@ -83,7 +85,7 @@ typedef enum {
     XPOWERS_AXP2101_CHG_CC_STATE,    //constant charge
     XPOWERS_AXP2101_CHG_CV_STATE,    //constant voltage
     XPOWERS_AXP2101_CHG_DONE_STATE,  //charge done
-    XPOWERS_AXP2101_CHG_STOP_STATE,  //not chargin
+    XPOWERS_AXP2101_CHG_STOP_STATE,  //not charge
 } xpowers_chg_status_t;
 
 typedef enum {
@@ -134,27 +136,6 @@ typedef enum {
     XPOWERS_AXP2101_WDT_TIMEOUT_64S,
     XPOWERS_AXP2101_WDT_TIMEOUT_128S,
 } xpowers_wdt_timeout_t;
-
-
-
-typedef enum {
-    XPOWERS_AXP2101_VBUS_VOL_LIM_3V88,
-    XPOWERS_AXP2101_VBUS_VOL_LIM_3V96,
-    XPOWERS_AXP2101_VBUS_VOL_LIM_4V04,
-    XPOWERS_AXP2101_VBUS_VOL_LIM_4V12,
-    XPOWERS_AXP2101_VBUS_VOL_LIM_4V20,
-    XPOWERS_AXP2101_VBUS_VOL_LIM_4V28,
-    XPOWERS_AXP2101_VBUS_VOL_LIM_4V36,
-    XPOWERS_AXP2101_VBUS_VOL_LIM_4V44,
-    XPOWERS_AXP2101_VBUS_VOL_LIM_4V52,
-    XPOWERS_AXP2101_VBUS_VOL_LIM_4V60,
-    XPOWERS_AXP2101_VBUS_VOL_LIM_4V68,
-    XPOWERS_AXP2101_VBUS_VOL_LIM_4V76,
-    XPOWERS_AXP2101_VBUS_VOL_LIM_4V84,
-    XPOWERS_AXP2101_VBUS_VOL_LIM_4V92,
-    XPOWERS_AXP2101_VBUS_VOL_LIM_5V,
-    XPOWERS_AXP2101_VBUS_VOL_LIM_5V08,
-} xpower_vbus_vol_limit_t;
 
 typedef enum {
     XPOWERS_AXP2101_VSYS_VOL_4V1,
@@ -295,7 +276,7 @@ public:
         return  getRegisterBit(XPOWERS_AXP2101_STATUS1, 1);
     }
 
-    bool getCurrnetLimitStatus(void)
+    bool getCurrentLimitStatus(void)
     {
         return getRegisterBit(XPOWERS_AXP2101_STATUS1, 0);
     }
@@ -488,9 +469,13 @@ public:
         return (val & 0x70) >> 4;
     }
 
-    // Set the minimum common working voltage of the PMU VBUS input,
-    // below this value will turn off the PMU
-    void setVbusVoltageLimit(xpower_vbus_vol_limit_t opt)
+
+    /**
+     * @brief  Set VBUS Voltage Input Limit.
+     * @param  opt: View the related chip type xpowers_axp2101_vbus_vol_limit_t enumeration
+     *              parameters in "XPowersParams.hpp"
+     */
+    void setVbusVoltageLimit(uint8_t opt)
     {
         int val = readRegister(XPOWERS_AXP2101_INPUT_VOL_LIMIT_CTRL);
         if (val == -1)return;
@@ -498,6 +483,11 @@ public:
         writeRegister(XPOWERS_AXP2101_INPUT_VOL_LIMIT_CTRL, val | (opt & 0x0F));
     }
 
+    /**
+    * @brief  Get VBUS Voltage Input Limit.
+    * @retval View the related chip type xpowers_axp2101_vbus_vol_limit_t enumeration
+    *              parameters in "XPowersParams.hpp"
+    */
     uint8_t getVbusVoltageLimit(void)
     {
         return (readRegister(XPOWERS_AXP2101_INPUT_VOL_LIMIT_CTRL) & 0x0F);
@@ -569,7 +559,7 @@ public:
         return clrRegisterBit(XPOWERS_AXP2101_CHARGE_GAUGE_WDT_CTRL, 2);
     }
 
-    bool isEanbleButtonBatteryCharge()
+    bool isEnableButtonBatteryCharge()
     {
         return getRegisterBit(XPOWERS_AXP2101_CHARGE_GAUGE_WDT_CTRL, 2);
     }
@@ -958,7 +948,7 @@ public:
     }
 
     // POWEROFF Delay 4ms after PWROK enable
-    void eanblePowerOffDelay()
+    void enablePowerOffDelay()
     {
         setRegisterBit(XPOWERS_AXP2101_PWROK_SEQU_CTRL, 3);
     }
@@ -970,7 +960,7 @@ public:
     }
 
     // POWEROFF Sequence Control the reverse of the Startup
-    void eanblePowerSequence()
+    void enablePowerSequence()
     {
         setRegisterBit(XPOWERS_AXP2101_PWROK_SEQU_CTRL, 2);
     }
@@ -1315,12 +1305,12 @@ public:
     }
 
     // DCDC 120%(130%) high voltage turn off PMIC function
-    void setDCHighVoltagePowerDowm(bool en)
+    void setDCHighVoltagePowerDown(bool en)
     {
         en ? setRegisterBit(XPOWERS_AXP2101_DC_OVP_UVP_CTRL, 5) : clrRegisterBit(XPOWERS_AXP2101_DC_OVP_UVP_CTRL, 5);
     }
 
-    bool getDCHighVoltagePowerDowmEn()
+    bool getDCHighVoltagePowerDownEn()
     {
         return getRegisterBit(XPOWERS_AXP2101_DC_OVP_UVP_CTRL, 5);
     }
@@ -1385,7 +1375,7 @@ public:
         clrRegisterBit(XPOWERS_AXP2101_DC_ONOFF_DVM_CTRL, 6);
     }
 
-    bool isEanbleCCM()
+    bool isenableCCM()
     {
         return getRegisterBit(XPOWERS_AXP2101_DC_ONOFF_DVM_CTRL, 6);
     }
@@ -1446,12 +1436,12 @@ public:
 
 
     // DCDC1 85% low voltage turn off PMIC function
-    void setDC1LowVoltagePowerDowm(bool en)
+    void setDC1LowVoltagePowerDown(bool en)
     {
         en ? setRegisterBit(XPOWERS_AXP2101_DC_OVP_UVP_CTRL, 0) : clrRegisterBit(XPOWERS_AXP2101_DC_OVP_UVP_CTRL, 0);
     }
 
-    bool getDC1LowVoltagePowerDowmEn()
+    bool getDC1LowVoltagePowerDownEn()
     {
         return getRegisterBit(XPOWERS_AXP2101_DC_OVP_UVP_CTRL, 0);
     }
@@ -1514,12 +1504,12 @@ public:
         return getRegisterBit(XPOWERS_AXP2101_DCDC2_VOL_STEPS2, 7);
     }
 
-    void setDC2LowVoltagePowerDowm(bool en)
+    void setDC2LowVoltagePowerDown(bool en)
     {
         en ? setRegisterBit(XPOWERS_AXP2101_DC_OVP_UVP_CTRL, 1) : clrRegisterBit(XPOWERS_AXP2101_DC_OVP_UVP_CTRL, 1);
     }
 
-    bool getDC2LowVoltagePowerDowmEn()
+    bool getDC2LowVoltagePowerDownEn()
     {
         return getRegisterBit(XPOWERS_AXP2101_DC_OVP_UVP_CTRL, 1);
     }
@@ -1599,12 +1589,12 @@ public:
     }
 
     // DCDC3 85% low voltage turn off PMIC function
-    void setDC3LowVoltagePowerDowm(bool en)
+    void setDC3LowVoltagePowerDown(bool en)
     {
         en ? setRegisterBit(XPOWERS_AXP2101_DC_OVP_UVP_CTRL, 2) : clrRegisterBit(XPOWERS_AXP2101_DC_OVP_UVP_CTRL, 2);
     }
 
-    bool getDC3LowVoltagePowerDowmEn()
+    bool getDC3LowVoltagePowerDownEn()
     {
         return getRegisterBit(XPOWERS_AXP2101_DC_OVP_UVP_CTRL, 2);
     }
@@ -1670,12 +1660,12 @@ public:
     }
 
     // DCDC4 85% low voltage turn off PMIC function
-    void setDC4LowVoltagePowerDowm(bool en)
+    void setDC4LowVoltagePowerDown(bool en)
     {
         en ? setRegisterBit(XPOWERS_AXP2101_DC_OVP_UVP_CTRL, 3) : clrRegisterBit(XPOWERS_AXP2101_DC_OVP_UVP_CTRL, 3);
     }
 
-    bool getDC4LowVoltagePowerDowmEn()
+    bool getDC4LowVoltagePowerDownEn()
     {
         return getRegisterBit(XPOWERS_AXP2101_DC_OVP_UVP_CTRL, 3);
     }
@@ -1747,12 +1737,12 @@ public:
     }
 
     // DCDC4 85% low voltage turn off PMIC function
-    void setDC5LowVoltagePowerDowm(bool en)
+    void setDC5LowVoltagePowerDown(bool en)
     {
         en ? setRegisterBit(XPOWERS_AXP2101_DC_OVP_UVP_CTRL, 4) : clrRegisterBit(XPOWERS_AXP2101_DC_OVP_UVP_CTRL, 4);
     }
 
-    bool getDC5LowVoltagePowerDowmEn()
+    bool getDC5LowVoltagePowerDownEn()
     {
         return getRegisterBit(XPOWERS_AXP2101_DC_OVP_UVP_CTRL, 4);
     }
@@ -2276,13 +2266,22 @@ public:
 
     bool enableTSPinMeasure(void)
     {
+        // TS pin is the battery temperature sensor input and will affect the charger
+        uint8_t value =  readRegister(XPOWERS_AXP2101_TS_PIN_CTRL);
+        value &= 0xE0;
+        writeRegister(XPOWERS_AXP2101_TS_PIN_CTRL, value | 0x07);
         return setRegisterBit(XPOWERS_AXP2101_ADC_CHANNEL_CTRL, 1);
     }
 
     bool disableTSPinMeasure(void)
     {
+        // TS pin is the external fixed input and doesn't affect the charger
+        uint8_t value =  readRegister(XPOWERS_AXP2101_TS_PIN_CTRL);
+        value &= 0xF0;
+        writeRegister(XPOWERS_AXP2101_TS_PIN_CTRL, value | 0x10);
         return clrRegisterBit(XPOWERS_AXP2101_ADC_CHANNEL_CTRL, 1);
     }
+
 
     bool enableTSPinLowFreqSample(void)
     {
@@ -2294,7 +2293,47 @@ public:
         return clrRegisterBit(XPOWERS_AXP2101_ADC_DATA_RELUST2, 7);
     }
 
-    uint16_t getTsTemperature(void)
+
+    /**
+     * Calculate temperature from TS pin ADC value using Steinhart-Hart equation.
+     *
+     * @param SteinhartA Steinhart-Hart coefficient A (default: 1.126e-3)
+     * @param SteinhartB Steinhart-Hart coefficient B (default: 2.38e-4)
+     * @param SteinhartC Steinhart-Hart coefficient C (default: 8.5e-8)
+     * @return Temperature in Celsius. Returns 0 if ADC value is 0x2000 (invalid measurement).
+     *
+     * @details
+     * This function converts the ADC reading from the TS pin to temperature using:
+     * 1. Voltage calculation: V = ADC_raw × 0.0005 (V)
+     * 2. Resistance calculation: R = V / I (Ω), where I = 50μA
+     * 3. Temperature calculation: T = 1/(A+B*ln(R)+C*(ln(R))^3) - 273.15 (℃)
+     *
+     * @note
+     * The calculation parameters are from the AXP2101 Datasheet, using the TH11-3H103F NTC resistor
+     *     as the Steinhart-Hart equation calculation parameters
+     * 1. Coefficients A, B, C should be calibrated for specific NTC thermistor.
+     * 2. ADC value 0x2000 indicates sensor fault (e.g., open circuit).
+     * 3. Valid temperature range: typically -20℃ to 60℃. Accuracy may degrade outside this range.
+     */
+    float getTsTemperature(float SteinhartA = 1.126e-3,
+                           float SteinhartB = 2.38e-4,
+                           float SteinhartC = 8.5e-8)
+    {
+        uint16_t  adc_raw =  getTsPinValue();  // Read raw ADC value from TS pin
+
+        // Check for invalid measurement (0x2000 indicates sensor disconnection)
+        if (adc_raw == 0x2000) {
+            return 0;
+        }
+        float current_ma = 0.05f;  // Current source: 50μA
+        float voltage = adc_raw * 0.0005f;  // Convert ADC value to voltage (V)
+        float resistance = voltage / (current_ma / 1000.0f);  // Calculate resistance (Ω)
+        // Convert resistance to temperature using Steinhart-Hart equation
+        return resistance_to_temperature(resistance, SteinhartA, SteinhartB, SteinhartC);
+    }
+
+    // raw value
+    uint16_t getTsPinValue(void)
     {
         return readRegisterH6L8(XPOWERS_AXP2101_ADC_DATA_RELUST2, XPOWERS_AXP2101_ADC_DATA_RELUST3);
     }
@@ -2589,7 +2628,7 @@ public:
 #endif
 
     /**
-     * @brief  Eanble PMU interrupt control mask .
+     * @brief  Enable PMU interrupt control mask .
      * @param  opt: View the related chip type xpowers_axp2101_irq_t enumeration
      *              parameters in "XPowersParams.hpp"
      * @retval
@@ -2776,7 +2815,7 @@ public:
         return false;
     }
 
-    bool isBatChagerDoneIrq(void)
+    bool isBatChargeDoneIrq(void)
     {
         uint8_t mask = XPOWERS_AXP2101_BAT_CHG_DONE_IRQ  >> 16;
         if (intRegister[2] & mask) {
@@ -2785,7 +2824,7 @@ public:
         return false;
     }
 
-    bool isBatChagerStartIrq(void)
+    bool isBatChargeStartIrq(void)
     {
         uint8_t mask = XPOWERS_AXP2101_BAT_CHG_START_IRQ  >> 16;
         if (intRegister[2] & mask) {
@@ -2803,7 +2842,7 @@ public:
         return false;
     }
 
-    bool isChagerOverTimeoutIrq(void)
+    bool isChargeOverTimeoutIrq(void)
     {
         uint8_t mask = XPOWERS_AXP2101_CHAGER_TIMER_IRQ  >> 16;
         if (intRegister[2] & mask) {
@@ -2976,7 +3015,7 @@ protected:
         case XPOWERS_DLDO2:
             return isEnableDLDO2();
         case XPOWERS_VBACKUP:
-            return isEanbleButtonBatteryCharge();
+            return isEnableButtonBatteryCharge();
         case XPOWERS_CPULDO:
             return isEnableCPUSLDO();
         default:
@@ -3076,9 +3115,15 @@ protected:
     }
 
 private:
+
+    float resistance_to_temperature(float resistance, float SteinhartA,
+                                    float SteinhartB,
+                                    float SteinhartC)
+    {
+        float ln_r = log(resistance);
+        float t_inv = SteinhartA + SteinhartB * ln_r + SteinhartC * pow(ln_r, 3);
+        return (1.0f / t_inv) - 273.15f;
+    }
     uint8_t statusRegister[XPOWERS_AXP2101_INTSTS_CNT];
     uint8_t intRegister[XPOWERS_AXP2101_INTSTS_CNT];
 };
-
-
-

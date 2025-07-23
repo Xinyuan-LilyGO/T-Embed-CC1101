@@ -6,6 +6,8 @@
  * @date      2024-06-04
  *
  */
+#define XPOWERS_CHIP_BQ25896
+
 #include <XPowersLib.h>
 
 XPowersPPM PPM;
@@ -42,7 +44,6 @@ void setup()
             delay(1000);
         }
     }
-
 }
 
 

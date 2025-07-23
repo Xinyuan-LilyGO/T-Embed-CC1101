@@ -6,9 +6,11 @@
  * @date      2024-05-23
  *
  */
+#define XPOWERS_CHIP_SY6970
+
 #include <XPowersLib.h>
 
-PowersSY6970 PMU;
+XPowersPPM PPM;
 
 
 #ifndef CONFIG_PMU_SDA
@@ -34,10 +36,10 @@ void setup()
     Serial.begin(115200);
     while (!Serial);
 
-    bool result =  PMU.init(Wire, i2c_sda, i2c_scl, SY6970_SLAVE_ADDRESS);
+    bool result =  PPM.init(Wire, i2c_sda, i2c_scl, SY6970_SLAVE_ADDRESS);
     if (result == false) {
         while (1) {
-            Serial.println("PMU is not online...");
+            Serial.println("PPM is not online...");
             delay(50);
         }
     }
@@ -54,9 +56,9 @@ void loop()
             // The shutdown function can only be used when the battery is connected alone, 
             // and cannot be shut down when connected to USB.
             // It can only be powered on in the following two ways:
-            // 1. Press the PMU/QON button
+            // 1. Press the /QON button
             // 2. Connect to USB
-            PMU.shutdown();
+            PPM.shutdown();
             countdown = 10000;
         }
         cycleInterval = millis() + 1000;

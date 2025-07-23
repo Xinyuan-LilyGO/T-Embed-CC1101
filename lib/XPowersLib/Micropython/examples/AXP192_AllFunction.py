@@ -247,10 +247,10 @@ while True:
             print("IRQ ---> isBattEnterActivateIrq")
         if PMU.isBattExitActivateIrq():
             print("IRQ ---> isBattExitActivateIrq")
-        if PMU.isBatChagerStartIrq():
-            print("IRQ ---> isBatChagerStartIrq")
-        if PMU.isBatChagerDoneIrq():
-            print("IRQ ---> isBatChagerDoneIrq")
+        if PMU.isBatChargeStartIrq():
+            print("IRQ ---> isBatChargeStartIrq")
+        if PMU.isBatChargeDoneIrq():
+            print("IRQ ---> isBatChargeDoneIrq")
         if PMU.isBattTempHighIrq():
             print("IRQ ---> isBattTempHighIrq")
         if PMU.isBattTempLowIrq():

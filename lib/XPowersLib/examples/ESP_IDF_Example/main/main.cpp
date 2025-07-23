@@ -27,7 +27,7 @@ extern esp_err_t pmu_init();
 extern esp_err_t i2c_init(void);
 extern void pmu_isr_handler();
 
-static void pmu_hander_task(void *);
+static void pmu_handler_task(void *);
 static QueueHandle_t  gpio_evt_queue = NULL;
 
 static void IRAM_ATTR pmu_irq_handler(void *arg)
@@ -69,14 +69,14 @@ extern "C" void app_main(void)
 
     ESP_ERROR_CHECK(pmu_init());
 
-    xTaskCreate(pmu_hander_task, "App/pwr", 4 * 1024, NULL, 10, NULL);
+    xTaskCreate(pmu_handler_task, "App/pwr", 4 * 1024, NULL, 10, NULL);
 
     ESP_LOGI(TAG, "Run...");
 
 }
 
 
-static void pmu_hander_task(void *args)
+static void pmu_handler_task(void *args)
 {
     uint32_t io_num;
     while (1) {

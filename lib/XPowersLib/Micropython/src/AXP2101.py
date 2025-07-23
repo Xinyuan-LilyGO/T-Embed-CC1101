@@ -245,7 +245,7 @@ class AXP2101(I2CInterface):
     XPOWERS_AXP2101_CHG_CC_STATE = const(2)  # constant charge
     XPOWERS_AXP2101_CHG_CV_STATE = const(3)  # constant voltage
     XPOWERS_AXP2101_CHG_DONE_STATE = const(4)  # charge done
-    XPOWERS_AXP2101_CHG_STOP_STATE = const(5)  # not chargin
+    XPOWERS_AXP2101_CHG_STOP_STATE = const(5)  # not charge
 
     """PMU wakeup method values"""
     XPOWERS_AXP2101_WAKEUP_IRQ_PIN_TO_LOW = const(1 << 4)
@@ -529,7 +529,7 @@ class AXP2101(I2CInterface):
     def getThermalRegulationStatus(self) -> bool:
         return super().getRegisterBit(_AXP2101_STATUS1, 1)
 
-    def getCurrnetLimitStatus(self) -> bool:
+    def getCurrentLimitStatus(self) -> bool:
         return super().getRegisterBit(_AXP2101_STATUS1, 0)
 
     def isCharging(self) -> bool:
@@ -687,7 +687,7 @@ class AXP2101(I2CInterface):
     def disableButtonBatteryCharge(self) -> None:
         super().clrRegisterBit(_AXP2101_CHARGE_GAUGE_WDT_CTRL, 2)
 
-    def isEanbleButtonBatteryCharge(self) -> bool:
+    def isEnableButtonBatteryCharge(self) -> bool:
         return super().getRegisterBit(_AXP2101_CHARGE_GAUGE_WDT_CTRL, 2)
 
     # Button battery charge termination voltage setting
@@ -703,8 +703,7 @@ class AXP2101(I2CInterface):
                              _AXP2101_BTN_VOL_MAX)
         val = super().readRegister(_AXP2101_BTN_BAT_CHG_VOL_SET)[0]
         val &= 0xF8
-        val |= (int)(millivolt - _AXP2101_BTN_VOL_MIN) / \
-            _AXP2101_BTN_VOL_STEPS
+        val |= (int)((millivolt - _AXP2101_BTN_VOL_MIN) /  _AXP2101_BTN_VOL_STEPS)
         super().writeRegister(_AXP2101_BTN_BAT_CHG_VOL_SET, val)
 
     def getButtonBatteryVoltage(self) -> int:
@@ -933,7 +932,7 @@ class AXP2101(I2CInterface):
         super().clrRegisterBit(_AXP2101_PWROK_SEQU_CTRL, 4)
 
     # POWEROFF Delay 4ms after PWROK enable
-    def eanblePowerOffDelay(self) -> None:
+    def enablePowerOffDelay(self) -> None:
         super().setRegisterBit(_AXP2101_PWROK_SEQU_CTRL, 3)
 
     # POWEROFF Delay 4ms after PWROK disable
@@ -941,7 +940,7 @@ class AXP2101(I2CInterface):
         super().clrRegisterBit(_AXP2101_PWROK_SEQU_CTRL, 3)
 
     # POWEROFF Sequence Control the reverse of the Startup
-    def eanblePowerSequence(self) -> None:
+    def enablePowerSequence(self) -> None:
         super().setRegisterBit(_AXP2101_PWROK_SEQU_CTRL, 2)
 
     # POWEROFF Sequence Control at the same time
@@ -1167,13 +1166,13 @@ class AXP2101(I2CInterface):
         super().clrRegisterBit(_AXP2101_FAST_PWRON_CTRL, 6)
 
     # DCDC 120%(130%) high voltage turn off PMIC function
-    def setDCHighVoltagePowerDowm(self, en: bool) -> None:
+    def setDCHighVoltagePowerDown(self, en: bool) -> None:
         if en:
             super().setRegisterBit(_AXP2101_DC_OVP_UVP_CTRL, 5)
         else:
             super().clrRegisterBit(_AXP2101_DC_OVP_UVP_CTRL, 5)
 
-    def getDCHighVoltagePowerDowmEn(self) -> bool:
+    def getDCHighVoltagePowerDownEn(self) -> bool:
         return bool(super().getRegisterBit(_AXP2101_DC_OVP_UVP_CTRL, 5))
 
     # DCDCS force PWM control
@@ -1249,13 +1248,13 @@ class AXP2101(I2CInterface):
         return (super().readRegister(_AXP2101_DC_VOL0_CTRL)[0] & 0x1F) * _AXP2101_DCDC1_VOL_STEPS + _AXP2101_DCDC1_VOL_MIN
 
     # DCDC1 85% low voltage turn off PMIC function
-    def setDC1LowVoltagePowerDowm(self, en):
+    def setDC1LowVoltagePowerDown(self, en):
         if en:
             super().setRegisterBit(_AXP2101_DC_OVP_UVP_CTRL, 0)
         else:
             super().clrRegisterBit(_AXP2101_DC_OVP_UVP_CTRL, 0)
 
-    def getDC1LowVoltagePowerDowmEn(self) -> bool:
+    def getDC1LowVoltagePowerDownEn(self) -> bool:
         return bool(super().getRegisterBit(_AXP2101_DC_OVP_UVP_CTRL, 0))
 
     # Power control DCDC2 functions
@@ -1295,13 +1294,13 @@ class AXP2101(I2CInterface):
     def getDC2WorkMode(self) -> int:
         return super().getRegisterBit(_AXP2101_DCDC2_VOL_STEPS2, 7)
 
-    def setDC2LowVoltagePowerDowm(self, en: bool) -> None:
+    def setDC2LowVoltagePowerDown(self, en: bool) -> None:
         if en:
             super().setRegisterBit(_AXP2101_DC_OVP_UVP_CTRL, 1)
         else:
             super().clrRegisterBit(_AXP2101_DC_OVP_UVP_CTRL, 1)
 
-    def getDC2LowVoltagePowerDowmEn(self) -> bool:
+    def getDC2LowVoltagePowerDownEn(self) -> bool:
         return bool(super().getRegisterBit(_AXP2101_DC_OVP_UVP_CTRL, 1))
 
     # Power control DCDC3 functions
@@ -1353,13 +1352,13 @@ class AXP2101(I2CInterface):
         return super().getRegisterBit(_AXP2101_DC_VOL2_CTRL, 7)
 
     # DCDC3 85% low voltage turn off PMIC function
-    def setDC3LowVoltagePowerDowm(self, en: bool) -> None:
+    def setDC3LowVoltagePowerDown(self, en: bool) -> None:
         if en:
             super().setRegisterBit(_AXP2101_DC_OVP_UVP_CTRL, 2)
         else:
             super().clrRegisterBit(_AXP2101_DC_OVP_UVP_CTRL, 2)
 
-    def getDC3LowVoltagePowerDowmEn(self) -> bool:
+    def getDC3LowVoltagePowerDownEn(self) -> bool:
         return bool(super().getRegisterBit(_AXP2101_DC_OVP_UVP_CTRL, 2))
 
     # Power control DCDC4 functions
@@ -1399,13 +1398,13 @@ class AXP2101(I2CInterface):
         return (val * _AXP2101_DCDC4_VOL_STEPS2) - 200
 
     # DCDC4 85% low voltage turn off PMIC function
-    def setDC4LowVoltagePowerDowm(self, en: bool) -> None:
+    def setDC4LowVoltagePowerDown(self, en: bool) -> None:
         if en:
             super().setRegisterBit(_AXP2101_DC_OVP_UVP_CTRL, 3)
         else:
             super().clrRegisterBit(_AXP2101_DC_OVP_UVP_CTRL, 3)
 
-    def getDC4LowVoltagePowerDowmEn(self) -> bool:
+    def getDC4LowVoltagePowerDownEn(self) -> bool:
         return bool(super().getRegisterBit(_AXP2101_DC_OVP_UVP_CTRL, 3))
 
     # Power control DCDC5 functions,Output to gpio pin
@@ -1455,13 +1454,13 @@ class AXP2101(I2CInterface):
         super().clrRegisterBit(_AXP2101_DC_VOL4_CTRL, 5)
 
     # DCDC4 85% low voltage turn off PMIC function
-    def setDC5LowVoltagePowerDowm(self, en: bool) -> None:
+    def setDC5LowVoltagePowerDown(self, en: bool) -> None:
         if en:
             super().setRegisterBit(_AXP2101_DC_OVP_UVP_CTRL, 4)
         else:
             super().clrRegisterBit(_AXP2101_DC_OVP_UVP_CTRL, 4)
 
-    def getDC5LowVoltagePowerDowmEn(self) -> bool:
+    def getDC5LowVoltagePowerDownEn(self) -> bool:
         return bool(super().getRegisterBit(_AXP2101_DC_OVP_UVP_CTRL, 4))
 
     # Power control ALDO1 functions
@@ -1971,7 +1970,7 @@ class AXP2101(I2CInterface):
             super().writeRegister(_AXP2101_INTSTS1 + i, 0xFF)
             self.statusRegister[i] = 0
 
-    # @brief  Eanble PMU interrupt control mask .
+    # @brief  Enable PMU interrupt control mask .
     # @param   opt: View the related chip type _axp2101_irq_t enumeration parameters in "Params.hpp"
     def enableIRQ(self, opt: int, debug=False) -> None:
         self._setInterruptImpl(opt, True, debug)
@@ -2110,14 +2109,14 @@ class AXP2101(I2CInterface):
         else:
             return False
 
-    def isBatChagerDoneIrq(self) -> bool:
+    def isBatChargeDoneIrq(self) -> bool:
         mask = self.XPOWERS_AXP2101_BAT_CHG_DONE_IRQ >> 16
         if self.intRegister[2] & mask:
             return super()._IS_BIT_SET(self.statusRegister[2], mask)
         else:
             return False
 
-    def isBatChagerStartIrq(self) -> bool:
+    def isBatChargeStartIrq(self) -> bool:
         mask = self.XPOWERS_AXP2101_BAT_CHG_START_IRQ >> 16
         if self.intRegister[2] & mask:
             return super()._IS_BIT_SET(self.statusRegister[2], mask)
@@ -2131,7 +2130,7 @@ class AXP2101(I2CInterface):
         else:
             return False
 
-    def isChagerOverTimeoutIrq(self) -> bool:
+    def isChargeOverTimeoutIrq(self) -> bool:
         mask = self.XPOWERS_AXP2101_CHAGER_TIMER_IRQ >> 16
         if self.intRegister[2] & mask:
             return super()._IS_BIT_SET(self.statusRegister[2], mask)

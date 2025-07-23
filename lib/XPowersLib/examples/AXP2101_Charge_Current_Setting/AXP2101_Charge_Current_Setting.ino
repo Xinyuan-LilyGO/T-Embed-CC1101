@@ -50,7 +50,7 @@ if there is any loss, please bear it by yourself
 #define CONFIG_PMU_IRQ 35
 #endif
 
-XPowersPMU PMU;
+XPowersPMU power;
 
 bool  pmu_flag = false;
 uint8_t curIndex = 4;
@@ -66,7 +66,7 @@ void printChargerConstantCurr()
     const uint16_t currTable[] = {
         0, 0, 0, 0, 100, 125, 150, 175, 200, 300, 400, 500, 600, 700, 800, 900, 1000
     };
-    uint8_t val = PMU.getChargerConstantCurr();
+    uint8_t val = power.getChargerConstantCurr();
     Serial.printf("Setting Charge Target Current - VAL:%u CURRENT:%u\n", val, currTable[val]);
 }
 
@@ -82,7 +82,7 @@ void setup()
 
     Serial.println();
 
-    bool res = PMU.begin(Wire, AXP2101_SLAVE_ADDRESS, CONFIG_PMU_SDA, CONFIG_PMU_SCL);
+    bool res = power.begin(Wire, AXP2101_SLAVE_ADDRESS, CONFIG_PMU_SDA, CONFIG_PMU_SCL);
     if (!res) {
         Serial.println("Failed to initialize power.....");
         while (1) {
@@ -90,39 +90,39 @@ void setup()
         }
     }
 
-    // Set PMU interrupt
+    // Set power interrupt
     pinMode(CONFIG_PMU_IRQ, INPUT);
     attachInterrupt(CONFIG_PMU_IRQ, setFlag, FALLING);
 
     // Disable all interrupts
-    PMU.disableIRQ(XPOWERS_AXP2101_ALL_IRQ);
+    power.disableIRQ(XPOWERS_AXP2101_ALL_IRQ);
 
     // Enable the required interrupt function
-    PMU.enableIRQ(
+    power.enableIRQ(
         XPOWERS_AXP2101_BAT_INSERT_IRQ    | XPOWERS_AXP2101_BAT_REMOVE_IRQ      |   //BATTERY
         XPOWERS_AXP2101_VBUS_INSERT_IRQ   | XPOWERS_AXP2101_VBUS_REMOVE_IRQ     |   //VBUS
         XPOWERS_AXP2101_PKEY_SHORT_IRQ    | XPOWERS_AXP2101_PKEY_LONG_IRQ       |   //POWER KEY
         XPOWERS_AXP2101_BAT_CHG_DONE_IRQ  | XPOWERS_AXP2101_BAT_CHG_START_IRQ       //CHARGE
     );
     // Clear all interrupt flags
-    PMU.clearIrqStatus();
+    power.clearIrqStatus();
 
     // Set the minimum common working voltage of the PMU VBUS input,
-    // below this value will turn off the PMU
-    PMU.setVbusVoltageLimit(XPOWERS_AXP2101_VBUS_VOL_LIM_4V36);
+    // below this value will turn off the power
+    power.setVbusVoltageLimit(XPOWERS_AXP2101_VBUS_VOL_LIM_4V36);
     // Set the maximum current of the PMU VBUS input,
     // higher than this value will turn off the PMU
-    PMU.setVbusCurrentLimit(XPOWERS_AXP2101_VBUS_CUR_LIM_1500MA);
+    power.setVbusCurrentLimit(XPOWERS_AXP2101_VBUS_CUR_LIM_1500MA);
     // Set VSY off voltage as 2600mV , Adjustment range 2600mV ~ 3300mV
-    PMU.setSysPowerDownVoltage(2600);
+    power.setSysPowerDownVoltage(2600);
     // Set the precharge charging current
-    PMU.setPrechargeCurr(XPOWERS_AXP2101_PRECHARGE_50MA);
+    power.setPrechargeCurr(XPOWERS_AXP2101_PRECHARGE_50MA);
     // Set constant current charge current limit
-    PMU.setChargerConstantCurr(XPOWERS_AXP2101_CHG_CUR_200MA);
+    power.setChargerConstantCurr(XPOWERS_AXP2101_CHG_CUR_200MA);
     // Set stop charging termination current
-    PMU.setChargerTerminationCurr(XPOWERS_AXP2101_CHG_ITERM_25MA);
+    power.setChargerTerminationCurr(XPOWERS_AXP2101_CHG_ITERM_25MA);
     // Set charge cut-off voltage
-    PMU.setChargeTargetVoltage(XPOWERS_AXP2101_CHG_VOL_4V1);
+    power.setChargeTargetVoltage(XPOWERS_AXP2101_CHG_VOL_4V1);
 
     /*
     The default setting is CHGLED is automatically controlled by the PMU.
@@ -132,11 +132,11 @@ void setup()
     - XPOWERS_CHG_LED_ON,
     - XPOWERS_CHG_LED_CTRL_CHG,
     * */
-    PMU.setChargingLedMode(XPOWERS_CHG_LED_OFF);
+    power.setChargingLedMode(XPOWERS_CHG_LED_OFF);
     // Set cell battery voltage to 3.3V
-    PMU.setButtonBatteryChargeVoltage(3300);
+    power.setButtonBatteryChargeVoltage(3300);
     // Enable cell battery charge function
-    PMU.enableButtonBatteryCharge();
+    power.enableButtonBatteryCharge();
     // Print default setting current
     printChargerConstantCurr();
 }
@@ -146,12 +146,12 @@ void loop()
     if (pmu_flag) {
         pmu_flag = false;
         // Get PMU Interrupt Status Register
-        uint32_t status = PMU.getIrqStatus();
-        if (PMU.isPekeyShortPressIrq()) {
+        power.getIrqStatus();
+        if (power.isPekeyShortPressIrq()) {
 
             // Set constant current charge current limit
             // For setting a current greater than 500mA, the VBUS power supply must be sufficient. If the input is lower than 5V, the charging current will be below 500mA.
-            if (!PMU.setChargerConstantCurr(curIndex)) {
+            if (!power.setChargerConstantCurr(curIndex)) {
                 Serial.println("Setting Charger Constant Current Failed!");
             }
             printChargerConstantCurr();
@@ -163,10 +163,10 @@ void loop()
             }
 
             // Toggle CHG led
-            PMU.setChargingLedMode(PMU.getChargingLedMode() != XPOWERS_CHG_LED_OFF ? XPOWERS_CHG_LED_OFF : XPOWERS_CHG_LED_ON);
+            power.setChargingLedMode(power.getChargingLedMode() != XPOWERS_CHG_LED_OFF ? XPOWERS_CHG_LED_OFF : XPOWERS_CHG_LED_ON);
         }
         // Clear PMU Interrupt Status Register
-        PMU.clearIrqStatus();
+        power.clearIrqStatus();
     }
 
     delay(200);
