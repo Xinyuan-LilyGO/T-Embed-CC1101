@@ -55,6 +55,10 @@ bool ui_scr4_get_nfc_st(void) {
 bool ui_scr4_get_sd_st(void) {
     return sd_is_valid();
 }
+bool ui_scr4_get_nrf24_st(void)
+{
+    return nrf24_is_init();
+}
 #endif
 //************************************[ screen 5 ]****************************************** battery
 #if 1

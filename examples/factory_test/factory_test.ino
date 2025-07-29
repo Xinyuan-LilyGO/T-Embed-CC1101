@@ -182,7 +182,7 @@ void multi_thread_create(void)
     xTaskCreate(lora_task, "lora_task", 1024 * 2, NULL, LORA_PRIORITY, &lora_handle);
     xTaskCreate(ws2812_task, "ws2812_task", 1024 * 2, NULL, WS2812_PRIORITY, &ws2812_handle);
     xTaskCreate(battery_task, "battery_task", 1024 * 2, NULL, BATTERY_PRIORITY, &battery_handle);
-    // xTaskCreate(nrf24_task, "nrf24_task", 1024 * 4, NULL, NRF24_PRIORITY, &nrf24_handle);
+    xTaskCreate(nrf24_task, "nrf24_task", 1024 * 10, NULL, NRF24_PRIORITY, &nrf24_handle);
 }
 
 void wifi_init(void)
@@ -435,7 +435,7 @@ void setup(void)
 
     // infared_init();
 
-    // nrf24_init();
+    nrf24_init();
 
     multi_thread_create();
 
@@ -462,6 +462,8 @@ void setup(void)
     //     delay(15);
     // }
     // ws2812_set_color(CRGB::Black);
+
+    
 }
 
 int file_cnt = 0;

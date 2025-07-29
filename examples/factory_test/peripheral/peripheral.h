@@ -53,6 +53,7 @@ void lora_task(void *param);
 extern TaskHandle_t nrf24_handle;
 
 void nrf24_init(void);
+bool nrf24_is_init();
 int nrf24_get_mode(void);
 void nrf24_set_mode(int mode);
 void nrf24_task(void *param);

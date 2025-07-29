@@ -1196,6 +1196,7 @@ bool __attribute__((weak)) ui_scr4_get_lora_st(void) { return false; }
 bool __attribute__((weak)) ui_scr4_get_pmu_st(void) {  return false; }
 bool __attribute__((weak)) ui_scr4_get_nfc_st(void) {  return false; }
 bool __attribute__((weak)) ui_scr4_get_sd_st(void) {   return false; }
+bool __attribute__((weak)) ui_scr4_get_nrf24_st(void) {return false; }
 // end
 // --------------------- screen 4.1 --------------------- About System
 #if 1
@@ -2549,12 +2550,13 @@ void nrf_recv_event(lv_timer_t *t)
     if(nrf24_get_mode() == NRF24_MODE_SEND) {
         String str = "Hello World! #" + String(nrf24_cont++);
         nrf24_send(str.c_str());
-        lv_label_set_text_fmt(nrf24_label, "%s", str.c_str());
+        // lv_label_set_text_fmt(nrf24_label, "%s", str.c_str());
         ws2812_pos_demo(nrf24_cont);
     } else if(nrf24_get_mode() == NRF24_MODE_RECV)
     {
         String str = "recv #" + String(nrf24_cont++);
-        lv_label_set_text_fmt(nrf24_label, "%s", str.c_str());
+        // lv_label_set_text_fmt(nrf24_label, "%s", str.c_str());
+        // ws2812_pos_demo1();
     }
     lv_timer_handler();
 }
@@ -2601,36 +2603,42 @@ static void create9(lv_obj_t *parent) {
     lv_obj_set_style_border_width(scr9_cont, 0, LV_PART_MAIN);
     lv_obj_set_style_pad_all(scr9_cont, 0, LV_PART_MAIN);
 
-    nrf24_label = lv_label_create(scr9_cont);
-    lv_obj_set_style_text_color(nrf24_label, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
-    lv_obj_set_style_text_font(nrf24_label, FONT_BOLD_16, LV_PART_MAIN);
-    lv_label_set_text(nrf24_label, "---");
-    lv_obj_align(nrf24_label, LV_ALIGN_CENTER, 0, 0);
-
-    nrf24_mode_btn = lv_btn_create(scr9_cont);
-    lv_obj_set_height(nrf24_mode_btn, 20);
-    lv_obj_set_style_shadow_width(nrf24_mode_btn, 0, LV_PART_MAIN);
-    lv_obj_set_style_pad_row(nrf24_mode_btn, 0, LV_PART_MAIN);
-    lv_obj_remove_style(nrf24_mode_btn, NULL, LV_STATE_FOCUS_KEY);
-    lv_obj_set_style_outline_pad(nrf24_mode_btn, 2, LV_STATE_FOCUS_KEY);
-    lv_obj_set_style_outline_width(nrf24_mode_btn, 2, LV_STATE_FOCUS_KEY);
-    lv_obj_set_style_outline_color(nrf24_mode_btn, lv_color_hex(EMBED_COLOR_FOCUS_ON), LV_STATE_FOCUS_KEY);
-    lv_obj_align(nrf24_mode_btn, LV_ALIGN_TOP_MID, 0, 6);
-    lv_obj_t *nrf24_info = lv_label_create(nrf24_mode_btn);
-    lv_obj_center(nrf24_info);
-    switch (nrf24_get_mode())
+    if(nrf24_is_init() == false)
     {
-        case NRF24_MODE_SEND: lv_label_set_text(nrf24_info, "send"); break;
-        case NRF24_MODE_RECV: lv_label_set_text(nrf24_info, "recv"); break;
-        default: break;
-    }
-    lv_obj_add_event_cb(nrf24_mode_btn, nrf24_mode_sw_event, LV_EVENT_CLICKED, nrf24_info);
+        nrf24_label = lv_label_create(scr9_cont);
+        lv_obj_set_style_text_color(nrf24_label, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
+        lv_obj_set_style_text_font(nrf24_label, FONT_BOLD_16, LV_PART_MAIN);
+        lv_label_set_text(nrf24_label, "NRF24 is invalid.");
+        lv_obj_align(nrf24_label, LV_ALIGN_CENTER, 0, 0);
 
-    // back btn
-    scr_back_btn_create(scr9_cont, scr9_btn_event_cb);
-    lv_group_set_wrap(lv_group_get_default(), true);
-    entry9_anim(scr9_cont);
-    nrf24_timer = lv_timer_create(nrf_recv_event, 1000, NULL);
+        scr_back_btn_create(scr9_cont, scr9_btn_event_cb);
+    } else {
+        nrf24_mode_btn = lv_btn_create(scr9_cont);
+        lv_obj_set_height(nrf24_mode_btn, 50);
+        lv_obj_set_style_shadow_width(nrf24_mode_btn, 0, LV_PART_MAIN);
+        lv_obj_set_style_pad_row(nrf24_mode_btn, 0, LV_PART_MAIN);
+        lv_obj_remove_style(nrf24_mode_btn, NULL, LV_STATE_FOCUS_KEY);
+        lv_obj_set_style_outline_pad(nrf24_mode_btn, 2, LV_STATE_FOCUS_KEY);
+        lv_obj_set_style_outline_width(nrf24_mode_btn, 2, LV_STATE_FOCUS_KEY);
+        lv_obj_set_style_outline_color(nrf24_mode_btn, lv_color_hex(EMBED_COLOR_FOCUS_ON), LV_STATE_FOCUS_KEY);
+        // lv_obj_align(nrf24_mode_btn, LV_ALIGN_TOP_MID, 0, 6);
+        lv_obj_align(nrf24_mode_btn, LV_ALIGN_CENTER, 0, 0);
+        lv_obj_t *nrf24_info = lv_label_create(nrf24_mode_btn);
+        lv_obj_center(nrf24_info);
+        switch (nrf24_get_mode())
+        {
+            case NRF24_MODE_SEND: lv_label_set_text(nrf24_info, "send"); break;
+            case NRF24_MODE_RECV: lv_label_set_text(nrf24_info, "recv"); break;
+            default: break;
+        }
+        lv_obj_add_event_cb(nrf24_mode_btn, nrf24_mode_sw_event, LV_EVENT_CLICKED, nrf24_info);
+
+        // back btn
+        scr_back_btn_create(scr9_cont, scr9_btn_event_cb);
+        lv_group_set_wrap(lv_group_get_default(), true);
+        entry9_anim(scr9_cont);
+        nrf24_timer = lv_timer_create(nrf_recv_event, 500, NULL);
+    }
 }
 static void entry9(void) {
     vTaskResume(nrf24_handle);
@@ -2643,6 +2651,7 @@ static void destroy9(void) {
         lv_timer_del(nrf24_timer);
         nrf24_timer = NULL;
     }
+    ws2812_set_color(CRGB::Black);
 }
 
 static scr_lifecycle_t screen9 = {
@@ -2652,8 +2661,6 @@ static scr_lifecycle_t screen9 = {
     .destroy = destroy9,
 };
 #endif
-
-
 //************************************[ UI ENTRY ]******************************************
 
 void charge_detection_timer_cb(lv_timer_t *t)
