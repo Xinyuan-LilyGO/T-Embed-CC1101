@@ -19,7 +19,7 @@ void ws2812_set_color(CRGB c)
     for(int i = 0; i < WS2812_NUM_LEDS; i++){
         leds[i] = c;
     }
-    if(ws2812_effs_mode == 0)
+    // if(ws2812_effs_mode == 0)
         FastLED.show();
 }
 
@@ -107,4 +107,26 @@ void ws2812_task(void *param)
         }
         vTaskDelay(pdMS_TO_TICKS(10));
     }
+}
+
+void ws2812_pos_demo(int pos)
+{
+    uint8_t time = millis() >> 4;
+    int curr_pos = pos;
+    int led_pos;
+    ws2812_set_color(CRGB::Black);
+    led_pos = abs(curr_pos) % WS2812_NUM_LEDS;
+    leds[led_pos] = hsvToRgb((uint32_t)time * 359 / 256, 255, 255);
+    FastLED.show();
+}
+
+void ws2812_pos_demo1(void)
+{
+    uint8_t time = millis() >> 4;
+    for (uint16_t i = 0; i < WS2812_NUM_LEDS; i++)
+    {
+        uint8_t p = time - i * 8;
+        leds[i] = hsvToRgb((uint32_t)p * 359 / 256, 255, 255);
+    }
+    FastLED.show();
 }

@@ -1,5 +1,6 @@
 
 #include "utilities.h"
+#define XPOWERS_CHIP_BQ25896
 #include <XPowersLib.h>
 #include "ui.h"
 #include "TFT_eSPI.h"
@@ -26,7 +27,7 @@ uint64_t IR_recv_value = 0x10000000UL;
 #define LORA_PRIORITY    (configMAX_PRIORITIES - 2)
 #define WS2812_PRIORITY  (configMAX_PRIORITIES - 3)
 #define BATTERY_PRIORITY (configMAX_PRIORITIES - 4)
-#define INFARED_PRIORITY (configMAX_PRIORITIES - 5)
+#define NRF24_PRIORITY   (configMAX_PRIORITIES - 5)
 
 /*********************************************************************************
  *                              EXTERN
@@ -47,7 +48,7 @@ TaskHandle_t nfc_handle;
 TaskHandle_t lora_handle;
 TaskHandle_t ws2812_handle;
 TaskHandle_t battery_handle;
-// TaskHandle_t infared_handle;
+TaskHandle_t nrf24_handle;
 
 // wifi
 // char wifi_ssid[WIFI_SSID_MAX_LEN] = "xinyuandianzi";
@@ -181,7 +182,7 @@ void multi_thread_create(void)
     xTaskCreate(lora_task, "lora_task", 1024 * 2, NULL, LORA_PRIORITY, &lora_handle);
     xTaskCreate(ws2812_task, "ws2812_task", 1024 * 2, NULL, WS2812_PRIORITY, &ws2812_handle);
     xTaskCreate(battery_task, "battery_task", 1024 * 2, NULL, BATTERY_PRIORITY, &battery_handle);
-    // xTaskCreate(infared_task, "infared_task", 1024 * 2, NULL, INFARED_PRIORITY, &infared_handle);
+    // xTaskCreate(nrf24_task, "nrf24_task", 1024 * 4, NULL, NRF24_PRIORITY, &nrf24_handle);
 }
 
 void wifi_init(void)
@@ -397,17 +398,17 @@ void setup(void)
 
     pmu_ret = PPM.init(Wire, BOARD_I2C_SDA, BOARD_I2C_SCL, BQ25896_SLAVE_ADDRESS);
     if(pmu_ret) {
-        PPM.setSysPowerDownVoltage(3300);
-        PPM.setInputCurrentLimit(3250);
-        Serial.printf("getInputCurrentLimit: %d mA\n",PPM.getInputCurrentLimit());
-        PPM.disableCurrentLimitPin();
+        // PPM.setSysPowerDownVoltage(3300);
+        // PPM.setInputCurrentLimit(3250);
+        // Serial.printf("getInputCurrentLimit: %d mA\n",PPM.getInputCurrentLimit());
+        // PPM.disableCurrentLimitPin();
         PPM.setChargeTargetVoltage(4208);
-        PPM.setPrechargeCurr(64);
-        PPM.setChargerConstantCurr(832);
-        PPM.getChargerConstantCurr();
-        Serial.printf("getChargerConstantCurr: %d mA\n",PPM.getChargerConstantCurr());
-        PPM.enableADCMeasure();
-        PPM.enableCharge();
+        // PPM.setPrechargeCurr(64);
+        // PPM.setChargerConstantCurr(832);
+        // PPM.getChargerConstantCurr();
+        // Serial.printf("getChargerConstantCurr: %d mA\n",PPM.getChargerConstantCurr());
+        PPM.enableMeasure();
+        // PPM.enableCharge();
         // Turn off charging function
         // If USB is used as the only power input, it is best to turn off the charging function,
         // otherwise the VSYS power supply will have a sawtooth wave, affecting the discharge output capability.
@@ -417,16 +418,15 @@ void setup(void)
         // The OTG function needs to enable OTG, and set the OTG control pin to HIGH
         // After OTG is enabled, if an external power supply is plugged in, OTG will be turned off
 
-        PPM.enableOTG();
-        PPM.disableOTG();
+        // PPM.enableOTG();
+        // PPM.disableOTG();
         // pinMode(OTG_ENABLE_PIN, OUTPUT);
         // digitalWrite(OTG_ENABLE_PIN, HIGH);
     }
 
     bq27220.init();
    
-    if(lora_ret)
-        lora_init(); 
+    lora_init(); 
 
     if(nfc_ret)
         nfc_init();
@@ -434,6 +434,8 @@ void setup(void)
     ws2812_init();
 
     // infared_init();
+
+    // nrf24_init();
 
     multi_thread_create();
 
@@ -454,6 +456,12 @@ void setup(void)
 
     sd_init();
     scr8_read_music_from_SD();
+
+    // for(int i = 0; i < WS2812_NUM_LEDS*10; i++) {
+    //     ws2812_pos_demo(i);
+    //     delay(15);
+    // }
+    // ws2812_set_color(CRGB::Black);
 }
 
 int file_cnt = 0;

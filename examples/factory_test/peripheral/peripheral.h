@@ -5,7 +5,7 @@
 
 /**----------------------------- WS2812 ----------------------------------**/
 #include <FastLED.h>
-#define WS2812_DEFAULT_LIGHT 10
+#define WS2812_DEFAULT_LIGHT 15
 extern TaskHandle_t ws2812_handle;
 
 void ws2812_init(void);
@@ -14,7 +14,8 @@ void ws2812_set_light(uint8_t light);
 void ws2812_set_mode(int m);
 int ws2812_get_mode(void);
 void ws2812_task(void *param);
-
+void ws2812_pos_demo(int pos);
+void ws2812_pos_demo1(void);
 /**------------------------------- NFC -----------------------------------**/
 // PN532
 #include <Wire.h>
@@ -44,7 +45,21 @@ bool lora_is_init(void);
 void lora_send(const char *str);
 void lora_task(void *param);
 
+/**------------------------------ NRF24 -----------------------------------**/
+// NRF24
+#define NRF24_MODE_SEND 0
+#define NRF24_MODE_RECV 1
+
+extern TaskHandle_t nrf24_handle;
+
+void nrf24_init(void);
+int nrf24_get_mode(void);
+void nrf24_set_mode(int mode);
+void nrf24_task(void *param);
+void nrf24_send(const char *str);
+
 /**---------------------------- BATTERY ----------------------------------**/
+#define XPOWERS_CHIP_BQ25896
 #include "XPowersLib.h"
 
 extern TaskHandle_t battery_handle;

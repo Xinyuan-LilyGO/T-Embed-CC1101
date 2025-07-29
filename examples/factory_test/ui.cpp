@@ -222,7 +222,8 @@ const char *name_buf[] = {
     "<- Wifi"       ,
     "<- Music"      ,
     "<- Infrared"   ,
-    "<- Setting"
+    "<- Setting"    ,
+    "<- NRF24"
 };
 
 void entry0_anim(void);
@@ -261,6 +262,7 @@ static void scr0_btn_event_cb(lv_event_t * e)
             case 5: switch_scr0_anim(SCREEN8_ID); break; // ID8 --- music
             case 6: switch_scr0_anim(SCREEN7_1_ID); break; // ID2 --- other
             case 7: switch_scr0_anim(SCREEN4_ID); break; // ID4 --- setting
+            case 8: switch_scr0_anim(SCREEN9_ID); break; // ID9 --- nrf24
             default:
                 break;
         }
@@ -301,6 +303,10 @@ static void scr0_btn_event_cb(lv_event_t * e)
                 lv_obj_set_style_img_recolor_opa(menu_icon, LV_OPA_0, LV_PART_MAIN);
                 break;  
             case 7: 
+                lv_img_set_src(menu_icon, &img_setting_32); 
+                lv_obj_set_style_img_recolor_opa(menu_icon, LV_OPA_0, LV_PART_MAIN);
+                break;
+            case 8: 
                 lv_img_set_src(menu_icon, &img_setting_32); 
                 lv_obj_set_style_img_recolor_opa(menu_icon, LV_OPA_0, LV_PART_MAIN);
                 break;  
@@ -607,10 +613,10 @@ void colorwheel_focus_event(lv_event_t *e)
         c.red = c32.ch.red;
         c.green = c32.ch.green;
         c.blue = c32.ch.blue;
-        if(ui_scr1_get_led_mode() == 0){
-            ui_scr1_set_color(c32);
-            // ws2812_set_color(c);
-        }
+        // if(ui_scr1_get_led_mode() == 0){
+            // ui_scr1_set_color(c32);
+            ws2812_set_color(c);
+        // }
         lv_label_set_text_fmt(label, "0x%02X%02X%02X", c.red, c.green, c.blue);
         lv_obj_set_style_bg_color(light_acr, ws2812_color, LV_PART_KNOB);
         lv_obj_set_style_arc_color(light_acr, ws2812_color, LV_PART_INDICATOR);
@@ -2064,6 +2070,11 @@ int ir_mode = IR_MODE_SEND;
 void entry7_1_anim(lv_obj_t *obj) { entry1_anim(obj); }
 void exit7_1_anim(int user_data, lv_obj_t *obj) { exit1_anim(user_data, obj); }
 
+uint64_t IR_recv_value_prev = IR_recv_value;
+
+
+uint32_t IR_color = 0;
+
 void IR_tiemr_event(lv_timer_t *t)
 {
     if(ir_mode == IR_MODE_SEND) {
@@ -2074,12 +2085,20 @@ void IR_tiemr_event(lv_timer_t *t)
         irsend.sendNEC(IR_send_value);
         IR_send_value += 0x1;
         lv_label_set_text_fmt(IR_info, "IR Send: %lx", IR_send_value);
+
+        ws2812_pos_demo(IR_color++);
     }
 
     if(ir_mode == IR_MODE_RECV) {
         // if(IR_recv_value >> 32 != 0x10) {
         //     IR_recv_value = 0;
         // }
+        if(IR_recv_value_prev != IR_recv_value) {
+            IR_recv_value_prev = IR_recv_value;
+            
+            
+            ws2812_pos_demo1();
+        }
         lv_label_set_text_fmt(IR_info, "IR Recv: %lx", IR_recv_value);
     }
 }
@@ -2111,7 +2130,7 @@ static void scr7_1_btn_event_cb(lv_event_t * e)
 }
 
 void create7_1(lv_obj_t *parent) 
-{   
+{
     scr7_1_cont = lv_obj_create(parent);
     lv_obj_set_size(scr7_1_cont, lv_pct(100), lv_pct(100));
     lv_obj_set_style_bg_color(scr7_1_cont, lv_color_hex(EMBED_COLOR_BG), LV_PART_MAIN);
@@ -2165,6 +2184,7 @@ void exit7_1(void) {
         lv_timer_del(IR_timer);
         IR_timer = NULL;
     }
+    ws2812_set_color(CRGB::Black);
 }
 void destroy7_1(void) {}
 
@@ -2510,6 +2530,130 @@ static scr_lifecycle_t screen8 = {
     .destroy = destroy8,
 };
 #endif
+//************************************[ screen 9 ]****************************************** NRF24
+#if 1
+
+lv_obj_t *scr9_cont;
+lv_obj_t *nrf24_mode_btn;
+lv_obj_t *nrf24_info;
+lv_obj_t *nrf24_label;
+lv_timer_t *nrf24_timer;
+
+int nrf24_cont = 0;
+
+void entry9_anim(lv_obj_t *obj) { entry1_anim(obj); }
+void exit9_anim(int user_data, lv_obj_t *obj) { exit1_anim(user_data, obj); }
+
+void nrf_recv_event(lv_timer_t *t)
+{
+    if(nrf24_get_mode() == NRF24_MODE_SEND) {
+        String str = "Hello World! #" + String(nrf24_cont++);
+        nrf24_send(str.c_str());
+        lv_label_set_text_fmt(nrf24_label, "%s", str.c_str());
+        ws2812_pos_demo(nrf24_cont);
+    } else if(nrf24_get_mode() == NRF24_MODE_RECV)
+    {
+        String str = "recv #" + String(nrf24_cont++);
+        lv_label_set_text_fmt(nrf24_label, "%s", str.c_str());
+    }
+    lv_timer_handler();
+}
+
+static void scr9_btn_event_cb(lv_event_t * e)
+{
+    if(e->code == LV_EVENT_CLICKED){
+        // scr_mgr_set_anim(LV_SCR_LOAD_ANIM_FADE_OUT, -1, -1);
+        // scr_mgr_switch(SCREEN0_ID, false);
+        exit9_anim(SCREEN0_ID, scr9_cont);
+    }
+}
+
+void nrf24_mode_sw_event(lv_event_t *e)
+{
+    lv_obj_t *tgt =  (lv_obj_t *)e->target;
+    lv_obj_t *data = (lv_obj_t *)e->user_data;
+    
+    if(e->code == LV_EVENT_CLICKED) {
+        switch (nrf24_get_mode())
+        {
+            case NRF24_MODE_SEND: 
+                nrf24_set_mode(NRF24_MODE_RECV); 
+                lv_label_set_text(data, "recv");
+                break;
+                
+                // lv_label_set_text_fmt(lora_label, "# Recv - 0");
+            case NRF24_MODE_RECV: 
+                nrf24_set_mode(NRF24_MODE_SEND); 
+                lv_label_set_text(data, "send"); 
+                break;
+                
+                // lv_label_set_text_fmt(lora_label, "# Send - 0");
+            default: break;
+        }
+    }
+}
+
+static void create9(lv_obj_t *parent) {
+    scr9_cont = lv_obj_create(parent);
+    lv_obj_set_size(scr9_cont, lv_pct(100), lv_pct(100));
+    lv_obj_set_style_bg_color(scr9_cont, lv_color_hex(EMBED_COLOR_BG), LV_PART_MAIN);
+    lv_obj_set_scrollbar_mode(scr9_cont, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_set_style_border_width(scr9_cont, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(scr9_cont, 0, LV_PART_MAIN);
+
+    nrf24_label = lv_label_create(scr9_cont);
+    lv_obj_set_style_text_color(nrf24_label, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
+    lv_obj_set_style_text_font(nrf24_label, FONT_BOLD_16, LV_PART_MAIN);
+    lv_label_set_text(nrf24_label, "---");
+    lv_obj_align(nrf24_label, LV_ALIGN_CENTER, 0, 0);
+
+    nrf24_mode_btn = lv_btn_create(scr9_cont);
+    lv_obj_set_height(nrf24_mode_btn, 20);
+    lv_obj_set_style_shadow_width(nrf24_mode_btn, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_row(nrf24_mode_btn, 0, LV_PART_MAIN);
+    lv_obj_remove_style(nrf24_mode_btn, NULL, LV_STATE_FOCUS_KEY);
+    lv_obj_set_style_outline_pad(nrf24_mode_btn, 2, LV_STATE_FOCUS_KEY);
+    lv_obj_set_style_outline_width(nrf24_mode_btn, 2, LV_STATE_FOCUS_KEY);
+    lv_obj_set_style_outline_color(nrf24_mode_btn, lv_color_hex(EMBED_COLOR_FOCUS_ON), LV_STATE_FOCUS_KEY);
+    lv_obj_align(nrf24_mode_btn, LV_ALIGN_TOP_MID, 0, 6);
+    lv_obj_t *nrf24_info = lv_label_create(nrf24_mode_btn);
+    lv_obj_center(nrf24_info);
+    switch (nrf24_get_mode())
+    {
+        case NRF24_MODE_SEND: lv_label_set_text(nrf24_info, "send"); break;
+        case NRF24_MODE_RECV: lv_label_set_text(nrf24_info, "recv"); break;
+        default: break;
+    }
+    lv_obj_add_event_cb(nrf24_mode_btn, nrf24_mode_sw_event, LV_EVENT_CLICKED, nrf24_info);
+
+    // back btn
+    scr_back_btn_create(scr9_cont, scr9_btn_event_cb);
+    lv_group_set_wrap(lv_group_get_default(), true);
+    entry9_anim(scr9_cont);
+    nrf24_timer = lv_timer_create(nrf_recv_event, 1000, NULL);
+}
+static void entry9(void) {
+    vTaskResume(nrf24_handle);
+}
+static void exit9(void) {
+    vTaskSuspend(nrf24_handle);
+}
+static void destroy9(void) { 
+    if(nrf24_timer) {
+        lv_timer_del(nrf24_timer);
+        nrf24_timer = NULL;
+    }
+}
+
+static scr_lifecycle_t screen9 = {
+    .create = create9,
+    .entry = entry9,
+    .exit  = exit9,
+    .destroy = destroy9,
+};
+#endif
+
+
 //************************************[ UI ENTRY ]******************************************
 
 void charge_detection_timer_cb(lv_timer_t *t)
@@ -2571,6 +2715,7 @@ void ui_entry(void)
     scr_mgr_register(SCREEN7_2_ID, &screen7_2); //   -MIC
     scr_mgr_register(SCREEN7_3_ID, &screen7_3); //   -TF Card
     scr_mgr_register(SCREEN8_ID, &screen8);     // music
+    scr_mgr_register(SCREEN9_ID, &screen9);     // nrf24
 
     // printf("EMBED_COLOR_BG:0x%x\n", EMBED_COLOR_BG);
     // printf("EMBED_COLOR_FOCUS_ON:0x%x\n", EMBED_COLOR_FOCUS_ON);

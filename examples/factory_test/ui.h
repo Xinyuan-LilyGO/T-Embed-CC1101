@@ -35,6 +35,7 @@ enum{
     SCREEN7_2_ID,
     SCREEN7_3_ID,
     SCREEN8_ID,
+    SCREEN9_ID,
     SCREEN_ID_MAX,
 };
 
