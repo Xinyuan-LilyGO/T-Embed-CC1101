@@ -11,7 +11,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04  # 指定的运行器环境中运行 [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ubuntu-latest  # 指定的运行器环境中运行 [ubuntu-latest, macos-latest, windows-latest]
     strategy:
       matrix:
         example: 
