@@ -2,7 +2,7 @@
 
 #pragma once
 
-#define T_EMBED_CC1101_SF_VER "v1.2-250729"
+#define T_EMBED_CC1101_SF_VER "v1.3-250822"
 #define T_EMBED_CC1101_HD_VER "v1.0-240729"
 
 #define BOARD_USER_KEY 6

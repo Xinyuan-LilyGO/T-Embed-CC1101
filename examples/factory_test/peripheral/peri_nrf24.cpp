@@ -54,6 +54,10 @@ void nrf24_init(void)
         return;
     }
 
+    radio24.setFrequency(2400);
+
+    radio24.setBitRate(1000);
+
     radio24.setOutputPower(0);
 
     // while(1){

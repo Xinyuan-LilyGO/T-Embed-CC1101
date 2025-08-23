@@ -2613,6 +2613,15 @@ static void create9(lv_obj_t *parent) {
 
         scr_back_btn_create(scr9_cont, scr9_btn_event_cb);
     } else {
+
+        nrf24_label = lv_label_create(scr9_cont);
+        lv_obj_set_style_text_color(nrf24_label, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
+        lv_obj_set_style_text_font(nrf24_label, FONT_BOLD_16, LV_PART_MAIN);
+        lv_label_set_text(nrf24_label, "Freq:2400 M \n"
+                                        "BitRate:1000 kbps\n"
+                                        "Power:0 dBm");
+        lv_obj_align(nrf24_label, LV_ALIGN_LEFT_MID, 10, 0);
+
         nrf24_mode_btn = lv_btn_create(scr9_cont);
         lv_obj_set_height(nrf24_mode_btn, 50);
         lv_obj_set_style_shadow_width(nrf24_mode_btn, 0, LV_PART_MAIN);
@@ -2622,7 +2631,7 @@ static void create9(lv_obj_t *parent) {
         lv_obj_set_style_outline_width(nrf24_mode_btn, 2, LV_STATE_FOCUS_KEY);
         lv_obj_set_style_outline_color(nrf24_mode_btn, lv_color_hex(EMBED_COLOR_FOCUS_ON), LV_STATE_FOCUS_KEY);
         // lv_obj_align(nrf24_mode_btn, LV_ALIGN_TOP_MID, 0, 6);
-        lv_obj_align(nrf24_mode_btn, LV_ALIGN_CENTER, 0, 0);
+        lv_obj_align(nrf24_mode_btn, LV_ALIGN_CENTER, 80, 0);
         lv_obj_t *nrf24_info = lv_label_create(nrf24_mode_btn);
         lv_obj_center(nrf24_info);
         switch (nrf24_get_mode())
