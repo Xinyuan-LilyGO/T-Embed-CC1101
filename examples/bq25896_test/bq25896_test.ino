@@ -1,4 +1,5 @@
 #include <Wire.h>
+#define XPOWERS_CHIP_BQ25896
 #include <XPowersLib.h>
 #include "utilities.h"
 
@@ -24,38 +25,42 @@ void setup()
         }
     }
 
+    PPM.setChargeTargetVoltage(4208);
+    PPM.enableMeasure();
+    PPM.enableCharge();
+
     // Set the minimum operating voltage. Below this voltage, the PPM will protect
-    PPM.setSysPowerDownVoltage(3300);
+    // PPM.setSysPowerDownVoltage(3300);
 
     // Set input current limit, default is 500mA
-    PPM.setInputCurrentLimit(3250);
+    // PPM.setInputCurrentLimit(3250);
 
-    Serial.printf("getInputCurrentLimit: %d mA\n",PPM.getInputCurrentLimit());
+    // Serial.printf("getInputCurrentLimit: %d mA\n",PPM.getInputCurrentLimit());
 
     // Disable current limit pin
-    PPM.disableCurrentLimitPin();
+    // PPM.disableCurrentLimitPin();
 
     // Set the charging target voltage, Range:3840 ~ 4608mV ,step:16 mV
-    PPM.setChargeTargetVoltage(4208);
+    // PPM.setChargeTargetVoltage(4208);
 
     // Set the precharge current , Range: 64mA ~ 1024mA ,step:64mA
-    PPM.setPrechargeCurr(64);
+    // PPM.setPrechargeCurr(64);
 
     // The premise is that Limit Pin is disabled, or it will only follow the maximum charging current set by Limi tPin.
     // Set the charging current , Range:0~5056mA ,step:64mA
-    PPM.setChargerConstantCurr(832);
+    // PPM.setChargerConstantCurr(832);
 
     // Get the set charging current
-    PPM.getChargerConstantCurr();
-    Serial.printf("getChargerConstantCurr: %d mA\n",PPM.getChargerConstantCurr());
+    // PPM.getChargerConstantCurr();
+    // Serial.printf("getChargerConstantCurr: %d mA\n",PPM.getChargerConstantCurr());
 
 
     // To obtain voltage data, the ADC must be enabled first
-    PPM.enableADCMeasure();
+    // PPM.enableADCMeasure();
     
     // Turn on charging function
     // If there is no battery connected, do not turn on the charging function
-    PPM.enableCharge();
+    // PPM.enableCharge();
 
     // Turn off charging function
     // If USB is used as the only power input, it is best to turn off the charging function, 

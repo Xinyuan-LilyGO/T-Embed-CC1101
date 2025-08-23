@@ -1,4 +1,5 @@
 #include <Wire.h>
+#define XPOWERS_CHIP_BQ25896
 #include <XPowersLib.h>
 #include "utilities.h"
 
