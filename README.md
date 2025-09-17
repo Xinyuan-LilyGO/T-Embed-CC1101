@@ -260,6 +260,7 @@ Therefore, when the SD card is not detected, it is recommended to change a SanDi
 |  How do I turn on the device after I shut it down?  | [Issues #5](https://github.com/Xinyuan-LilyGO/T-Embed-CC1101/issues/5) |
 |      How do I configure Wifi with EspTouch?         | [Issues #4](https://github.com/Xinyuan-LilyGO/T-Embed-CC1101/issues/4) |
 |            Why won't the battery charge？            | [Issues #9](https://github.com/Xinyuan-LilyGO/T-Embed-CC1101/issues/9) |
+|            no display on the screen            | [dosc](./docs/issue.md) |
 
 ## :seven: Schematic & 3D 🎁
 
