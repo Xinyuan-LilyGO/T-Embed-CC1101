@@ -8,7 +8,8 @@
 
 #define EXAMPLE_REC_TIME    15       // Recording time
 #define EXAMPLE_I2S_CH      0        // I2S Channel Number
-#define EXAMPLE_SAMPLE_RATE 44100    // Audio Sample Rate  44.1KHz
+// #define EXAMPLE_SAMPLE_RATE 44100   // Audio Sample Rate  44.1KHz
+#define EXAMPLE_SAMPLE_RATE 16000U    // Audio Sample Rate  16KHz
 #define EXAMPLE_BIT_SAMPLE  16       // Audio Bit Sample
 
 #define SPI_DMA_CHAN        SPI_DMA_CH_AUTO
@@ -118,6 +119,17 @@ void init_microphone(void)
 void setup(){
     Serial.begin(115200);
     while(!Serial) { delay (10); }
+
+    // LORA、SD and LCD use the same spi, in order to avoid mutual influence; 
+    // before powering on, all CS signals should be pulled high and in an unselected state;
+#define TFT_CS 41 
+    pinMode(TFT_CS, OUTPUT);
+    digitalWrite(TFT_CS, HIGH);
+    pinMode(BOARD_SD_CS, OUTPUT);
+    digitalWrite(BOARD_SD_CS, HIGH);
+    pinMode(BOARD_LORA_CS, OUTPUT);
+    digitalWrite(BOARD_LORA_CS, HIGH);
+#undef TFT_CS
 
 #ifdef REASSIGN_PINS
     SPI.begin(sck, miso, mosi);

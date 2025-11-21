@@ -43,24 +43,27 @@ The SDCard is connected using SPI peripheral.
 
 ## Example Output
 
-Running this example, you will see the Bits per Sample changes every 5 seconds after you have run this example. You can use `i2s_set_clk` to change the Bits per Sample and the Sample Rate. The output log can be seen below:
+
+Open the serial port and start recording for 15 seconds. You can use `i2s_set_clk` to change the Bits per Sample and the Sample Rate. The output log can be seen below:
 
 ```
-I (361) pdm_rec_example: PDM microphone recording Example start
-I (371) I2S: DMA Malloc info, datalen=blocksize=2048, dma_buf_count=64
-I (401) I2S: APLL: Req RATE: 44100, real rate: 88199.977, BITS: 16, CLKM: 1, BCK_M: 8, MCLK: 22579194.000, SCLK: 2822399.250000, diva: 1, divb: 0
-I (431) I2S: APLL: Req RATE: 44100, real rate: 88199.977, BITS: 16, CLKM: 1, BCK_M: 8, MCLK: 22579194.000, SCLK: 2822399.250000, diva: 1, divb: 0
-I (431) pdm_rec_example: Initializing SD card
-I (431) pdm_rec_example: Using SDMMC peripheral
-I (441) gpio: GPIO[13]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0
-Name: USD
-Type: SDHC/SDXC
-Speed: 20 MHz
-Size: 3813MB
-I (481) pdm_rec_example: Starting recording for 60 seconds!
-I (481) pdm_rec_example: Opening file
-I (60451) pdm_rec_example: Recording done!
-I (60471) pdm_rec_example: File written on SDCard
-I (60471) pdm_rec_example: Card unmounted
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x15 (USB_UART_CHIP_RESET),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4202ed26
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce3808,len:0x44c
+load:0x403c9700,len:0xbd8
+load:0x403cc700,len:0x2a80
+entry 0x403c98d0
+[   105][I][esp32-hal-psram.c:96] psramInit(): PSRAM enabled
+SD Card Type: SDHC
+SD Card Size: 30436MB
+Starting recording for 15 seconds!
+Opening File
+Recording done!
+File written on SDCard
+
 ```
 
