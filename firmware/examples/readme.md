@@ -1,5 +1,9 @@
 
 ---
+
+`nfc_test.bin`: To test the NFC reading function, it is necessary to open the serial port to view the read information.
+
+---
 Test program for the nrf2401 module, Working frequency: 2400 MHz
 
 When an error occurs, open the serial port to check the error code and provide feedback.
