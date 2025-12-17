@@ -16,7 +16,7 @@
 ## :zero: Version 🎁
 
 ### 1、Latest version
-- Software : v1.1-250109
+- Software : v1.3-250822
 - Hardware : v1.0-240729
 
 ### 2、Where to buy.
