@@ -37,6 +37,14 @@ Video about T-Embed-CC1101 :  [youtube](https://www.youtube.com/watch?v=U06XI1wt
 |   Battery Chip   |                  BQ25896 (0x6B), BQ27220 (0x55)                  |
 |    LED Driver    |                              WS2812                              |
 
+Expansion module:
+
+| -            | NRF24                                                                                       |
+| :----------- | :------------------------------------------------------------------------------------------ |
+| Module style | ![alt text](./docs/README_img/nrf24.png)                                                    |
+| PIN          | CS        --- 44  <br>CE        --- 43 <br>MOSI   --- 9<br>MISO   --- 10<br>SCK      --- 11 |
+| examples     | [click me](./examples/extend_nrf2401)                                                       |
+
 ➡ Some interesting projects that support T-Embed-CC1101：
 
 |     name     |                                                      code                                                       |                                       web                                        |
