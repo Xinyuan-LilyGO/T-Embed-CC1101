@@ -17,7 +17,7 @@
 
 ### 1、Latest version
 - Software : v1.3-250822
-- Hardware : v1.0-240729
+- Hardware : v1.0-241103
 
 ### 2、Where to buy.
 [LilyGo Store](https://www.lilygo.cc/products/t-embed-cc1101)
@@ -38,12 +38,13 @@ Video about T-Embed-CC1101 :  [youtube](https://www.youtube.com/watch?v=U06XI1wt
 |    LED Driver    |                              WS2812                              |
 
 ➡ Some interesting projects that support T-Embed-CC1101：
-|       name       |                                                      code                                                       |                                                                       web                                                                        |
-| :--------------: | :-------------------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------------------------------------------------------: |
-|      Bruce       |        [github](https://github.com/pr3y/Bruce/tree/WebPage "https://github.com/pr3y/Bruce/tree/WebPage")        |                                 [web](https://bruce.computer/flasher.html "https://bruce.computer/flasher.html")                                 |
-|     Launcher     | [github](https://github.com/bmorcelli/M5Stick-Launcher.git "https://github.com/bmorcelli/M5Stick-Launcher.git") |            [web](https://bmorcelli.github.io/M5Stick-Launcher/flash0.html "https://bmorcelli.github.io/M5Stick-Launcher/flash0.html")            |
-|   CapibaraZero   |            [github](https://github.com/CapibaraZero/fw.git "https://github.com/CapibaraZero/fw.git")            | [web](https://capibarazero.com/docs/esp32_s3/boards/LilyGo_T_Embed_CC1101 "https://capibarazero.com/docs/esp32_s3/boards/LilyGo_T_Embed_CC1101") |
-| ESP32 Bus Pirate |                              [github](https://github.com/geo-tp/ESP32-Bus-Pirate)                               |                                                                       ---                                                                        |
+
+|     name     |                                                      code                                                       |                                       web                                        |
+| :----------: | :-------------------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------: |
+|    Bruce     |        [github](https://github.com/pr3y/Bruce/tree/WebPage "https://github.com/pr3y/Bruce/tree/WebPage")        | [web](https://bruce.computer/flasher.html "https://bruce.computer/flasher.html") |
+|   Launcher   | [github](https://github.com/bmorcelli/M5Stick-Launcher.git "https://github.com/bmorcelli/M5Stick-Launcher.git") |             [web](https://bmorcelli.github.io/Launcher/catalog.html)             |
+| CapibaraZero |            [github](https://github.com/CapibaraZero/fw.git "https://github.com/CapibaraZero/fw.git")            |    [web](https://capibarazero.com/docs/esp32_s3/boards/LilyGo_T_Embed_CC1101)    |
+
 ## :two: Module 🎁
 
 Datasheets on the chip are available in [./hardware](./hardware/) directory.
@@ -272,4 +273,4 @@ CC1101 Schematic : [CC1101](./hardware/cc1101-shield.pdf)
 
 CC1101 Pins : [CC1101 Pins](./hardware/CC1101_pin.png)
 
-3D Files : [T-Embed CC1101.stp](./3D_files/T-Embed%20CC1101.stp)
+3D Files : [T-Embed CC1101.stp](./3D_files)
