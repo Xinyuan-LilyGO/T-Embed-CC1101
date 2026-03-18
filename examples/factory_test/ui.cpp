@@ -6,6 +6,8 @@
 #include "peripheral/peripheral.h"
 #include "utilities.h"
 
+#define LOW_BATTERY_FONT FONT_BOLD_16
+
 #define UI_THEME_DARK  0
 #define UI_THEME_LIGHT 1
 
@@ -24,6 +26,21 @@ lv_obj_t *batt_line[BAT_INFO_LIEN_NUM];
 lv_obj_t *lora_line[BAT_INFO_LIEN_NUM];
 
 lv_timer_t *taskbar_timer = NULL;
+lv_timer_t *power_guard_timer = NULL;
+
+static constexpr uint16_t LOW_BATTERY_THRESHOLD_SOC = 5;
+static constexpr uint16_t LOW_BATTERY_THRESHOLD_MV = 3300;
+static constexpr uint32_t LOW_BATTERY_COUNTDOWN_SECONDS = 20;
+
+static lv_obj_t *low_battery_overlay = NULL;
+static lv_obj_t *low_battery_dialog = NULL;
+static lv_obj_t *low_battery_msg = NULL;
+static lv_obj_t *low_battery_countdown = NULL;
+
+static bool low_battery_warning_latched = false;
+static bool low_battery_shutdown_requested = false;
+static uint32_t low_battery_shutdown_deadline_ms = 0;
+static uint32_t low_battery_last_countdown = 0xFFFFFFFFUL;
 
 #define GLOBAL_BUF_LEN 48
 static char global_buf[GLOBAL_BUF_LEN];
@@ -32,6 +49,95 @@ static char global_buf[GLOBAL_BUF_LEN];
 bool prompt_is_busy = false;
 lv_timer_t *prompt_time;
 lv_obj_t *prompt_label;
+
+static void low_battery_popup_destroy(void)
+{
+    if (low_battery_overlay) {
+        lv_obj_del(low_battery_overlay);
+        low_battery_overlay = NULL;
+    }
+    low_battery_dialog = NULL;
+    low_battery_msg = NULL;
+    low_battery_countdown = NULL;
+    low_battery_last_countdown = 0xFFFFFFFFUL;
+}
+
+static void low_battery_popup_ensure(void)
+{
+    if (low_battery_overlay) {
+        return;
+    }
+
+    low_battery_overlay = lv_obj_create(lv_layer_top());
+    lv_obj_set_size(low_battery_overlay, LV_HOR_RES, LV_VER_RES);
+    lv_obj_set_style_bg_color(low_battery_overlay, lv_color_hex(0x000000), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(low_battery_overlay, LV_OPA_70, LV_PART_MAIN);
+    lv_obj_set_style_border_width(low_battery_overlay, 0, LV_PART_MAIN);
+    lv_obj_set_style_radius(low_battery_overlay, 0, LV_PART_MAIN);
+    lv_obj_set_scrollbar_mode(low_battery_overlay, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_clear_flag(low_battery_overlay, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(low_battery_overlay, LV_OBJ_FLAG_CLICKABLE);
+
+    low_battery_dialog = lv_obj_create(low_battery_overlay);
+    lv_obj_set_size(low_battery_dialog, DISPALY_WIDTH * 9 / 10, LV_SIZE_CONTENT);
+    lv_obj_center(low_battery_dialog);
+    lv_obj_set_style_pad_all(low_battery_dialog, 12, LV_PART_MAIN);
+    lv_obj_set_style_pad_row(low_battery_dialog, 10, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(low_battery_dialog, lv_color_hex(EMBED_COLOR_PROMPT_BG), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(low_battery_dialog, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_border_color(low_battery_dialog, lv_color_hex(0xD8B11E), LV_PART_MAIN);
+    lv_obj_set_style_border_width(low_battery_dialog, 2, LV_PART_MAIN);
+    lv_obj_set_style_radius(low_battery_dialog, 10, LV_PART_MAIN);
+    lv_obj_set_style_shadow_width(low_battery_dialog, 0, LV_PART_MAIN);
+    lv_obj_set_scrollbar_mode(low_battery_dialog, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_clear_flag(low_battery_dialog, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_flex_flow(low_battery_dialog, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(low_battery_dialog, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+
+    low_battery_msg = lv_label_create(low_battery_dialog);
+    lv_obj_set_width(low_battery_msg, lv_pct(100));
+    lv_obj_set_style_text_align(low_battery_msg, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+    lv_obj_set_style_text_color(low_battery_msg, lv_color_hex(EMBED_COLOR_PROMPT_TXT), LV_PART_MAIN);
+    lv_obj_set_style_text_font(low_battery_msg, LOW_BATTERY_FONT, LV_PART_MAIN);
+    lv_label_set_text(low_battery_msg, "Low battery, please charge");
+
+    low_battery_countdown = lv_label_create(low_battery_dialog);
+    lv_obj_set_width(low_battery_countdown, lv_pct(100));
+    lv_obj_set_style_text_align(low_battery_countdown, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+    lv_obj_set_style_text_color(low_battery_countdown, lv_color_hex(EMBED_COLOR_PROMPT_TXT), LV_PART_MAIN);
+    lv_obj_set_style_text_font(low_battery_countdown, LOW_BATTERY_FONT, LV_PART_MAIN);
+}
+
+static void low_battery_popup_update(uint32_t countdown_seconds)
+{
+    low_battery_popup_ensure();
+    if (countdown_seconds == low_battery_last_countdown) {
+        return;
+    }
+
+    low_battery_last_countdown = countdown_seconds;
+    lv_label_set_text_fmt(low_battery_countdown, "Power off in %lu s", (unsigned long)countdown_seconds);
+}
+
+static uint16_t ui_get_battery_voltage_mv(void)
+{
+    uint16_t battery_voltage = PPM.getBattVoltage();
+    if (battery_voltage == 0) {
+        battery_voltage = bq27220.getVoltage();
+    }
+    return battery_voltage;
+}
+
+static bool ui_is_usb_power_present(void)
+{
+    return PPM.isVbusIn() || (PPM.getVbusVoltage() >= 4000);
+}
+
+static bool ui_is_low_battery(void)
+{
+    uint16_t battery_voltage = ui_get_battery_voltage_mv();
+    return (battery_voltage != 0) && (battery_voltage <= LOW_BATTERY_THRESHOLD_MV);
+}
 
 const char * ui_get_battert_level()
 {
@@ -84,6 +190,45 @@ void prompt_info(const char *str, uint16_t time)
         lv_timer_del(prompt_time);
         prompt_is_busy = false;
         prompt_create(str, time);
+    }
+}
+
+static void power_guard_timer_cb(lv_timer_t *t)
+{
+    LV_UNUSED(t);
+
+    bool vbus_in = ui_is_usb_power_present();
+    if (vbus_in) {
+        low_battery_warning_latched = false;
+        low_battery_shutdown_requested = false;
+        low_battery_shutdown_deadline_ms = 0;
+        low_battery_popup_destroy();
+        return;
+    }
+
+    if (!low_battery_warning_latched && ui_is_low_battery()) {
+        low_battery_warning_latched = true;
+        low_battery_shutdown_requested = false;
+        low_battery_shutdown_deadline_ms = millis() + LOW_BATTERY_COUNTDOWN_SECONDS * 1000UL;
+        low_battery_last_countdown = 0xFFFFFFFFUL;
+        Serial.printf("Low battery warning armed: soc=%u%%, vbat=%umV\n",
+                      bq27220.getStateOfCharge(),
+                      ui_get_battery_voltage_mv());
+    }
+
+    if (!low_battery_warning_latched) {
+        low_battery_popup_destroy();
+        return;
+    }
+
+    int32_t remaining_ms = (int32_t)(low_battery_shutdown_deadline_ms - millis());
+    uint32_t countdown_seconds = remaining_ms <= 0 ? 0UL : (uint32_t)((remaining_ms + 999) / 1000);
+    low_battery_popup_update(countdown_seconds);
+
+    if (remaining_ms <= 0 && !low_battery_shutdown_requested) {
+        low_battery_shutdown_requested = true;
+        Serial.println("Low battery countdown expired, shutting down via BQ25896.");
+        PPM.shutdown();
     }
 }
 
@@ -1535,7 +1680,7 @@ void batt_trans_event_cb(lv_event_t *e)
 
 void batt_timer_event(lv_timer_t *t)
 {
-    char buf[16];
+    char buf[48];
     if(show_batt_type) {
         lv_label_set_text(batt_label, "BQ25896");
 
@@ -1557,40 +1702,40 @@ void batt_timer_event(lv_timer_t *t)
         lv_snprintf(buf, 16, "%s", PPM.getBusStatusString());
         battery_set_line(batt_line[6], "VBUS Status:", buf);
     } else {
+        BQ27220BatteryStatus batt_status = {0};
+        BQ27220GaugingStatus gauging_status = {0};
+        bool usb_present = ui_is_usb_power_present();
+        bq27220.getBatteryStatus(&batt_status);
+        bq27220.getGaugingStatus(&gauging_status);
+
         lv_label_set_text(batt_label, "BQ27220");
 
-        lv_snprintf(buf, 16, "%s", (bq27220.getIsCharging() == true ? "Connected" : "Disonnected"));
-        battery_set_line(batt_line[0], "VBUS Input:", buf);
+        lv_label_set_text_fmt(batt_line[0], "VBUS:%s %dmV", (usb_present ? "Conn" : "Disc"), PPM.getVbusVoltage());
 
-        // BQ27220BatteryStatus batt;
-        // bq27220.getBatteryStatus(&batt);
-        // lv_snprintf(buf, 16, "0x%x", batt.full);
-        // battery_set_line(batt_line[1], "Battery Status:", buf);
-
-        if(bq27220.getIsCharging() == true ){
-            lv_snprintf(buf, 16, "%s", (bq27220.getCharingFinish()? "Finsish":"Charging"));
+        if(usb_present) {
+            if(bq27220.getChargeInhibit()) {
+                lv_snprintf(buf, sizeof(buf), "%s", "Inhibit");
+            } else if(bq27220.getCharingFinish()) {
+                lv_snprintf(buf, sizeof(buf), "%s", "Finish");
+            } else if(bq27220.getIsCharging()) {
+                lv_snprintf(buf, sizeof(buf), "%s", "Charging");
+            } else {
+                lv_snprintf(buf, sizeof(buf), "%s", "Relaxation");
+            }
         } else {
-            lv_snprintf(buf, 16, "%s", "Discharge");
+            lv_snprintf(buf, sizeof(buf), "%s", "Discharge");
         }
-        battery_set_line(batt_line[1], "Charing Status:", buf);
+        lv_label_set_text_fmt(batt_line[1], "%s %s %dmA", PPM.getChargeStatusString(), PPM.getBusStatusString(), PPM.getChargeCurrent());
 
-        lv_snprintf(buf, 16, "%dmV", bq27220.getVoltage());
-        battery_set_line(batt_line[2], "Voltage:", buf);
+        lv_label_set_text_fmt(batt_line[2], "Bat:0x%04X Gau:0x%04X", batt_status.full, gauging_status.full);
 
-        lv_snprintf(buf, 16, "%dmA", bq27220.getCurrent());
-        battery_set_line(batt_line[3], "Current:", buf);
+        lv_label_set_text_fmt(batt_line[3], "V:%dmV T:%.1fC", bq27220.getVoltage(), (float)(bq27220.getTemperature() / 10.0 - 273.0));
 
-        // lv_snprintf(buf, 16, "%dmv", bq27220.getChargeVoltageMax());
-        // battery_set_line(batt_line[4], "Max Volt:", buf);
+        lv_label_set_text_fmt(batt_line[4], "I:%dmA Avg:%dmA", bq27220.getCurrent(), bq27220.getAverageCurrent());
 
-        lv_snprintf(buf, 16, "%.2f", (float)(bq27220.getTemperature() / 10.0 - 273.0));
-        battery_set_line(batt_line[4], "Temperature:", buf);
+        lv_label_set_text_fmt(batt_line[5], "Cmd:%umA Cap:%u/%u", bq27220.getChargeCurrent(), bq27220.getRemainingCapacity(), bq27220.getFullChargeCapacity());
 
-        lv_snprintf(buf, 16, "%d/%d", bq27220.getRemainingCapacity(), bq27220.getFullChargeCapacity());
-        battery_set_line(batt_line[5], "Capacity:", buf);
-
-        lv_snprintf(buf, 16, "%d", bq27220.getStateOfCharge());
-        battery_set_line(batt_line[6], "Capacity Percent:", buf);
+        lv_label_set_text_fmt(batt_line[6], "SOC:%u%% SOH:%u%%", bq27220.getStateOfCharge(), bq27220.getStateOfHealth());
     }
 }
 
@@ -1668,13 +1813,11 @@ void create5(lv_obj_t *parent)
 void entry5(void) {   
     entry5_anim(scr5_cont);
     batt_timer = lv_timer_create(batt_timer_event, 1000, NULL);
-    vTaskResume(battery_handle);
     lv_group_set_wrap(lv_group_get_default(), true);
 }
 void exit5(void) {
     lv_timer_del(batt_timer);
     batt_timer = NULL;
-    vTaskSuspend(battery_handle);
     lv_group_set_wrap(lv_group_get_default(), false);
 }
 void destroy5(void) { 
@@ -2715,6 +2858,7 @@ void ui_entry(void)
 
     taskbar_timer = lv_timer_create(charge_detection_timer_cb, 1000, NULL);
     lv_timer_pause(taskbar_timer);
+    power_guard_timer = lv_timer_create(power_guard_timer_cb, 1000, NULL);
 
     scr_mgr_init();
     ui_theme_setting(setting_theme);

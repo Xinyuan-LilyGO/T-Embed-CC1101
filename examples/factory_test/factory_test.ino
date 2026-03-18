@@ -181,7 +181,6 @@ void multi_thread_create(void)
     xTaskCreate(nfc_task, "nfc_task", 1024 * 3, NULL, NFC_PRIORITY, &nfc_handle);
     xTaskCreate(lora_task, "lora_task", 1024 * 2, NULL, LORA_PRIORITY, &lora_handle);
     xTaskCreate(ws2812_task, "ws2812_task", 1024 * 2, NULL, WS2812_PRIORITY, &ws2812_handle);
-    xTaskCreate(battery_task, "battery_task", 1024 * 2, NULL, BATTERY_PRIORITY, &battery_handle);
     xTaskCreate(nrf24_task, "nrf24_task", 1024 * 10, NULL, NRF24_PRIORITY, &nrf24_handle);
 }
 
@@ -398,16 +397,31 @@ void setup(void)
 
     pmu_ret = PPM.init(Wire, BOARD_I2C_SDA, BOARD_I2C_SCL, BQ25896_SLAVE_ADDRESS);
     if(pmu_ret) {
+        PPM.enableBatterPowerPath();
+        PPM.setSysPowerDownVoltage(3300);
+
+        // Use explicit charger settings instead of relying on reset defaults.
+        PPM.disableCurrentLimitPin();
+        PPM.setInputCurrentLimit(1000);
+        PPM.setChargeTargetVoltage(4208);
+        PPM.setPrechargeCurr(128);
+        PPM.setChargerConstantCurr(512);
+        PPM.enableMeasure();
+        PPM.enableCharge();
+
+        Serial.printf("BQ25896 input limit: %d mA\n", PPM.getInputCurrentLimit());
+        Serial.printf("BQ25896 fast charge current: %d mA\n", PPM.getChargerConstantCurr());
+
         // PPM.setSysPowerDownVoltage(3300);
         // PPM.setInputCurrentLimit(3250);
         // Serial.printf("getInputCurrentLimit: %d mA\n",PPM.getInputCurrentLimit());
         // PPM.disableCurrentLimitPin();
-        PPM.setChargeTargetVoltage(4208);
+        // PPM.setChargeTargetVoltage(4208);
         // PPM.setPrechargeCurr(64);
         // PPM.setChargerConstantCurr(832);
         // PPM.getChargerConstantCurr();
         // Serial.printf("getChargerConstantCurr: %d mA\n",PPM.getChargerConstantCurr());
-        PPM.enableMeasure();
+        // PPM.enableMeasure();
         // PPM.enableCharge();
         // Turn off charging function
         // If USB is used as the only power input, it is best to turn off the charging function,

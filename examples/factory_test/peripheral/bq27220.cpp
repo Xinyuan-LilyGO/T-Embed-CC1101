@@ -274,6 +274,7 @@ bool BQ27220::init(const BQ27220DMData *data_memory)
             break;
         }
 
+        result = true;
     } while(0);
     return result;
 }
@@ -436,6 +437,14 @@ uint16_t BQ27220::getVoltage(void)
 int16_t BQ27220::getCurrent(void)
 {
     return readRegU16(CommandCurrent);
+}
+int16_t BQ27220::getAverageCurrent(void)
+{
+    return readRegU16(CommandAverageCurrent);
+}
+uint16_t BQ27220::getChargeCurrent(void)
+{
+    return readRegU16(CommandChargeCurrent);
 }
 bool BQ27220::getControlStatus(BQ27220ControlStatus *ctrl_sta)
 {
