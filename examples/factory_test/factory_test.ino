@@ -62,6 +62,15 @@ bool wifi_eeprom_upd = false;
 static struct tm timeinfo;
 static uint32_t last_tick;
 
+static constexpr uint16_t PPM_INPUT_LIMIT_MA = 1000;
+static constexpr uint16_t PPM_CHARGE_TARGET_MV = 4208;
+static constexpr uint16_t PPM_PRECHARGE_MA = 128;
+static constexpr uint16_t PPM_TERMINATION_MA = 128;
+static constexpr uint16_t PPM_FAST_CHARGE_MA = 512;
+static constexpr uint16_t PPM_SYS_POWERDOWN_MV = 3300;
+static constexpr uint32_t PPM_RECOVERY_RETRY_INTERVAL_MS = 1500;
+static constexpr int16_t PPM_RECOVERY_DISCHARGE_CURRENT_MA = -50;
+
 // eeprom
 uint8_t eeprom_ssid[WIFI_SSID_MAX_LEN];
 uint8_t eeprom_pswd[WIFI_PSWD_MAX_LEN];
@@ -306,6 +315,88 @@ void scr8_read_music_from_SD(void)
     }
 }
 
+static bool ppm_usb_present(void)
+{
+    return PPM.isVbusIn() || (PPM.getVbusVoltage() >= 4000);
+}
+
+static void ppm_configure_charge_path(bool reset_registers)
+{
+    if (reset_registers) {
+        PPM.resetDefault();
+        delay(20);
+    }
+
+    PPM.disableWatchdog();
+    PPM.exitHizMode();
+    PPM.disableOTG();
+    PPM.enableBatterPowerPath();
+    PPM.disableCurrentLimitPin();
+    PPM.enableAutomaticInputDetection();
+    PPM.enableInputDetection();
+    PPM.setInputCurrentLimit(PPM_INPUT_LIMIT_MA);
+    PPM.setChargeTargetVoltage(PPM_CHARGE_TARGET_MV);
+    PPM.setPrechargeCurr(PPM_PRECHARGE_MA);
+    PPM.setTerminationCurr(PPM_TERMINATION_MA);
+    PPM.setChargerConstantCurr(PPM_FAST_CHARGE_MA);
+    PPM.enableMeasure();
+    PPM.enableChargingTermination();
+    PPM.setSysPowerDownVoltage(PPM_SYS_POWERDOWN_MV);
+    PPM.enableCharge();
+    PPM.getFaultStatus();
+}
+
+static bool ppm_needs_charge_recovery(void)
+{
+    if (!ppm_usb_present()) {
+        return false;
+    }
+
+    uint16_t battery_mv = PPM.getBattVoltage();
+    uint16_t target_mv = PPM.getChargeTargetVoltage();
+    bool battery_needs_charge = (battery_mv == 0) || (target_mv == 0) || (battery_mv + 96 < target_mv);
+    bool charge_path_invalid = PPM.isHizMode() || PPM.isEnableOTG() || !PPM.isEnableCharge();
+    bool charge_state_missing = PPM.chargeStatus() == XPowersPPM::CHARGE_STATE_NO_CHARGE;
+    bool power_not_good = !PPM.isPowerGood();
+    bool battery_still_discharging = bq27220.getAverageCurrent() <= PPM_RECOVERY_DISCHARGE_CURRENT_MA;
+
+    return charge_path_invalid || (battery_needs_charge && (charge_state_missing || power_not_good || battery_still_discharging));
+}
+
+static void ppm_service_charge_recovery(void)
+{
+    static bool usb_was_present = false;
+    static uint32_t last_recovery_ms = 0;
+
+    bool usb_present = ppm_usb_present();
+    if (usb_present && !usb_was_present) {
+        Serial.println("VBUS inserted, restoring BQ25896 charge path.");
+        ppm_configure_charge_path(true);
+        last_recovery_ms = millis();
+    } else if (usb_present && ppm_needs_charge_recovery()) {
+        uint32_t now = millis();
+        if ((last_recovery_ms == 0) || (now - last_recovery_ms >= PPM_RECOVERY_RETRY_INTERVAL_MS)) {
+            Serial.printf("BQ25896 recovery: bus=%d chg=%d vbus=%umV vbat=%umV avg=%dmA hiz=%d otg=%d enchg=%d pg=%d\n",
+                          (int)PPM.getBusStatus(),
+                          (int)PPM.chargeStatus(),
+                          PPM.getVbusVoltage(),
+                          PPM.getBattVoltage(),
+                          bq27220.getAverageCurrent(),
+                          (int)PPM.isHizMode(),
+                          (int)PPM.isEnableOTG(),
+                          (int)PPM.isEnableCharge(),
+                          (int)PPM.isPowerGood());
+            ppm_configure_charge_path(true);
+            last_recovery_ms = now;
+        }
+    }
+
+    if (!usb_present) {
+        last_recovery_ms = 0;
+    }
+    usb_was_present = usb_present;
+}
+
 void setup(void)
 {
     bool pmu_ret = false;
@@ -397,32 +488,12 @@ void setup(void)
 
     pmu_ret = PPM.init(Wire, BOARD_I2C_SDA, BOARD_I2C_SCL, BQ25896_SLAVE_ADDRESS);
     if(pmu_ret) {
-        PPM.enableBatterPowerPath();
-        PPM.setSysPowerDownVoltage(3300);
-
-        // Use explicit charger settings instead of relying on reset defaults.
-        PPM.disableCurrentLimitPin();
-        PPM.setInputCurrentLimit(1000);
-        PPM.setChargeTargetVoltage(4208);
-        PPM.setPrechargeCurr(128);
-        PPM.setChargerConstantCurr(512);
-        PPM.enableMeasure();
-        PPM.enableCharge();
+        ppm_configure_charge_path(true);
 
         Serial.printf("BQ25896 input limit: %d mA\n", PPM.getInputCurrentLimit());
         Serial.printf("BQ25896 fast charge current: %d mA\n", PPM.getChargerConstantCurr());
-
-        // PPM.setSysPowerDownVoltage(3300);
-        // PPM.setInputCurrentLimit(3250);
-        // Serial.printf("getInputCurrentLimit: %d mA\n",PPM.getInputCurrentLimit());
-        // PPM.disableCurrentLimitPin();
-        // PPM.setChargeTargetVoltage(4208);
-        // PPM.setPrechargeCurr(64);
-        // PPM.setChargerConstantCurr(832);
-        // PPM.getChargerConstantCurr();
-        // Serial.printf("getChargerConstantCurr: %d mA\n",PPM.getChargerConstantCurr());
-        // PPM.enableMeasure();
-        // PPM.enableCharge();
+        Serial.printf("BQ25896 termination current: %d mA\n", PPM.getTerminationCurr());
+        Serial.printf("BQ25896 sys power down voltage: %d mV\n", PPM.getSysPowerDownVoltage());
         // Turn off charging function
         // If USB is used as the only power input, it is best to turn off the charging function,
         // otherwise the VSYS power supply will have a sawtooth wave, affecting the discharge output capability.
@@ -488,6 +559,8 @@ void loop(void)
     audio.loop();
 
     lv_timer_handler();
+
+    ppm_service_charge_recovery();
 
     if(music_is_running == false) {
         if (irrecv.decode(&results)) {

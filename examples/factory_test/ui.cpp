@@ -1690,8 +1690,8 @@ void batt_timer_event(lv_timer_t *t)
         lv_snprintf(buf, 16, "%.2f", (PPM.getChargeTargetVoltage() * 1.0 / 1000.0));
         battery_set_line(batt_line[2], "VBAT Target:", buf);
 
-        lv_snprintf(buf, 16, "%s", (PPM.isVbusIn() == true ? "Charging" : "Not charged"));
-        battery_set_line(batt_line[3], "Charging Statu:", buf);
+        lv_snprintf(buf, 16, "%s", (PPM.isVbusIn() == true ? "Connected" : "Disconnected"));
+        battery_set_line(batt_line[3], "VBUS Input:", buf);
 
         lv_snprintf(buf, 16, "%.2fmA", PPM.getPrechargeCurr());
         battery_set_line(batt_line[4], "Precharge Curr:", buf);

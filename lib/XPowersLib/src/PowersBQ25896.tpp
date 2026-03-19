@@ -45,7 +45,11 @@ public:
     enum BusStatus {
         BUS_STATE_NOINPUT,
         BUS_STATE_USB_SDP,
+        BUS_STATE_USB_CDP,
+        BUS_STATE_USB_DCP,
+        BUS_STATE_HVDCP,
         BUS_STATE_ADAPTER,
+        BUS_STATE_NO_STANDARD_ADAPTER,
         BUS_STATE_OTG
     } ;
 
@@ -498,8 +502,7 @@ public:
         int val = readRegister(POWERS_PPM_REG_03H);
         if (val == -1)return false;
         val &= 0xF1;
-        val |= (millivolt - POWERS_BQ25896_SYS_VOFF_VOL_MIN) / POWERS_BQ25896_SYS_VOL_STEPS;
-        val <<= 1;
+        val |= ((millivolt - POWERS_BQ25896_SYS_VOFF_VOL_MIN) / POWERS_BQ25896_SYS_VOL_STEPS) << 1;
         return 0 ==  writeRegister(POWERS_PPM_REG_03H, val);
 
     }
@@ -1052,7 +1055,14 @@ public:
             return "No input";
         case BUS_STATE_USB_SDP:
             return "USB Host SDP";
+        case BUS_STATE_USB_CDP:
+            return "USB CDP";
+        case BUS_STATE_USB_DCP:
+            return "USB DCP";
+        case BUS_STATE_HVDCP:
+            return "HVDCP";
         case BUS_STATE_ADAPTER:
+        case BUS_STATE_NO_STANDARD_ADAPTER:
             return "Adapter";
         case BUS_STATE_OTG:
             return "OTG";
