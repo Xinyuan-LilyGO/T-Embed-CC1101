@@ -20,6 +20,42 @@ int transmissionState = RADIOLIB_ERR_NONE;
 // flag to indicate that a packet was sent
 volatile bool transmittedFlag = false;
 
+static portMUX_TYPE nrf24_status_lock = portMUX_INITIALIZER_UNLOCKED;
+static nrf24_status_t nrf24_status = {
+    0,
+    0,
+    0,
+    NRF24_MODE_SEND,
+    NRF24_EVENT_IDLE,
+    RADIOLIB_ERR_NONE,
+    false,
+    "Waiting for test"
+};
+
+static void nrf24_update_status(int event, int code, const char *payload, bool count_tx, bool count_rx)
+{
+    uint32_t now = millis();
+
+    portENTER_CRITICAL(&nrf24_status_lock);
+    if (count_tx) {
+        nrf24_status.tx_count++;
+    }
+    if (count_rx) {
+        nrf24_status.rx_count++;
+    }
+    nrf24_status.last_tick_ms = now;
+    nrf24_status.mode = nrf24_mode;
+    nrf24_status.last_event = event;
+    nrf24_status.last_code = code;
+    nrf24_status.init_flag = nrf24_init_flag;
+
+    if (payload != NULL) {
+        strncpy(nrf24_status.last_payload, payload, NRF24_STATUS_PAYLOAD_MAX_LEN);
+        nrf24_status.last_payload[NRF24_STATUS_PAYLOAD_MAX_LEN] = '\0';
+    }
+    portEXIT_CRITICAL(&nrf24_status_lock);
+}
+
 void setFlag(void)
 {
     // we sent a packet, set the flag
@@ -51,6 +87,7 @@ void nrf24_init(void)
         Serial.print(F("failed, code "));
         Serial.println(state);
         nrf24_init_flag = false;
+        nrf24_update_status(NRF24_EVENT_ERROR, state, "Module init failed", false, false);
         return;
     }
 
@@ -115,6 +152,12 @@ void nrf24_send(const char *str)
 
     //
     xSemaphoreGive(radioLock);
+
+    if (transmissionState == RADIOLIB_ERR_NONE) {
+        nrf24_update_status(NRF24_EVENT_TX, transmissionState, str, true, false);
+    } else {
+        nrf24_update_status(NRF24_EVENT_ERROR, transmissionState, "Transmit start failed", false, false);
+    }
 }
 
 void nrf24_recv(void)
@@ -144,6 +187,7 @@ void nrf24_recv(void)
             // print data of the packet
             Serial.print(F("[nRF24] Data:\t\t"));
             Serial.println(str);
+            nrf24_update_status(NRF24_EVENT_RX, state, str.c_str(), false, true);
         }
     }
     else
@@ -162,7 +206,6 @@ void nrf24_recv(void)
 
 void nrf24_task(void *param)
 {
-    int cont = 0;
     vTaskSuspend(nrf24_handle);
     while (1)
     {
@@ -190,6 +233,7 @@ void nrf24_task(void *param)
                         Serial.print(F("[nRF24] Data:\t\t"));
                         Serial.println(str);
 
+                        nrf24_update_status(NRF24_EVENT_RX, state, str.c_str(), false, true);
                         ws2812_pos_demo1();
                     }
                 }
@@ -249,6 +293,11 @@ void nrf24_set_mode(int mode)
         // you can transmit C-string or Arduino string up to
         // 256 characters long
         transmissionState = radio24.startTransmit("Hello World!");
+        nrf24_update_status(NRF24_EVENT_MODE_CHANGE,
+                            transmissionState,
+                            "TX mode: auto packet enabled",
+                            false,
+                            false);
     }
     else
     {
@@ -284,5 +333,22 @@ void nrf24_set_mode(int mode)
             while (true)
                 ;
         }
+
+        nrf24_update_status(NRF24_EVENT_MODE_CHANGE,
+                            state,
+                            "RX mode: listening on pipe 0",
+                            false,
+                            false);
     }
+}
+
+void nrf24_get_status(nrf24_status_t *status)
+{
+    if (status == NULL) {
+        return;
+    }
+
+    portENTER_CRITICAL(&nrf24_status_lock);
+    *status = nrf24_status;
+    portEXIT_CRITICAL(&nrf24_status_lock);
 }

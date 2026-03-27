@@ -2679,29 +2679,147 @@ static scr_lifecycle_t screen8 = {
 
 lv_obj_t *scr9_cont;
 lv_obj_t *nrf24_mode_btn;
-lv_obj_t *nrf24_info;
-lv_obj_t *nrf24_label;
+lv_obj_t *nrf24_mode_label;
+lv_obj_t *nrf24_status_chip;
+lv_obj_t *nrf24_counter_label;
+lv_obj_t *nrf24_meta_label;
+lv_obj_t *nrf24_activity_label;
 lv_timer_t *nrf24_timer;
+
+static constexpr uint32_t NRF24_UI_FREQ_MHZ = 2400;
+static constexpr uint32_t NRF24_UI_BITRATE_KBPS = 1000;
+static constexpr int NRF24_UI_POWER_DBM = 0;
+static constexpr uint32_t NRF24_UI_SEND_INTERVAL_MS = 500;
 
 int nrf24_cont = 0;
 
 void entry9_anim(lv_obj_t *obj) { entry1_anim(obj); }
 void exit9_anim(int user_data, lv_obj_t *obj) { exit1_anim(user_data, obj); }
 
+static lv_obj_t *nrf24_create_card(lv_obj_t *parent, lv_coord_t x, lv_coord_t y, lv_coord_t w, lv_coord_t h, uint32_t border_color)
+{
+    uint32_t card_bg = (setting_theme == UI_THEME_DARK) ? 0x1E2331 : 0xF3F6FA;
+
+    lv_obj_t *card = lv_obj_create(parent);
+    lv_obj_set_pos(card, x, y);
+    lv_obj_set_size(card, w, h);
+    lv_obj_set_style_bg_color(card, lv_color_hex(card_bg), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(card, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_border_color(card, lv_color_hex(border_color), LV_PART_MAIN);
+    lv_obj_set_style_border_width(card, 1, LV_PART_MAIN);
+    lv_obj_set_style_radius(card, 12, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(card, 10, LV_PART_MAIN);
+    lv_obj_set_style_shadow_width(card, 0, LV_PART_MAIN);
+    lv_obj_set_scrollbar_mode(card, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_clear_flag(card, LV_OBJ_FLAG_SCROLLABLE);
+    return card;
+}
+
+static lv_obj_t *nrf24_create_card_title(lv_obj_t *parent, const char *text)
+{
+    lv_obj_t *label = lv_label_create(parent);
+    lv_obj_set_style_text_color(label, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
+    lv_obj_set_style_text_font(label, FONT_BOLD_14, LV_PART_MAIN);
+    lv_label_set_text(label, text);
+    lv_obj_align(label, LV_ALIGN_TOP_LEFT, 0, 0);
+    return label;
+}
+
+static void nrf24_refresh_ui(void)
+{
+    if (!nrf24_is_init() || !nrf24_mode_btn) {
+        return;
+    }
+
+    nrf24_status_t status;
+    nrf24_get_status(&status);
+
+    bool tx_mode = (status.mode == NRF24_MODE_SEND);
+    uint32_t accent_color = tx_mode ? EMBED_COLOR_FOCUS_ON : 0x3FA9F5;
+    uint32_t button_text_color = tx_mode ? 0x101820 : 0x08131D;
+    uint32_t chip_color = (status.last_event == NRF24_EVENT_ERROR) ? 0xD9534F : accent_color;
+    const char *chip_text = (status.last_event == NRF24_EVENT_ERROR) ? "ERROR" : (tx_mode ? "SENDER" : "LISTEN");
+    uint32_t age_seconds = (status.last_tick_ms == 0) ? 0 : ((millis() - status.last_tick_ms) / 1000UL);
+    char activity_buf[160];
+
+    lv_obj_set_style_bg_color(nrf24_mode_btn, lv_color_hex(accent_color), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(nrf24_mode_btn, LV_OPA_COVER, LV_PART_MAIN);
+    lv_label_set_text(nrf24_mode_label, tx_mode ? "TX AUTO" : "RX LISTEN");
+    lv_obj_set_style_text_color(nrf24_mode_label, lv_color_hex(button_text_color), LV_PART_MAIN);
+
+    lv_label_set_text(nrf24_status_chip, chip_text);
+    lv_obj_set_style_bg_color(nrf24_status_chip, lv_color_hex(chip_color), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(nrf24_status_chip, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_text_color(nrf24_status_chip, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+
+    lv_label_set_text_fmt(nrf24_counter_label,
+                          "TX %lu    RX %lu",
+                          (unsigned long)status.tx_count,
+                          (unsigned long)status.rx_count);
+
+    lv_label_set_text_fmt(nrf24_meta_label,
+                          "Freq   %u MHz\n"
+                          "Rate   %u kbps\n"
+                          "Power  %d dBm",
+                          NRF24_UI_FREQ_MHZ,
+                          NRF24_UI_BITRATE_KBPS,
+                          NRF24_UI_POWER_DBM);
+
+    switch (status.last_event) {
+        case NRF24_EVENT_TX:
+            lv_snprintf(activity_buf,
+                        sizeof(activity_buf),
+                        "Last TX %lus ago\n%s\ncode %d",
+                        (unsigned long)age_seconds,
+                        status.last_payload,
+                        status.last_code);
+            break;
+        case NRF24_EVENT_RX:
+            lv_snprintf(activity_buf,
+                        sizeof(activity_buf),
+                        "Last RX %lus ago\n%s\ncode %d",
+                        (unsigned long)age_seconds,
+                        status.last_payload,
+                        status.last_code);
+            break;
+        case NRF24_EVENT_ERROR:
+            lv_snprintf(activity_buf,
+                        sizeof(activity_buf),
+                        "Last error\ncode %d\n%s",
+                        status.last_code,
+                        status.last_payload);
+            break;
+        case NRF24_EVENT_MODE_CHANGE:
+            lv_snprintf(activity_buf,
+                        sizeof(activity_buf),
+                        "%s\n%s",
+                        status.last_payload,
+                        tx_mode ? "Auto packet every 500 ms" : "Waiting for packet...");
+            break;
+        default:
+            lv_snprintf(activity_buf,
+                        sizeof(activity_buf),
+                        "%s\n%s",
+                        tx_mode ? "Auto packet every 500 ms" : "Listening on pipe 0",
+                        tx_mode ? "Payload: Hello World! #n" : "Waiting for packet...");
+            break;
+    }
+
+    lv_label_set_text(nrf24_activity_label, activity_buf);
+}
+
 void nrf_recv_event(lv_timer_t *t)
 {
+    LV_UNUSED(t);
+
     if(nrf24_get_mode() == NRF24_MODE_SEND) {
-        String str = "Hello World! #" + String(nrf24_cont++);
-        nrf24_send(str.c_str());
-        // lv_label_set_text_fmt(nrf24_label, "%s", str.c_str());
+        char payload[NRF24_STATUS_PAYLOAD_MAX_LEN + 1];
+        lv_snprintf(payload, sizeof(payload), "Hello World! #%d", nrf24_cont++);
+        nrf24_send(payload);
         ws2812_pos_demo(nrf24_cont);
-    } else if(nrf24_get_mode() == NRF24_MODE_RECV)
-    {
-        String str = "recv #" + String(nrf24_cont++);
-        // lv_label_set_text_fmt(nrf24_label, "%s", str.c_str());
-        // ws2812_pos_demo1();
     }
-    lv_timer_handler();
+
+    nrf24_refresh_ui();
 }
 
 static void scr9_btn_event_cb(lv_event_t * e)
@@ -2715,30 +2833,30 @@ static void scr9_btn_event_cb(lv_event_t * e)
 
 void nrf24_mode_sw_event(lv_event_t *e)
 {
-    lv_obj_t *tgt =  (lv_obj_t *)e->target;
-    lv_obj_t *data = (lv_obj_t *)e->user_data;
-    
     if(e->code == LV_EVENT_CLICKED) {
         switch (nrf24_get_mode())
         {
             case NRF24_MODE_SEND: 
                 nrf24_set_mode(NRF24_MODE_RECV); 
-                lv_label_set_text(data, "recv");
                 break;
-                
-                // lv_label_set_text_fmt(lora_label, "# Recv - 0");
             case NRF24_MODE_RECV: 
                 nrf24_set_mode(NRF24_MODE_SEND); 
-                lv_label_set_text(data, "send"); 
                 break;
-                
-                // lv_label_set_text_fmt(lora_label, "# Send - 0");
             default: break;
         }
+        nrf24_refresh_ui();
     }
 }
 
 static void create9(lv_obj_t *parent) {
+    nrf24_mode_btn = NULL;
+    nrf24_mode_label = NULL;
+    nrf24_status_chip = NULL;
+    nrf24_counter_label = NULL;
+    nrf24_meta_label = NULL;
+    nrf24_activity_label = NULL;
+    nrf24_timer = NULL;
+
     scr9_cont = lv_obj_create(parent);
     lv_obj_set_size(scr9_cont, lv_pct(100), lv_pct(100));
     lv_obj_set_style_bg_color(scr9_cont, lv_color_hex(EMBED_COLOR_BG), LV_PART_MAIN);
@@ -2746,63 +2864,122 @@ static void create9(lv_obj_t *parent) {
     lv_obj_set_style_border_width(scr9_cont, 0, LV_PART_MAIN);
     lv_obj_set_style_pad_all(scr9_cont, 0, LV_PART_MAIN);
 
+    lv_obj_t *title = lv_label_create(scr9_cont);
+    lv_obj_set_style_text_color(title, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
+    lv_obj_set_style_text_font(title, FONT_BOLD_18, LV_PART_MAIN);
+    lv_label_set_text(title, "NRF24 Test");
+    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 10);
+
     if(nrf24_is_init() == false)
     {
-        nrf24_label = lv_label_create(scr9_cont);
-        lv_obj_set_style_text_color(nrf24_label, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
-        lv_obj_set_style_text_font(nrf24_label, FONT_BOLD_16, LV_PART_MAIN);
-        lv_label_set_text(nrf24_label, "NRF24 is invalid.");
-        lv_obj_align(nrf24_label, LV_ALIGN_CENTER, 0, 0);
+        nrf24_activity_label = lv_label_create(scr9_cont);
+        lv_obj_set_width(nrf24_activity_label, DISPALY_WIDTH - 40);
+        lv_obj_set_style_text_color(nrf24_activity_label, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
+        lv_obj_set_style_text_font(nrf24_activity_label, FONT_BOLD_16, LV_PART_MAIN);
+        lv_obj_set_style_text_align(nrf24_activity_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+        lv_label_set_long_mode(nrf24_activity_label, LV_LABEL_LONG_WRAP);
+        lv_label_set_text(nrf24_activity_label, "NRF24 module not detected.\nCheck the 2.4G daughter board and reboot.");
+        lv_obj_align(nrf24_activity_label, LV_ALIGN_CENTER, 0, 10);
 
         scr_back_btn_create(scr9_cont, scr9_btn_event_cb);
     } else {
+        lv_obj_t *mode_card = nrf24_create_card(scr9_cont, 12, 42, 136, 108, EMBED_COLOR_FOCUS_ON);
+        lv_obj_t *link_card = nrf24_create_card(scr9_cont, 156, 42, 152, 108, EMBED_COLOR_BORDER);
 
-        nrf24_label = lv_label_create(scr9_cont);
-        lv_obj_set_style_text_color(nrf24_label, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
-        lv_obj_set_style_text_font(nrf24_label, FONT_BOLD_16, LV_PART_MAIN);
-        lv_label_set_text(nrf24_label, "Freq:2400 M \n"
-                                        "BitRate:1000 kbps\n"
-                                        "Power:0 dBm");
-        lv_obj_align(nrf24_label, LV_ALIGN_LEFT_MID, 10, 0);
+        nrf24_create_card_title(mode_card, "MODE");
+        nrf24_create_card_title(link_card, "LINK");
 
-        nrf24_mode_btn = lv_btn_create(scr9_cont);
-        lv_obj_set_height(nrf24_mode_btn, 50);
+        nrf24_status_chip = lv_label_create(mode_card);
+        lv_obj_set_style_radius(nrf24_status_chip, LV_RADIUS_CIRCLE, LV_PART_MAIN);
+        lv_obj_set_style_pad_hor(nrf24_status_chip, 8, LV_PART_MAIN);
+        lv_obj_set_style_pad_ver(nrf24_status_chip, 3, LV_PART_MAIN);
+        lv_obj_set_style_text_font(nrf24_status_chip, FONT_BOLD_14, LV_PART_MAIN);
+        lv_obj_align(nrf24_status_chip, LV_ALIGN_TOP_RIGHT, 0, -2);
+
+        nrf24_mode_btn = lv_btn_create(mode_card);
+        lv_obj_set_size(nrf24_mode_btn, 112, 40);
         lv_obj_set_style_shadow_width(nrf24_mode_btn, 0, LV_PART_MAIN);
-        lv_obj_set_style_pad_row(nrf24_mode_btn, 0, LV_PART_MAIN);
+        lv_obj_set_style_border_width(nrf24_mode_btn, 0, LV_PART_MAIN);
+        lv_obj_set_style_radius(nrf24_mode_btn, 10, LV_PART_MAIN);
         lv_obj_remove_style(nrf24_mode_btn, NULL, LV_STATE_FOCUS_KEY);
         lv_obj_set_style_outline_pad(nrf24_mode_btn, 2, LV_STATE_FOCUS_KEY);
         lv_obj_set_style_outline_width(nrf24_mode_btn, 2, LV_STATE_FOCUS_KEY);
         lv_obj_set_style_outline_color(nrf24_mode_btn, lv_color_hex(EMBED_COLOR_FOCUS_ON), LV_STATE_FOCUS_KEY);
-        // lv_obj_align(nrf24_mode_btn, LV_ALIGN_TOP_MID, 0, 6);
-        lv_obj_align(nrf24_mode_btn, LV_ALIGN_CENTER, 80, 0);
-        lv_obj_t *nrf24_info = lv_label_create(nrf24_mode_btn);
-        lv_obj_center(nrf24_info);
-        switch (nrf24_get_mode())
-        {
-            case NRF24_MODE_SEND: lv_label_set_text(nrf24_info, "send"); break;
-            case NRF24_MODE_RECV: lv_label_set_text(nrf24_info, "recv"); break;
-            default: break;
-        }
-        lv_obj_add_event_cb(nrf24_mode_btn, nrf24_mode_sw_event, LV_EVENT_CLICKED, nrf24_info);
+        lv_obj_align(nrf24_mode_btn, LV_ALIGN_TOP_MID, 0, 28);
+
+        nrf24_mode_label = lv_label_create(nrf24_mode_btn);
+        lv_obj_set_style_text_font(nrf24_mode_label, FONT_BOLD_16, LV_PART_MAIN);
+        lv_obj_center(nrf24_mode_label);
+
+        nrf24_counter_label = lv_label_create(mode_card);
+        lv_obj_set_width(nrf24_counter_label, 112);
+        lv_obj_set_style_text_color(nrf24_counter_label, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
+        lv_obj_set_style_text_font(nrf24_counter_label, FONT_BOLD_14, LV_PART_MAIN);
+        lv_obj_set_style_text_align(nrf24_counter_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+        lv_obj_align(nrf24_counter_label, LV_ALIGN_BOTTOM_MID, 0, 0);
+
+        nrf24_meta_label = lv_label_create(link_card);
+        lv_obj_set_width(nrf24_meta_label, 128);
+        lv_obj_set_style_text_color(nrf24_meta_label, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
+        lv_obj_set_style_text_font(nrf24_meta_label, FONT_BOLD_14, LV_PART_MAIN);
+        lv_label_set_long_mode(nrf24_meta_label, LV_LABEL_LONG_WRAP);
+        lv_obj_align(nrf24_meta_label, LV_ALIGN_TOP_LEFT, 0, 24);
+
+        nrf24_activity_label = lv_label_create(link_card);
+        lv_obj_set_width(nrf24_activity_label, 128);
+        lv_obj_set_style_text_color(nrf24_activity_label, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
+        lv_obj_set_style_text_font(nrf24_activity_label, FONT_BOLD_14, LV_PART_MAIN);
+        lv_label_set_long_mode(nrf24_activity_label, LV_LABEL_LONG_WRAP);
+        lv_obj_align(nrf24_activity_label, LV_ALIGN_BOTTOM_LEFT, 0, 0);
+
+        lv_obj_add_event_cb(nrf24_mode_btn, nrf24_mode_sw_event, LV_EVENT_CLICKED, NULL);
+
+        lv_obj_t *hint = lv_label_create(scr9_cont);
+        lv_obj_set_style_text_color(hint, lv_color_hex(EMBED_COLOR_BORDER), LV_PART_MAIN);
+        lv_obj_set_style_text_font(hint, FONT_BOLD_14, LV_PART_MAIN);
+        lv_label_set_text(hint, "Click center button to switch TX / RX");
+        lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -6);
 
         // back btn
         scr_back_btn_create(scr9_cont, scr9_btn_event_cb);
-        lv_group_set_wrap(lv_group_get_default(), true);
-        entry9_anim(scr9_cont);
-        nrf24_timer = lv_timer_create(nrf_recv_event, 500, NULL);
+        nrf24_timer = lv_timer_create(nrf_recv_event, NRF24_UI_SEND_INTERVAL_MS, NULL);
+        lv_timer_pause(nrf24_timer);
+        nrf24_refresh_ui();
     }
 }
 static void entry9(void) {
-    vTaskResume(nrf24_handle);
+    entry9_anim(scr9_cont);
+    lv_group_set_wrap(lv_group_get_default(), true);
+
+    if(nrf24_is_init()) {
+        nrf24_refresh_ui();
+        if(nrf24_timer) {
+            lv_timer_resume(nrf24_timer);
+        }
+        vTaskResume(nrf24_handle);
+    }
 }
 static void exit9(void) {
-    vTaskSuspend(nrf24_handle);
+    lv_group_set_wrap(lv_group_get_default(), false);
+
+    if(nrf24_timer) {
+        lv_timer_pause(nrf24_timer);
+    }
+    if(nrf24_is_init()) {
+        vTaskSuspend(nrf24_handle);
+    }
 }
 static void destroy9(void) { 
     if(nrf24_timer) {
         lv_timer_del(nrf24_timer);
         nrf24_timer = NULL;
     }
+    nrf24_mode_btn = NULL;
+    nrf24_mode_label = NULL;
+    nrf24_status_chip = NULL;
+    nrf24_counter_label = NULL;
+    nrf24_meta_label = NULL;
+    nrf24_activity_label = NULL;
     ws2812_set_color(CRGB::Black);
 }
 

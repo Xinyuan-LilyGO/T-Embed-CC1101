@@ -50,6 +50,25 @@ void lora_task(void *param);
 #define NRF24_MODE_SEND 0
 #define NRF24_MODE_RECV 1
 
+#define NRF24_EVENT_IDLE        0
+#define NRF24_EVENT_MODE_CHANGE 1
+#define NRF24_EVENT_TX          2
+#define NRF24_EVENT_RX          3
+#define NRF24_EVENT_ERROR       4
+
+#define NRF24_STATUS_PAYLOAD_MAX_LEN 32
+
+typedef struct {
+    uint32_t tx_count;
+    uint32_t rx_count;
+    uint32_t last_tick_ms;
+    int mode;
+    int last_event;
+    int last_code;
+    bool init_flag;
+    char last_payload[NRF24_STATUS_PAYLOAD_MAX_LEN + 1];
+} nrf24_status_t;
+
 extern TaskHandle_t nrf24_handle;
 
 void nrf24_init(void);
@@ -58,6 +77,7 @@ int nrf24_get_mode(void);
 void nrf24_set_mode(int mode);
 void nrf24_task(void *param);
 void nrf24_send(const char *str);
+void nrf24_get_status(nrf24_status_t *status);
 
 /**---------------------------- BATTERY ----------------------------------**/
 #define XPOWERS_CHIP_BQ25896
