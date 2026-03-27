@@ -2854,17 +2854,17 @@ lv_obj_t *nrf24_mode_btn;
 lv_obj_t *nrf24_mode_label;
 lv_obj_t *nrf24_status_chip;
 lv_obj_t *nrf24_counter_label;
-// lv_obj_t *nrf24_meta_label;
 lv_obj_t *nrf24_activity_label;
 lv_timer_t *nrf24_timer;
 uint32_t nrf24_ui_last_seq;
-uint32_t nrf24_ui_last_age_seconds;
+uint32_t nrf24_ui_last_age_bucket;
 
 static constexpr uint32_t NRF24_UI_FREQ_MHZ = 2400;
 static constexpr uint32_t NRF24_UI_BITRATE_KBPS = 1000;
 static constexpr int NRF24_UI_POWER_DBM = 0;
-static constexpr uint32_t NRF24_UI_SEND_INTERVAL_MS = 500;
-static constexpr uint32_t NRF24_UI_REFRESH_INTERVAL_MS = 50;
+static constexpr uint32_t NRF24_UI_SEND_INTERVAL_MS = 1000;
+static constexpr uint32_t NRF24_UI_REFRESH_INTERVAL_MS = 200;
+static constexpr uint32_t NRF24_UI_TX_HEARTBEAT_MS = 200;
 
 int nrf24_cont = 0;
 
@@ -2900,6 +2900,11 @@ static lv_obj_t *nrf24_create_card_title(lv_obj_t *parent, const char *text)
     return label;
 }
 
+static uint32_t nrf24_get_ui_age_bucket(bool tx_mode, uint32_t age_ms)
+{
+    return tx_mode ? (age_ms / NRF24_UI_TX_HEARTBEAT_MS) : (age_ms / 1000UL);
+}
+
 static void nrf24_refresh_ui(void)
 {
     if (!nrf24_is_init() || !nrf24_mode_btn) {
@@ -2914,10 +2919,12 @@ static void nrf24_refresh_ui(void)
     uint32_t button_text_color = tx_mode ? 0x101820 : 0x08131D;
     uint32_t chip_color = (status.last_event == NRF24_EVENT_ERROR) ? 0xD9534F : accent_color;
     const char *chip_text = (status.last_event == NRF24_EVENT_ERROR) ? "ERROR" : (tx_mode ? "SENDER" : "LISTEN");
-    uint32_t age_seconds = (status.last_tick_ms == 0) ? 0 : ((millis() - status.last_tick_ms) / 1000UL);
+    uint32_t age_ms = (status.last_tick_ms == 0) ? 0 : (millis() - status.last_tick_ms);
+    uint32_t age_seconds = age_ms / 1000UL;
+    uint32_t age_bucket = nrf24_get_ui_age_bucket(tx_mode, age_ms);
     char activity_buf[160];
 
-    if ((status.update_seq == nrf24_ui_last_seq) && (age_seconds == nrf24_ui_last_age_seconds)) {
+    if ((status.update_seq == nrf24_ui_last_seq) && (age_bucket == nrf24_ui_last_age_bucket)) {
         return;
     }
 
@@ -2936,22 +2943,23 @@ static void nrf24_refresh_ui(void)
                           (unsigned long)status.tx_count,
                           (unsigned long)status.rx_count);
 
-    // lv_label_set_text_fmt(nrf24_meta_label,
-    //                       "Freq   %u MHz\n"
-    //                       "Rate   %u kbps\n"
-    //                       "Power  %d dBm",
-    //                       NRF24_UI_FREQ_MHZ,
-    //                       NRF24_UI_BITRATE_KBPS,
-    //                       NRF24_UI_POWER_DBM);
-
     switch (status.last_event) {
         case NRF24_EVENT_TX:
-            lv_snprintf(activity_buf,
-                        sizeof(activity_buf),
-                        "Last TX %lus ago\n%s\ncode %d",
-                        (unsigned long)age_seconds,
-                        status.last_payload,
-                        status.last_code);
+            if (age_ms < 1000UL) {
+                lv_snprintf(activity_buf,
+                            sizeof(activity_buf),
+                            "Last TX %lums ago\n%s\ncode %d",
+                            (unsigned long)age_ms,
+                            status.last_payload,
+                            status.last_code);
+            } else {
+                lv_snprintf(activity_buf,
+                            sizeof(activity_buf),
+                            "Last TX %lus ago\n%s\ncode %d",
+                            (unsigned long)age_seconds,
+                            status.last_payload,
+                            status.last_code);
+            }
             break;
         case NRF24_EVENT_RX:
             lv_snprintf(activity_buf,
@@ -2973,20 +2981,20 @@ static void nrf24_refresh_ui(void)
                         sizeof(activity_buf),
                         "%s\n%s",
                         status.last_payload,
-                        tx_mode ? "Auto packet every 500 ms" : "Waiting for packet...");
+                        tx_mode ? "Auto packet every 1 s" : "Listening continuously");
             break;
         default:
             lv_snprintf(activity_buf,
                         sizeof(activity_buf),
                         "%s\n%s",
-                        tx_mode ? "Auto packet every 500 ms" : "Listening on pipe 0",
+                        tx_mode ? "Auto packet every 1 s" : "Listening on pipe 0",
                         tx_mode ? "Payload: Hello World! #n" : "Waiting for packet...");
             break;
     }
 
     lv_label_set_text(nrf24_activity_label, activity_buf);
     nrf24_ui_last_seq = status.update_seq;
-    nrf24_ui_last_age_seconds = age_seconds;
+    nrf24_ui_last_age_bucket = age_bucket;
 }
 
 void nrf_recv_event(lv_timer_t *t)
@@ -3026,11 +3034,10 @@ static void create9(lv_obj_t *parent) {
     nrf24_mode_label = NULL;
     nrf24_status_chip = NULL;
     nrf24_counter_label = NULL;
-    // nrf24_meta_label = NULL;
     nrf24_activity_label = NULL;
     nrf24_timer = NULL;
     nrf24_ui_last_seq = 0xFFFFFFFFUL;
-    nrf24_ui_last_age_seconds = 0xFFFFFFFFUL;
+    nrf24_ui_last_age_bucket = 0xFFFFFFFFUL;
 
     scr9_cont = lv_obj_create(parent);
     lv_obj_set_size(scr9_cont, lv_pct(100), lv_pct(100));
@@ -3093,13 +3100,6 @@ static void create9(lv_obj_t *parent) {
         lv_obj_set_style_text_align(nrf24_counter_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
         lv_obj_align(nrf24_counter_label, LV_ALIGN_BOTTOM_MID, 0, 0);
 
-        // nrf24_meta_label = lv_label_create(link_card);
-        // lv_obj_set_width(nrf24_meta_label, 128);
-        // lv_obj_set_style_text_color(nrf24_meta_label, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
-        // lv_obj_set_style_text_font(nrf24_meta_label, FONT_BOLD_14, LV_PART_MAIN);
-        // lv_label_set_long_mode(nrf24_meta_label, LV_LABEL_LONG_WRAP);
-        // lv_obj_align(nrf24_meta_label, LV_ALIGN_TOP_LEFT, 0, 24);
-
         nrf24_activity_label = lv_label_create(link_card);
         lv_obj_set_width(nrf24_activity_label, 128);
         lv_obj_set_style_text_color(nrf24_activity_label, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
@@ -3128,7 +3128,7 @@ static void entry9(void) {
 
     if(nrf24_is_init()) {
         nrf24_ui_last_seq = 0xFFFFFFFFUL;
-        nrf24_ui_last_age_seconds = 0xFFFFFFFFUL;
+        nrf24_ui_last_age_bucket = 0xFFFFFFFFUL;
         nrf24_refresh_ui();
         if(nrf24_timer) {
             lv_timer_resume(nrf24_timer);
@@ -3155,10 +3155,9 @@ static void destroy9(void) {
     nrf24_mode_label = NULL;
     nrf24_status_chip = NULL;
     nrf24_counter_label = NULL;
-    // nrf24_meta_label = NULL;
     nrf24_activity_label = NULL;
     nrf24_ui_last_seq = 0xFFFFFFFFUL;
-    nrf24_ui_last_age_seconds = 0xFFFFFFFFUL;
+    nrf24_ui_last_age_bucket = 0xFFFFFFFFUL;
     ws2812_set_color(CRGB::Black);
 }
 

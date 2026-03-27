@@ -32,7 +32,7 @@ uint32_t IR_recv_last_ms = 0;
 #define LORA_PRIORITY    (configMAX_PRIORITIES - 2)
 #define WS2812_PRIORITY  (configMAX_PRIORITIES - 3)
 #define BATTERY_PRIORITY (configMAX_PRIORITIES - 4)
-#define NRF24_PRIORITY   (configMAX_PRIORITIES - 5)
+#define NRF24_PRIORITY   (tskIDLE_PRIORITY + 2)
 
 /*********************************************************************************
  *                              EXTERN
@@ -75,6 +75,8 @@ static constexpr uint16_t PPM_FAST_CHARGE_MA = 512;
 static constexpr uint16_t PPM_SYS_POWERDOWN_MV = 3300;
 static constexpr uint32_t PPM_RECOVERY_RETRY_INTERVAL_MS = 1500;
 static constexpr int16_t PPM_RECOVERY_DISCHARGE_CURRENT_MA = -50;
+static constexpr uint32_t MIC_SAMPLE_PERIOD_MS = 5;
+static constexpr TickType_t MIC_SAMPLE_TIMEOUT_TICKS = 0;
 
 // eeprom
 uint8_t eeprom_ssid[WIFI_SSID_MAX_LEN];
@@ -88,6 +90,43 @@ int i2s_mic_cnt = 0;
 /*********************************************************************************
  *                              FUNCTION
  *********************************************************************************/
+
+static void board_spi_init_cs_pin(uint8_t pin)
+{
+    pinMode(pin, OUTPUT);
+    digitalWrite(pin, HIGH);
+}
+
+void board_spi_deselect_all(void)
+{
+    digitalWrite(DISPLAY_CS, HIGH);
+    digitalWrite(BOARD_SD_CS, HIGH);
+    digitalWrite(BOARD_LORA_CS, HIGH);
+    digitalWrite(BOARD_NRF24_CS, HIGH);
+}
+
+void board_spi_prepare_display(void)
+{
+    board_spi_deselect_all();
+}
+
+void board_spi_prepare_nrf24(void)
+{
+    board_spi_deselect_all();
+}
+
+void board_spi_init_shared_bus(void)
+{
+    board_spi_init_cs_pin(DISPLAY_CS);
+    board_spi_init_cs_pin(BOARD_SD_CS);
+    board_spi_init_cs_pin(BOARD_LORA_CS);
+    board_spi_init_cs_pin(BOARD_NRF24_CS);
+
+    pinMode(BOARD_NRF24_CE, OUTPUT);
+    digitalWrite(BOARD_NRF24_CE, LOW);
+
+    board_spi_deselect_all();
+}
 
 void eeprom_default_val(void)
 {
@@ -408,14 +447,9 @@ void setup(void)
     bool nfc_ret = false;
     bool lora_ret = false;
 
-    // LORA、SD and LCD use the same spi, in order to avoid mutual influence; 
-    // before powering on, all CS signals should be pulled high and in an unselected state;
-    pinMode(TFT_CS, OUTPUT);
-    digitalWrite(TFT_CS, HIGH);
-    pinMode(BOARD_SD_CS, OUTPUT);
-    digitalWrite(BOARD_SD_CS, HIGH);
-    pinMode(BOARD_LORA_CS, OUTPUT);
-    digitalWrite(BOARD_LORA_CS, HIGH);
+    // LCD, CC1101, SD and nRF24 share the same SPI lines, keep every device
+    // deselected before any library touches the bus.
+    board_spi_init_shared_bus();
 
     // Init system
     pinMode(TFT_BL, OUTPUT);
@@ -561,6 +595,8 @@ extern bool music_is_running;
 
 void loop(void)
 {
+    static uint32_t last_mic_sample_ms = 0;
+
     audio.loop();
 
     lv_timer_handler();
@@ -585,13 +621,25 @@ void loop(void)
             irrecv.resume();  // Receive the next value
         }
 
-        i2s_read((i2s_port_t)EXAMPLE_I2S_CH, (char *)i2s_readraw_buff, SAMPLE_SIZE, &bytes_read, 100);
-        for(int i = 0; i < 10; i++) {
-            // Serial.printf("%d  ", i2s_readraw_buff[i]);
-            // if(i == 9) {
-            //     Serial.println(" ");
-            // }
-            if(i2s_readraw_buff[i] > 0) i2s_mic_cnt++;
+        uint32_t now = millis();
+        if ((now - last_mic_sample_ms) >= MIC_SAMPLE_PERIOD_MS) {
+            last_mic_sample_ms = now;
+            if (i2s_read((i2s_port_t)EXAMPLE_I2S_CH,
+                         (char *)i2s_readraw_buff,
+                         sizeof(i2s_readraw_buff),
+                         &bytes_read,
+                         MIC_SAMPLE_TIMEOUT_TICKS) == ESP_OK) {
+                size_t sample_count = bytes_read / sizeof(i2s_readraw_buff[0]);
+                if (sample_count > SAMPLE_SIZE) {
+                    sample_count = SAMPLE_SIZE;
+                }
+
+                for(size_t i = 0; i < sample_count; i++) {
+                    if(i2s_readraw_buff[i] > 0) {
+                        i2s_mic_cnt++;
+                    }
+                }
+            }
         }
     }
 

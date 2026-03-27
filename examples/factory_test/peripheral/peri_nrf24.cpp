@@ -2,19 +2,21 @@
 
 #include "peripheral.h"
 
-#define NRF24L01_CS 44  // SPI Chip Select
-#define NRF24L01_CE 43  // Chip Enable Activates RX or TX(High) mode
-#define NRF24L01_IQR -1 // Maskable interrupt pin. Active low
-#define NRF24L01_MOSI 9
-#define NRF24L01_MISO 10
-#define NRF24L01_SCK 11
+static constexpr uint32_t NRF24_AUTO_SEND_INTERVAL_MS = 1000;
+static constexpr TickType_t NRF24_TASK_TX_DELAY_TICKS = pdMS_TO_TICKS(50);
+static constexpr TickType_t NRF24_TASK_RX_DELAY_TICKS = pdMS_TO_TICKS(50);
+static constexpr TickType_t NRF24_RX_LOCK_TIMEOUT_TICKS = pdMS_TO_TICKS(5);
+static constexpr TickType_t NRF24_MODE_SWITCH_TIMEOUT_TICKS = pdMS_TO_TICKS(50);
+static constexpr TickType_t NRF24_MODE_APPLY_POLL_TICKS = pdMS_TO_TICKS(10);
+static constexpr uint32_t NRF24_RX_UI_SETTLE_DELAY_MS = 150;
 
-static constexpr uint32_t NRF24_AUTO_SEND_INTERVAL_MS = 500;
-
-int nrf24_mode = NRF24_MODE_SEND;
+volatile int nrf24_mode = NRF24_MODE_SEND;
 bool nrf24_init_flag = false;
+static volatile bool nrf24_mode_apply_pending = false;
+static volatile uint32_t nrf24_mode_apply_after_ms = 0;
+static volatile int nrf24_active_mode = NRF24_MODE_SEND;
 
-nRF24 radio24 = new Module(NRF24L01_CS, NRF24L01_IQR, NRF24L01_CE);
+nRF24 radio24 = new Module(BOARD_NRF24_CS, BOARD_NRF24_IRQ, BOARD_NRF24_CE);
 
 // save transmission state between loops
 int transmissionState = RADIOLIB_ERR_NONE;
@@ -62,10 +64,132 @@ static void setFlag(void)
     // IRQ line is not connected on this board, keep a stub for API compatibility.
 }
 
+static bool nrf24_apply_mode_now(int mode)
+{
+    if ((mode != NRF24_MODE_SEND) && (mode != NRF24_MODE_RECV)) {
+        return false;
+    }
+
+    if (xSemaphoreTake(radioLock, NRF24_MODE_SWITCH_TIMEOUT_TICKS) != pdTRUE)
+    {
+        nrf24_update_status(NRF24_EVENT_ERROR,
+                            RADIOLIB_ERR_NONE,
+                            "NRF24 busy, mode switch timeout",
+                            false,
+                            false);
+        return false;
+    }
+
+    board_spi_prepare_nrf24();
+
+    byte addr[] = {0x01, 0x23, 0x45, 0x67, 0x89};
+    int previous_mode = nrf24_active_mode;
+    int state = radio24.finishTransmit();
+
+    if (state != RADIOLIB_ERR_NONE) {
+        nrf24_mode = previous_mode;
+        nrf24_active_mode = previous_mode;
+        nrf24_update_status(NRF24_EVENT_ERROR,
+                            state,
+                            "Failed to stop previous NRF24 mode",
+                            false,
+                            false);
+        xSemaphoreGive(radioLock);
+        return false;
+    }
+
+    if (mode == NRF24_MODE_SEND)
+    {
+        Serial.print(F("[nRF24] Setting transmit pipe ... "));
+        state = radio24.setTransmitPipe(addr);
+        if (state == RADIOLIB_ERR_NONE)
+        {
+            Serial.println(F("success!"));
+        }
+        else
+        {
+            Serial.print(F("failed, code "));
+            Serial.println(state);
+            nrf24_mode = previous_mode;
+            nrf24_update_status(NRF24_EVENT_ERROR, state, "TX pipe setup failed", false, false);
+            xSemaphoreGive(radioLock);
+            return false;
+        }
+
+        if (BOARD_NRF24_IRQ >= 0) {
+            radio24.setPacketSentAction(setFlag);
+        }
+
+        nrf24_mode = mode;
+
+        Serial.print(F("[nRF24] Sending first packet ... "));
+        transmissionState = radio24.startTransmit("Hello World!");
+        nrf24_active_mode = mode;
+        nrf24_update_status(NRF24_EVENT_MODE_CHANGE,
+                            transmissionState,
+                            "TX mode: auto packet enabled",
+                            false,
+                            false);
+    }
+    else
+    {
+        state = radio24.setReceivePipe(0, addr);
+        if (state == RADIOLIB_ERR_NONE)
+        {
+            Serial.println(F("success!"));
+        }
+        else
+        {
+            Serial.print(F("failed, code "));
+            Serial.println(state);
+            nrf24_mode = previous_mode;
+            nrf24_active_mode = previous_mode;
+            nrf24_update_status(NRF24_EVENT_ERROR, state, "RX pipe setup failed", false, false);
+            xSemaphoreGive(radioLock);
+            return false;
+        }
+
+        if (BOARD_NRF24_IRQ >= 0) {
+            radio24.setPacketReceivedAction(setFlag);
+        }
+
+        nrf24_mode = mode;
+
+        Serial.print(F("[nRF24] Starting to listen ... "));
+        state = radio24.startReceive();
+        if (state == RADIOLIB_ERR_NONE)
+        {
+            Serial.println(F("success!"));
+            nrf24_active_mode = mode;
+        }
+        else
+        {
+            Serial.print(F("failed, code "));
+            Serial.println(state);
+            nrf24_mode = previous_mode;
+            nrf24_active_mode = previous_mode;
+            nrf24_update_status(NRF24_EVENT_ERROR, state, "RX listen start failed", false, false);
+            xSemaphoreGive(radioLock);
+            return false;
+        }
+
+        nrf24_update_status(NRF24_EVENT_MODE_CHANGE,
+                            state,
+                            "RX mode: listening on pipe 0",
+                            false,
+                            false);
+    }
+
+    xSemaphoreGive(radioLock);
+    return true;
+}
+
 void nrf24_init(void)
 {
+    board_spi_prepare_nrf24();
     SPI.end();
-    SPI.begin(NRF24L01_SCK, NRF24L01_MISO, NRF24L01_MOSI);
+    SPI.begin(BOARD_NRF24_SCK, BOARD_NRF24_MISO, BOARD_NRF24_MOSI);
+    board_spi_prepare_nrf24();
 
     // initialize nRF24 with default settings
     Serial.print(F("[nRF24] Initializing ... "));
@@ -112,6 +236,8 @@ void nrf24_send(const char *str)
         return;
     }
 
+    board_spi_prepare_nrf24();
+
     if (transmissionState == RADIOLIB_ERR_NONE)
     {
         // packet was successfully sent
@@ -155,12 +281,17 @@ void nrf24_send(const char *str)
 
 static bool nrf24_recv(void)
 {
-    if (xSemaphoreTake(radioLock, portMAX_DELAY) != pdTRUE)
+    if (xSemaphoreTake(radioLock, NRF24_RX_LOCK_TIMEOUT_TICKS) != pdTRUE)
     {
         return false;
     }
 
-    if (!radio24.getStatus(RADIOLIB_NRF24_RX_DR))
+    board_spi_prepare_nrf24();
+
+    bool rx_ready = radio24.getStatus(RADIOLIB_NRF24_RX_DR);
+    size_t packet_len = rx_ready ? radio24.getPacketLength() : 0;
+
+    if (!rx_ready && (packet_len == 0))
     {
         xSemaphoreGive(radioLock);
         return false;
@@ -210,8 +341,21 @@ void nrf24_task(void *param)
     vTaskSuspend(nrf24_handle);
     while (1)
     {
+        TickType_t loop_delay = NRF24_TASK_TX_DELAY_TICKS;
+
         if(nrf24_is_init()) {
-            if (nrf24_mode == NRF24_MODE_SEND)
+            if (nrf24_mode_apply_pending) {
+                uint32_t now = millis();
+                loop_delay = NRF24_MODE_APPLY_POLL_TICKS;
+                if ((int32_t)(now - nrf24_mode_apply_after_ms) >= 0) {
+                    int requested_mode = nrf24_mode;
+                    if (nrf24_apply_mode_now(requested_mode) && (requested_mode == NRF24_MODE_SEND)) {
+                        last_tx_ms = now;
+                    }
+                    nrf24_mode_apply_pending = false;
+                }
+            }
+            else if (nrf24_mode == NRF24_MODE_SEND)
             {
                 uint32_t now = millis();
                 if ((now - last_tx_ms) >= NRF24_AUTO_SEND_INTERVAL_MS)
@@ -225,12 +369,13 @@ void nrf24_task(void *param)
             }
             else if (nrf24_mode == NRF24_MODE_RECV)
             {
+                loop_delay = NRF24_TASK_RX_DELAY_TICKS;
                 if (nrf24_recv()) {
                     ws2812_pos_demo1();
                 }
             }
         }
-        vTaskDelay(pdMS_TO_TICKS(100));
+        vTaskDelay(loop_delay);
     }
 }
 
@@ -241,98 +386,24 @@ int nrf24_get_mode(void)
 
 void nrf24_set_mode(int mode)
 {
-    if (xSemaphoreTake(radioLock, portMAX_DELAY) != pdTRUE)
-    {
+    if ((mode != NRF24_MODE_SEND) && (mode != NRF24_MODE_RECV)) {
+        return;
+    }
+
+    if (nrf24_handle == NULL) {
+        nrf24_mode = mode;
+        nrf24_apply_mode_now(mode);
         return;
     }
 
     nrf24_mode = mode;
-    if (nrf24_mode == NRF24_MODE_SEND)
-    {
-        // set transmit address
-        // NOTE: address width in bytes MUST be equal to the
-        //       width set in begin() or setAddressWidth()
-        //       methods (5 by default)
-        byte addr[] = {0x01, 0x23, 0x45, 0x67, 0x89};
-        Serial.print(F("[nRF24] Setting transmit pipe ... "));
-        int state = radio24.setTransmitPipe(addr);
-        if (state == RADIOLIB_ERR_NONE)
-        {
-            Serial.println(F("success!"));
-        }
-        else
-        {
-            Serial.print(F("failed, code "));
-            Serial.println(state);
-            while (true)
-            {
-                delay(10);
-            }
-        }
-
-        // set the function that will be called
-        // when packet transmission is finished
-        if (NRF24L01_IQR >= 0) {
-            radio24.setPacketSentAction(setFlag);
-        }
-
-        // start transmitting the first packet
-        Serial.print(F("[nRF24] Sending first packet ... "));
-
-        // you can transmit C-string or Arduino string up to
-        // 256 characters long
-        transmissionState = radio24.startTransmit("Hello World!");
-        nrf24_update_status(NRF24_EVENT_MODE_CHANGE,
-                            transmissionState,
-                            "TX mode: auto packet enabled",
-                            false,
-                            false);
-    }
-    else
-    {
-        byte addr[] = {0x01, 0x23, 0x45, 0x67, 0x89};
-        int state = radio24.setReceivePipe(0, addr);
-        if (state == RADIOLIB_ERR_NONE)
-        {
-            Serial.println(F("success!"));
-        }
-        else
-        {
-            Serial.print(F("failed, code "));
-            Serial.println(state);
-            while (true)
-                ;
-        }
-
-        // set the function that will be called
-        // when new packet is received
-        if (NRF24L01_IQR >= 0) {
-            radio24.setPacketReceivedAction(setFlag);
-        }
-
-        // start listening
-        Serial.print(F("[nRF24] Starting to listen ... "));
-        state = radio24.startReceive();
-        if (state == RADIOLIB_ERR_NONE)
-        {
-            Serial.println(F("success!"));
-        }
-        else
-        {
-            Serial.print(F("failed, code "));
-            Serial.println(state);
-            while (true)
-                ;
-        }
-
-        nrf24_update_status(NRF24_EVENT_MODE_CHANGE,
-                            state,
-                            "RX mode: listening on pipe 0",
-                            false,
-                            false);
-    }
-
-    xSemaphoreGive(radioLock);
+    nrf24_mode_apply_after_ms = millis() + ((mode == NRF24_MODE_RECV) ? NRF24_RX_UI_SETTLE_DELAY_MS : 0);
+    nrf24_mode_apply_pending = true;
+    nrf24_update_status(NRF24_EVENT_MODE_CHANGE,
+                        RADIOLIB_ERR_NONE,
+                        (mode == NRF24_MODE_RECV) ? "RX mode: refresh UI before listen" : "TX mode: preparing sender",
+                        false,
+                        false);
 }
 
 void nrf24_get_status(nrf24_status_t *status)

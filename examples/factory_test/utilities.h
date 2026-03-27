@@ -75,6 +75,14 @@
 #define BOARD_SPI_MOSI 9
 #define BOARD_SPI_MISO 10
 
+// nRF24L01
+#define BOARD_NRF24_CS   44
+#define BOARD_NRF24_CE   43
+#define BOARD_NRF24_IRQ  -1
+#define BOARD_NRF24_SCK  BOARD_SPI_SCK
+#define BOARD_NRF24_MOSI BOARD_SPI_MOSI
+#define BOARD_NRF24_MISO BOARD_SPI_MISO
+
 // TF card
 #define BOARD_SD_CS   13
 #define BOARD_SD_SCK  BOARD_SPI_SCK
@@ -90,3 +98,8 @@
 #define BOARD_LORA_IO0  3
 #define BOARD_LORA_SW1  47
 #define BOARD_LORA_SW0  48
+
+void board_spi_init_shared_bus(void);
+void board_spi_deselect_all(void);
+void board_spi_prepare_display(void);
+void board_spi_prepare_nrf24(void);

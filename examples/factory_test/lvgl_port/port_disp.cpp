@@ -9,6 +9,7 @@
  *      INCLUDES
  *********************/
 #include "port_disp.h"
+#include "../utilities.h"
 #include <stdbool.h>
 
 /*********************
@@ -95,6 +96,7 @@ void lv_port_disp_init(void)
 static void disp_init(void)
 {
     extern uint8_t display_rotation;
+    board_spi_prepare_display();
     tft.begin();
     tft.setRotation(display_rotation);
     tft.fillScreen(TFT_BLACK);
@@ -121,16 +123,26 @@ void disp_disable_update(void)
  *'lv_disp_flush_ready()' has to be called when finished.*/
 static void disp_flush(lv_disp_drv_t * disp_drv, const lv_area_t * area, lv_color_t * color_p)
 {
-    if(disp_flush_enabled) {
-        if(xSemaphoreTake(radioLock, portMAX_DELAY) == pdTRUE){
-            uint32_t w = (area->x2 - area->x1 + 1);
-            uint32_t h = (area->y2 - area->y1 + 1);
-
-            tft.setAddrWindow( area->x1, area->y1, w, h );
-            tft.pushColors( ( uint16_t * )&color_p->full, w * h, true );
-
-            lv_disp_flush_ready(disp_drv);
-            xSemaphoreGive(radioLock);
-        }
+    if (!disp_flush_enabled) {
+        lv_disp_flush_ready(disp_drv);
+        return;
     }
+
+    if(xSemaphoreTake(radioLock, portMAX_DELAY) != pdTRUE){
+        lv_disp_flush_ready(disp_drv);
+        return;
+    }
+
+    board_spi_prepare_display();
+
+    uint32_t w = (area->x2 - area->x1 + 1);
+    uint32_t h = (area->y2 - area->y1 + 1);
+
+    tft.startWrite();
+    tft.setAddrWindow(area->x1, area->y1, w, h);
+    tft.pushColors((uint16_t *)&color_p->full, w * h, true);
+    tft.endWrite();
+
+    xSemaphoreGive(radioLock);
+    lv_disp_flush_ready(disp_drv);
 }
