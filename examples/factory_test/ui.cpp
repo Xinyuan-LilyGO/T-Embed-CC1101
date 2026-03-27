@@ -2197,73 +2197,182 @@ scr_lifecycle_t screen7 = {
 // --------------------- screen 7.1 --------------------- IR
 #if 1
 lv_obj_t *scr7_1_cont;
-lv_obj_t *IR_info;
-lv_obj_t *IR_btn_sw;
+lv_obj_t *IR_mode_btn;
+lv_obj_t *IR_mode_label;
+lv_obj_t *IR_status_chip;
+lv_obj_t *IR_counter_label;
+lv_obj_t *IR_meta_label;
+lv_obj_t *IR_activity_label;
 lv_timer_t *IR_timer = NULL;
-bool IR_init = false;
-uint64_t IR_send_value = 0x10000000UL;
 
 extern uint64_t IR_recv_value;
+extern char IR_recv_protocol[20];
+extern uint16_t IR_recv_bits;
+extern bool IR_recv_repeat;
+extern uint32_t IR_recv_count;
+extern uint32_t IR_recv_last_ms;
 extern IRsend irsend;
 
-// const uint16_t kIrLed = 2;  // ESP8266 GPIO pin to use. Recommended: 4 (D2).
-// IRsend irsend(kIrLed);  // Set the GPIO to be used to sending the message.
+static constexpr uint32_t IR_UI_SEND_INTERVAL_MS = 1000;
+static constexpr uint16_t IR_UI_SEND_BITS = 32;
+static constexpr uint64_t IR_UI_SEND_START_VALUE = 0x10000000UL;
 
 int ir_mode = IR_MODE_SEND;
+uint64_t IR_send_value = IR_UI_SEND_START_VALUE;
+uint64_t IR_last_tx_value = IR_UI_SEND_START_VALUE;
+uint32_t IR_tx_count = 0;
+uint32_t IR_rx_count_prev = 0;
+uint32_t IR_tx_last_ms = 0;
+uint32_t IR_color = 0;
 
 void entry7_1_anim(lv_obj_t *obj) { entry1_anim(obj); }
 void exit7_1_anim(int user_data, lv_obj_t *obj) { exit1_anim(user_data, obj); }
 
-uint64_t IR_recv_value_prev = IR_recv_value;
-
-
-uint32_t IR_color = 0;
-
-void IR_tiemr_event(lv_timer_t *t)
+static lv_obj_t *ir_create_card(lv_obj_t *parent, lv_coord_t x, lv_coord_t y, lv_coord_t w, lv_coord_t h, uint32_t border_color)
 {
-    if(ir_mode == IR_MODE_SEND) {
-        // if(IR_init == false) {
-        //     IR_init = true;
-        //     irsend.begin();
-        // }
-        irsend.sendNEC(IR_send_value);
-        IR_send_value += 0x1;
-        lv_label_set_text_fmt(IR_info, "IR Send: %lx", IR_send_value);
+    uint32_t card_bg = (setting_theme == UI_THEME_DARK) ? 0x1E2331 : 0xF3F6FA;
 
-        ws2812_pos_demo(IR_color++);
+    lv_obj_t *card = lv_obj_create(parent);
+    lv_obj_set_pos(card, x, y);
+    lv_obj_set_size(card, w, h);
+    lv_obj_set_style_bg_color(card, lv_color_hex(card_bg), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(card, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_border_color(card, lv_color_hex(border_color), LV_PART_MAIN);
+    lv_obj_set_style_border_width(card, 1, LV_PART_MAIN);
+    lv_obj_set_style_radius(card, 12, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(card, 10, LV_PART_MAIN);
+    lv_obj_set_style_shadow_width(card, 0, LV_PART_MAIN);
+    lv_obj_set_scrollbar_mode(card, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_clear_flag(card, LV_OBJ_FLAG_SCROLLABLE);
+    return card;
+}
+
+static lv_obj_t *ir_create_card_title(lv_obj_t *parent, const char *text)
+{
+    lv_obj_t *label = lv_label_create(parent);
+    lv_obj_set_style_text_color(label, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
+    lv_obj_set_style_text_font(label, FONT_BOLD_14, LV_PART_MAIN);
+    lv_label_set_text(label, text);
+    lv_obj_align(label, LV_ALIGN_TOP_LEFT, 0, 0);
+    return label;
+}
+
+static String ir_hex_string(uint64_t value)
+{
+    char buf[24];
+    uint32_t hi = (uint32_t)(value >> 32);
+    uint32_t lo = (uint32_t)(value & 0xFFFFFFFFUL);
+
+    if (hi != 0) {
+        lv_snprintf(buf, sizeof(buf), "0x%lX%08lX", (unsigned long)hi, (unsigned long)lo);
+    } else {
+        lv_snprintf(buf, sizeof(buf), "0x%lX", (unsigned long)lo);
+    }
+    return String(buf);
+}
+
+static void ir_refresh_ui(void)
+{
+    if (!IR_mode_btn) {
+        return;
     }
 
-    if(ir_mode == IR_MODE_RECV) {
-        // if(IR_recv_value >> 32 != 0x10) {
-        //     IR_recv_value = 0;
-        // }
-        if(IR_recv_value_prev != IR_recv_value) {
-            IR_recv_value_prev = IR_recv_value;
-            
-            
-            ws2812_pos_demo1();
-        }
-        lv_label_set_text_fmt(IR_info, "IR Recv: %lx", IR_recv_value);
+    bool tx_mode = (ir_mode == IR_MODE_SEND);
+    uint32_t accent_color = tx_mode ? 0xF59E0B : 0x38BDF8;
+    uint32_t button_text_color = 0x0F172A;
+    const char *chip_text = tx_mode ? "NEC" : ((IR_recv_count > 0 && strlen(IR_recv_protocol) <= 8) ? IR_recv_protocol : (IR_recv_count > 0 ? "RX OK" : "LISTEN"));
+    uint16_t frame_bits = tx_mode ? IR_UI_SEND_BITS : (IR_recv_bits ? IR_recv_bits : IR_UI_SEND_BITS);
+    uint32_t activity_ms = tx_mode ? IR_tx_last_ms : IR_recv_last_ms;
+    uint32_t age_seconds = (activity_ms == 0) ? 0 : ((millis() - activity_ms) / 1000UL);
+    String code_hex = tx_mode ? ir_hex_string(IR_last_tx_value) : ir_hex_string(IR_recv_value);
+    char meta_buf[96];
+    char activity_buf[160];
+
+    lv_obj_set_style_bg_color(IR_mode_btn, lv_color_hex(accent_color), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(IR_mode_btn, LV_OPA_COVER, LV_PART_MAIN);
+    lv_label_set_text(IR_mode_label, tx_mode ? "TX AUTO" : "RX LISTEN");
+    lv_obj_set_style_text_color(IR_mode_label, lv_color_hex(button_text_color), LV_PART_MAIN);
+
+    lv_label_set_text(IR_status_chip, chip_text);
+    lv_obj_set_style_bg_color(IR_status_chip, lv_color_hex(accent_color), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(IR_status_chip, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_text_color(IR_status_chip, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+
+    lv_label_set_text_fmt(IR_counter_label,
+                          "TX %lu    RX %lu",
+                          (unsigned long)IR_tx_count,
+                          (unsigned long)IR_recv_count);
+
+    lv_snprintf(meta_buf,
+                sizeof(meta_buf),
+                "TX GPIO %d\nRX GPIO %d\n%s %u-bit",
+                BOARD_IR_EN,
+                BOARD_IR_RX,
+                tx_mode ? "NEC" : IR_recv_protocol,
+                frame_bits);
+    lv_label_set_text(IR_meta_label, meta_buf);
+
+    if (tx_mode) {
+        lv_snprintf(activity_buf,
+                    sizeof(activity_buf),
+                    "Last TX %lus ago\n%s\nNext +1 every 1s",
+                    (unsigned long)age_seconds,
+                    code_hex.c_str());
+    } else if (IR_recv_count > 0) {
+        lv_snprintf(activity_buf,
+                    sizeof(activity_buf),
+                    "Last RX %lus ago\n%s\nRepeat %s",
+                    (unsigned long)age_seconds,
+                    code_hex.c_str(),
+                    IR_recv_repeat ? "YES" : "NO");
+    } else {
+        lv_snprintf(activity_buf,
+                    sizeof(activity_buf),
+                    "Waiting for packet...\nAim remote at GPIO %d\nProtocol auto detect",
+                    BOARD_IR_RX);
     }
+    lv_label_set_text(IR_activity_label, activity_buf);
 }
 
 void ir_mode_sw_event(lv_event_t *e)
 {
-    lv_obj_t *tgt =  (lv_obj_t *)e->target;
-    lv_obj_t *data = (lv_obj_t *)e->user_data;
-    
     if(e->code == LV_EVENT_CLICKED) {
         switch (ir_mode)
         {
             case IR_MODE_SEND: 
-                ir_mode = IR_MODE_RECV; 
-                lv_label_set_text(data, "recv"); break;
+                ir_mode = IR_MODE_RECV;
+                break;
             case IR_MODE_RECV: 
-                ir_mode = IR_MODE_SEND; 
-                lv_label_set_text(data, "send"); break;
+                ir_mode = IR_MODE_SEND;
+                break;
             default: break;
         }
+        ir_refresh_ui();
     }
+}
+
+void IR_timer_event(lv_timer_t *t)
+{
+    LV_UNUSED(t);
+
+    if(ir_mode == IR_MODE_SEND) {
+        IR_last_tx_value = IR_send_value;
+        irsend.sendNEC(IR_send_value, IR_UI_SEND_BITS);
+        IR_tx_count++;
+        IR_tx_last_ms = millis();
+        IR_send_value = (IR_send_value + 1ULL) & 0xFFFFFFFFULL;
+        if (IR_send_value < IR_UI_SEND_START_VALUE) {
+            IR_send_value = IR_UI_SEND_START_VALUE;
+        }
+        ws2812_pos_demo(IR_color++);
+    } else {
+        if(IR_rx_count_prev != IR_recv_count) {
+            IR_rx_count_prev = IR_recv_count;
+            ws2812_pos_demo1();
+        }
+    }
+
+    ir_refresh_ui();
 }
 
 static void scr7_1_btn_event_cb(lv_event_t * e)
@@ -2275,6 +2384,14 @@ static void scr7_1_btn_event_cb(lv_event_t * e)
 
 void create7_1(lv_obj_t *parent) 
 {
+    IR_mode_btn = NULL;
+    IR_mode_label = NULL;
+    IR_status_chip = NULL;
+    IR_counter_label = NULL;
+    IR_meta_label = NULL;
+    IR_activity_label = NULL;
+    IR_timer = NULL;
+
     scr7_1_cont = lv_obj_create(parent);
     lv_obj_set_size(scr7_1_cont, lv_pct(100), lv_pct(100));
     lv_obj_set_style_bg_color(scr7_1_cont, lv_color_hex(EMBED_COLOR_BG), LV_PART_MAIN);
@@ -2288,49 +2405,95 @@ void create7_1(lv_obj_t *parent)
     lv_label_set_text(label, "Infrared");
     lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 10);
 
-    IR_info = lv_label_create(scr7_1_cont);
-    lv_obj_set_width(IR_info, DISPALY_WIDTH * 0.9);
-    lv_obj_set_style_text_color(IR_info, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
-    lv_obj_set_style_text_font(IR_info, FONT_BOLD_14, LV_PART_MAIN);
-    lv_label_set_long_mode(IR_info, LV_LABEL_LONG_WRAP);
-    lv_obj_set_style_text_align(IR_info, LV_TEXT_ALIGN_CENTER, 0);
-    lv_label_set_text(IR_info, "---");
-    lv_obj_center(IR_info);
+    lv_obj_t *mode_card = ir_create_card(scr7_1_cont, 12, 42, 136, 108, EMBED_COLOR_FOCUS_ON);
+    lv_obj_t *signal_card = ir_create_card(scr7_1_cont, 156, 42, 152, 108, EMBED_COLOR_BORDER);
 
-    IR_btn_sw = lv_btn_create(scr7_1_cont);
-    lv_obj_set_height(IR_btn_sw, 20);
-    lv_obj_set_style_shadow_width(IR_btn_sw, 0, LV_PART_MAIN);
-    lv_obj_set_style_pad_row(IR_btn_sw, 0, LV_PART_MAIN);
-    lv_obj_remove_style(IR_btn_sw, NULL, LV_STATE_FOCUS_KEY);
-    lv_obj_set_style_outline_pad(IR_btn_sw, 2, LV_STATE_FOCUS_KEY);
-    lv_obj_set_style_outline_width(IR_btn_sw, 2, LV_STATE_FOCUS_KEY);
-    lv_obj_set_style_outline_color(IR_btn_sw, lv_color_hex(EMBED_COLOR_FOCUS_ON), LV_STATE_FOCUS_KEY);
-    lv_obj_align(IR_btn_sw, LV_ALIGN_TOP_RIGHT, -10, 6);
-    lv_obj_t *mode_lab = lv_label_create(IR_btn_sw);
-    lv_obj_center(mode_lab);
-    switch (ir_mode)
-    {
-        case IR_MODE_SEND: lv_label_set_text(mode_lab, "send"); break;
-        case IR_MODE_RECV: lv_label_set_text(mode_lab, "recv"); break;
-        default: break;
-    }
-    lv_obj_add_event_cb(IR_btn_sw, ir_mode_sw_event, LV_EVENT_CLICKED, mode_lab);
+    ir_create_card_title(mode_card, "MODE");
+    ir_create_card_title(signal_card, "SIGNAL");
+
+    IR_status_chip = lv_label_create(mode_card);
+    lv_obj_set_style_radius(IR_status_chip, LV_RADIUS_CIRCLE, LV_PART_MAIN);
+    lv_obj_set_style_pad_hor(IR_status_chip, 8, LV_PART_MAIN);
+    lv_obj_set_style_pad_ver(IR_status_chip, 3, LV_PART_MAIN);
+    lv_obj_set_style_text_font(IR_status_chip, FONT_BOLD_14, LV_PART_MAIN);
+    lv_obj_align(IR_status_chip, LV_ALIGN_TOP_RIGHT, 0, -2);
+
+    IR_mode_btn = lv_btn_create(mode_card);
+    lv_obj_set_size(IR_mode_btn, 112, 40);
+    lv_obj_set_style_shadow_width(IR_mode_btn, 0, LV_PART_MAIN);
+    lv_obj_set_style_border_width(IR_mode_btn, 0, LV_PART_MAIN);
+    lv_obj_set_style_radius(IR_mode_btn, 10, LV_PART_MAIN);
+    lv_obj_remove_style(IR_mode_btn, NULL, LV_STATE_FOCUS_KEY);
+    lv_obj_set_style_outline_pad(IR_mode_btn, 2, LV_STATE_FOCUS_KEY);
+    lv_obj_set_style_outline_width(IR_mode_btn, 2, LV_STATE_FOCUS_KEY);
+    lv_obj_set_style_outline_color(IR_mode_btn, lv_color_hex(EMBED_COLOR_FOCUS_ON), LV_STATE_FOCUS_KEY);
+    lv_obj_align(IR_mode_btn, LV_ALIGN_TOP_MID, 0, 28);
+    lv_obj_add_event_cb(IR_mode_btn, ir_mode_sw_event, LV_EVENT_CLICKED, NULL);
+
+    IR_mode_label = lv_label_create(IR_mode_btn);
+    lv_obj_set_style_text_font(IR_mode_label, FONT_BOLD_16, LV_PART_MAIN);
+    lv_obj_center(IR_mode_label);
+
+    IR_counter_label = lv_label_create(mode_card);
+    lv_obj_set_width(IR_counter_label, 112);
+    lv_obj_set_style_text_color(IR_counter_label, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
+    lv_obj_set_style_text_font(IR_counter_label, FONT_BOLD_14, LV_PART_MAIN);
+    lv_obj_set_style_text_align(IR_counter_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+    lv_obj_align(IR_counter_label, LV_ALIGN_BOTTOM_MID, 0, 0);
+
+    IR_meta_label = lv_label_create(signal_card);
+    lv_obj_set_width(IR_meta_label, 128);
+    lv_obj_set_style_text_color(IR_meta_label, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
+    lv_obj_set_style_text_font(IR_meta_label, FONT_BOLD_14, LV_PART_MAIN);
+    lv_label_set_long_mode(IR_meta_label, LV_LABEL_LONG_WRAP);
+    lv_obj_align(IR_meta_label, LV_ALIGN_TOP_LEFT, 0, 24);
+
+    IR_activity_label = lv_label_create(signal_card);
+    lv_obj_set_width(IR_activity_label, 128);
+    lv_obj_set_style_text_color(IR_activity_label, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
+    lv_obj_set_style_text_font(IR_activity_label, FONT_BOLD_14, LV_PART_MAIN);
+    lv_label_set_long_mode(IR_activity_label, LV_LABEL_LONG_WRAP);
+    lv_obj_align(IR_activity_label, LV_ALIGN_BOTTOM_LEFT, 0, 0);
+
+    lv_obj_t *hint = lv_label_create(scr7_1_cont);
+    lv_obj_set_style_text_color(hint, lv_color_hex(EMBED_COLOR_BORDER), LV_PART_MAIN);
+    lv_obj_set_style_text_font(hint, FONT_BOLD_14, LV_PART_MAIN);
+    lv_label_set_text(hint, "Center button toggles TX / RX");
+    lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -6);
 
     // back bottom
     scr_back_btn_create(scr7_1_cont, scr7_1_btn_event_cb);
+    IR_timer = lv_timer_create(IR_timer_event, IR_UI_SEND_INTERVAL_MS, NULL);
+    lv_timer_pause(IR_timer);
+    ir_refresh_ui();
 }
 void entry7_1(void) {
     entry7_1_anim(scr7_1_cont);
-    IR_timer = lv_timer_create(IR_tiemr_event, 1000, NULL);
+    lv_group_set_wrap(lv_group_get_default(), true);
+    if(IR_timer) {
+        lv_timer_resume(IR_timer);
+    }
+    ir_refresh_ui();
 }
 void exit7_1(void) {
+    lv_group_set_wrap(lv_group_get_default(), false);
+    if(IR_timer) {
+        lv_timer_pause(IR_timer);
+    }
+    ws2812_set_color(CRGB::Black);
+}
+void destroy7_1(void) {
     if(IR_timer) {
         lv_timer_del(IR_timer);
         IR_timer = NULL;
     }
-    ws2812_set_color(CRGB::Black);
+    IR_mode_btn = NULL;
+    IR_mode_label = NULL;
+    IR_status_chip = NULL;
+    IR_counter_label = NULL;
+    IR_meta_label = NULL;
+    IR_activity_label = NULL;
 }
-void destroy7_1(void) {}
 
 scr_lifecycle_t screen7_1 = {
     .create = create7_1,

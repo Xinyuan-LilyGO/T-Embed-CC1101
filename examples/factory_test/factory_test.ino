@@ -17,6 +17,11 @@ IRrecv irrecv(kRecvPin);
 decode_results results;
 
 uint64_t IR_recv_value = 0x10000000UL;
+char IR_recv_protocol[20] = "WAIT";
+uint16_t IR_recv_bits = 0;
+bool IR_recv_repeat = false;
+uint32_t IR_recv_count = 0;
+uint32_t IR_recv_last_ms = 0;
 
 /*********************************************************************************
  *                               DEFINE
@@ -567,6 +572,15 @@ void loop(void)
             // print() & println() can't handle printing long longs. (uint64_t)
             serialPrintUint64(results.value, HEX);
             IR_recv_value = results.value;
+            IR_recv_bits = results.bits;
+            IR_recv_repeat = results.repeat;
+            IR_recv_count++;
+            IR_recv_last_ms = millis();
+
+            String protocol = typeToString(results.decode_type, results.repeat);
+            protocol.toUpperCase();
+            strncpy(IR_recv_protocol, protocol.c_str(), sizeof(IR_recv_protocol) - 1);
+            IR_recv_protocol[sizeof(IR_recv_protocol) - 1] = '\0';
             Serial.println("");
             irrecv.resume();  // Receive the next value
         }
