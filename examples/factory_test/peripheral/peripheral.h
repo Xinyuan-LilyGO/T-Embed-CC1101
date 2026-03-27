@@ -62,6 +62,7 @@ typedef struct {
     uint32_t tx_count;
     uint32_t rx_count;
     uint32_t last_tick_ms;
+    uint32_t update_seq;
     int mode;
     int last_event;
     int last_code;
