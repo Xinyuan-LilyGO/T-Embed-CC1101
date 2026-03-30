@@ -78,6 +78,10 @@ static constexpr int16_t PPM_RECOVERY_DISCHARGE_CURRENT_MA = -50;
 static constexpr uint32_t MIC_SAMPLE_PERIOD_MS = 5;
 static constexpr TickType_t MIC_SAMPLE_TIMEOUT_TICKS = 0;
 
+static bool ppm_recovery_enabled = true;
+static bool ppm_recovery_usb_was_present = false;
+static uint32_t ppm_recovery_last_ms = 0;
+
 // eeprom
 uint8_t eeprom_ssid[WIFI_SSID_MAX_LEN];
 uint8_t eeprom_pswd[WIFI_PSWD_MAX_LEN];
@@ -409,17 +413,18 @@ static bool ppm_needs_charge_recovery(void)
 
 static void ppm_service_charge_recovery(void)
 {
-    static bool usb_was_present = false;
-    static uint32_t last_recovery_ms = 0;
+    if (!ppm_recovery_enabled) {
+        return;
+    }
 
     bool usb_present = ppm_usb_present();
-    if (usb_present && !usb_was_present) {
+    if (usb_present && !ppm_recovery_usb_was_present) {
         Serial.println("VBUS inserted, restoring BQ25896 charge path.");
         ppm_configure_charge_path(true);
-        last_recovery_ms = millis();
+        ppm_recovery_last_ms = millis();
     } else if (usb_present && ppm_needs_charge_recovery()) {
         uint32_t now = millis();
-        if ((last_recovery_ms == 0) || (now - last_recovery_ms >= PPM_RECOVERY_RETRY_INTERVAL_MS)) {
+        if ((ppm_recovery_last_ms == 0) || (now - ppm_recovery_last_ms >= PPM_RECOVERY_RETRY_INTERVAL_MS)) {
             Serial.printf("BQ25896 recovery: bus=%d chg=%d vbus=%umV vbat=%umV avg=%dmA hiz=%d otg=%d enchg=%d pg=%d\n",
                           (int)PPM.getBusStatus(),
                           (int)PPM.chargeStatus(),
@@ -431,14 +436,23 @@ static void ppm_service_charge_recovery(void)
                           (int)PPM.isEnableCharge(),
                           (int)PPM.isPowerGood());
             ppm_configure_charge_path(true);
-            last_recovery_ms = now;
+            ppm_recovery_last_ms = now;
         }
     }
 
     if (!usb_present) {
-        last_recovery_ms = 0;
+        ppm_recovery_last_ms = 0;
     }
-    usb_was_present = usb_present;
+    ppm_recovery_usb_was_present = usb_present;
+}
+
+void ppm_set_recovery_enabled(bool enabled)
+{
+    ppm_recovery_enabled = enabled;
+    if (enabled) {
+        ppm_recovery_usb_was_present = false;
+        ppm_recovery_last_ms = 0;
+    }
 }
 
 void setup(void)

@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <IRremoteESP8266.h>
 #include <IRsend.h>
+#include <string.h>
 #include "peripheral/peripheral.h"
 #include "utilities.h"
 
@@ -1174,63 +1175,243 @@ scr_lifecycle_t screen2 = {
 #endif
 //************************************[ screen 3 ]****************************************** nfc
 #if 1
-extern bool nfc_upd_falg;
-extern uint32_t cardid;
-extern uint8_t uid[];
 lv_obj_t *scr3_cont;
-lv_obj_t *nfc_list;
-lv_obj_t *nfc_led;
-lv_obj_t *nfc_ledlab;
+lv_obj_t *nfc_status_chip;
+lv_obj_t *nfc_state_box;
+lv_obj_t *nfc_state_label;
+lv_obj_t *nfc_counter_label;
+lv_obj_t *nfc_meta_label;
+lv_obj_t *nfc_activity_label;
+lv_obj_t *nfc_hint_label;
 lv_timer_t *nfc_chk_timer = NULL;
-uint32_t nfc_id[10] = {0};
-uint32_t nfc_recode_cnt = 0;
+uint32_t nfc_ui_last_seq = 0xFFFFFFFFUL;
+uint32_t nfc_ui_last_age_seconds = 0xFFFFFFFFUL;
+int nfc_ui_last_display_event = -1;
 
-void list_item_event(lv_event_t *e)
+static constexpr uint32_t NFC_UI_ACTIVE_WINDOW_MS = 1800;
+
+static lv_obj_t *nfc_create_card(lv_obj_t *parent, lv_coord_t x, lv_coord_t y, lv_coord_t w, lv_coord_t h, uint32_t border_color)
 {
+    uint32_t card_bg = (setting_theme == UI_THEME_DARK) ? 0x1E2331 : 0xF3F6FA;
 
+    lv_obj_t *card = lv_obj_create(parent);
+    lv_obj_set_pos(card, x, y);
+    lv_obj_set_size(card, w, h);
+    lv_obj_set_style_bg_color(card, lv_color_hex(card_bg), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(card, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_border_color(card, lv_color_hex(border_color), LV_PART_MAIN);
+    lv_obj_set_style_border_width(card, 1, LV_PART_MAIN);
+    lv_obj_set_style_radius(card, 12, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(card, 10, LV_PART_MAIN);
+    lv_obj_set_style_shadow_width(card, 0, LV_PART_MAIN);
+    lv_obj_set_scrollbar_mode(card, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_clear_flag(card, LV_OBJ_FLAG_SCROLLABLE);
+    return card;
+}
+
+static lv_obj_t *nfc_create_card_title(lv_obj_t *parent, const char *text)
+{
+    lv_obj_t *label = lv_label_create(parent);
+    lv_obj_set_style_text_color(label, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
+    lv_obj_set_style_text_font(label, FONT_BOLD_14, LV_PART_MAIN);
+    lv_label_set_text(label, text);
+    lv_obj_align(label, LV_ALIGN_TOP_LEFT, 0, 0);
+    return label;
+}
+
+static void nfc_format_uid(const uint8_t *uid, uint8_t uid_len, char *buf, size_t buf_len)
+{
+    if ((buf == NULL) || (buf_len == 0)) {
+        return;
+    }
+
+    buf[0] = '\0';
+    if ((uid == NULL) || (uid_len == 0)) {
+        lv_snprintf(buf, buf_len, "--");
+        return;
+    }
+
+    size_t offset = 0;
+    uint8_t safe_uid_len = (uid_len > NFC_UID_MAX_LEN) ? NFC_UID_MAX_LEN : uid_len;
+    for (uint8_t i = 0; i < safe_uid_len; ++i) {
+        const char *separator = "";
+        if (i > 0) {
+            separator = (safe_uid_len > 4 && i == 4) ? "\n" : ":";
+        }
+
+        int written = lv_snprintf(buf + offset,
+                                  buf_len - offset,
+                                  "%s%02X",
+                                  separator,
+                                  uid[i]);
+        if (written < 0) {
+            break;
+        }
+
+        size_t step = (size_t)written;
+        if (step >= (buf_len - offset)) {
+            offset = buf_len - 1;
+            break;
+        }
+        offset += step;
+    }
+}
+
+static void nfc_format_version(uint32_t version_data, char *buf, size_t buf_len)
+{
+    if ((buf == NULL) || (buf_len == 0)) {
+        return;
+    }
+
+    if (version_data == 0) {
+        lv_snprintf(buf, buf_len, "PN532  I2C 0x24");
+        return;
+    }
+
+    uint32_t chip = (version_data >> 24) & 0xFF;
+    uint32_t ver_h = (version_data >> 16) & 0xFF;
+    uint32_t ver_l = (version_data >> 8) & 0xFF;
+    lv_snprintf(buf,
+                buf_len,
+                "PN5%X v%lu.%lu",
+                (unsigned int)chip,
+                (unsigned long)ver_h,
+                (unsigned long)ver_l);
+}
+
+static void nfc_refresh_ui(void)
+{
+    if (!nfc_status_chip) {
+        return;
+    }
+
+    nfc_status_t status;
+    nfc_get_status(&status);
+
+    uint32_t now = millis();
+    uint32_t age_seconds = (status.last_tick_ms == 0) ? 0UL : ((now - status.last_tick_ms) / 1000UL);
+    bool idle = status.init_flag &&
+                ((status.scan_count == 0) ||
+                 (status.last_tick_ms == 0) ||
+                 ((now - status.last_tick_ms) > NFC_UI_ACTIVE_WINDOW_MS));
+    int display_event = NFC_EVENT_WAIT;
+
+    if (!status.init_flag || (status.last_event == NFC_EVENT_FAIL)) {
+        display_event = NFC_EVENT_FAIL;
+    } else if (idle) {
+        display_event = NFC_EVENT_WAIT;
+    } else {
+        display_event = status.last_event;
+    }
+
+    if ((status.update_seq == nfc_ui_last_seq) &&
+        (age_seconds == nfc_ui_last_age_seconds) &&
+        (display_event == nfc_ui_last_display_event)) {
+        return;
+    }
+
+    uint32_t accent_color = EMBED_COLOR_FOCUS_ON;
+    uint32_t badge_color = EMBED_COLOR_FOCUS_ON;
+    uint32_t state_text_color = 0x101820;
+    const char *chip_text = "WAIT";
+    const char *state_text = "READY";
+    const char *hint_text = "Tap ISO14443A card near antenna";
+    char meta_buf[48];
+    char uid_buf[48];
+    char activity_buf[96];
+
+    nfc_format_version(status.version_data, meta_buf, sizeof(meta_buf));
+    nfc_format_uid(status.last_uid, status.last_uid_len, uid_buf, sizeof(uid_buf));
+
+    switch (display_event) {
+        case NFC_EVENT_PASS:
+            accent_color = EMBED_COLOR_FOCUS_ON;
+            badge_color = EMBED_COLOR_FOCUS_ON;
+            state_text_color = 0x101820;
+            chip_text = "PASS";
+            state_text = "PASS";
+            break;
+        case NFC_EVENT_FAIL:
+            accent_color = 0xD9534F;
+            badge_color = 0xD9534F;
+            state_text_color = 0xFFFFFF;
+            chip_text = "FAIL";
+            state_text = "FAIL";
+            hint_text = "Check PN532 module and reboot";
+            break;
+        case NFC_EVENT_WAIT:
+        default:
+            accent_color = 0x3FA9F5;
+            badge_color = 0x3FA9F5;
+            state_text_color = 0x08131D;
+            chip_text = "WAIT";
+            state_text = "READY";
+            break;
+    }
+
+    lv_obj_set_style_bg_color(nfc_status_chip, lv_color_hex(badge_color), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(nfc_status_chip, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_text_color(nfc_status_chip, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+    lv_label_set_text(nfc_status_chip, chip_text);
+
+    lv_obj_set_style_bg_color(nfc_state_box, lv_color_hex(accent_color), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(nfc_state_box, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_text_color(nfc_state_label, lv_color_hex(state_text_color), LV_PART_MAIN);
+    lv_label_set_text(nfc_state_label, state_text);
+
+    lv_label_set_text_fmt(nfc_counter_label,
+                          "SCAN %lu\nUNIQ %lu",
+                          (unsigned long)status.scan_count,
+                          (unsigned long)status.unique_count);
+
+    if (status.init_flag) {
+        if (status.last_uid_len > 0) {
+            lv_snprintf(meta_buf + strlen(meta_buf),
+                        sizeof(meta_buf) - strlen(meta_buf),
+                        "  %uB",
+                        status.last_uid_len);
+        } else {
+            lv_snprintf(meta_buf + strlen(meta_buf),
+                        sizeof(meta_buf) - strlen(meta_buf),
+                        "  --");
+        }
+    }
+    lv_label_set_text(nfc_meta_label, meta_buf);
+
+    if (display_event == NFC_EVENT_FAIL) {
+        lv_snprintf(activity_buf,
+                    sizeof(activity_buf),
+                    "Module not detected\nCheck board + reboot");
+    } else if ((display_event == NFC_EVENT_WAIT) && (status.scan_count == 0)) {
+        lv_snprintf(activity_buf,
+                    sizeof(activity_buf),
+                    "Tap ISO14443A\ncard to test");
+    } else if (display_event == NFC_EVENT_WAIT) {
+        lv_snprintf(activity_buf,
+                    sizeof(activity_buf),
+                    "LAST TAG  %lus\n%s",
+                    (unsigned long)age_seconds,
+                    uid_buf);
+    } else {
+        lv_snprintf(activity_buf,
+                    sizeof(activity_buf),
+                    "TAG OK  %lus\n%s",
+                    (unsigned long)age_seconds,
+                    uid_buf);
+    }
+
+    lv_label_set_text(nfc_activity_label, activity_buf);
+    lv_label_set_text(nfc_hint_label, hint_text);
+
+    nfc_ui_last_seq = status.update_seq;
+    nfc_ui_last_age_seconds = age_seconds;
+    nfc_ui_last_display_event = display_event;
 }
 
 void nfc_chk_timer_event(lv_timer_t *t)
 {
-    int is_exist = -1;
-    static int led_flag = 0;
-    if(nfc_upd_falg) {
-        nfc_upd_falg = false;
-
-        for(int i = 0; i < sizeof(nfc_id) / sizeof(nfc_id[0]); i++) {
-            if(nfc_id[i] == cardid) {
-                is_exist = i;
-                break;
-            }
-        }
-
-        if(is_exist != -1) {
-            lv_label_set_text_fmt(nfc_ledlab, "%02d -", is_exist+1);
-            if(led_flag){
-                lv_led_on(nfc_led);
-            }else{
-                lv_led_off(nfc_led);
-            }
-            
-            led_flag = !led_flag;
-        } else {
-            char buf[33];
-            nfc_id[nfc_recode_cnt] = cardid;
-            nfc_recode_cnt++;
-            
-            lv_snprintf(buf, 33, "%02d-UID-[%02X:%02X:%02X:%02X]-#%d", 
-                nfc_recode_cnt, uid[0], uid[1], uid[2], uid[3], cardid);
-            lv_obj_t *item = lv_list_add_btn(nfc_list, NULL, buf);
-            lv_obj_set_style_bg_color(item, lv_color_hex(EMBED_COLOR_FOCUS_ON), LV_STATE_FOCUS_KEY);
-            lv_obj_set_style_bg_color(item, lv_color_hex(EMBED_COLOR_BG), LV_PART_MAIN);
-            lv_obj_set_style_text_color(item, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
-            lv_obj_set_style_text_font(item, FONT_BOLD_14, LV_PART_MAIN);
-        }
-    } 
-    else {
-        lv_led_off(nfc_led);
-        lv_label_set_text(nfc_ledlab, "xx -");
-    }
+    LV_UNUSED(t);
+    nfc_refresh_ui();
 }
 
 void entry3_anim(lv_obj_t *obj)
@@ -1253,6 +1434,17 @@ static void scr3_btn_event_cb(lv_event_t * e)
 }
 
 void create3(lv_obj_t *parent){
+    nfc_status_chip = NULL;
+    nfc_state_box = NULL;
+    nfc_state_label = NULL;
+    nfc_counter_label = NULL;
+    nfc_meta_label = NULL;
+    nfc_activity_label = NULL;
+    nfc_hint_label = NULL;
+    nfc_ui_last_seq = 0xFFFFFFFFUL;
+    nfc_ui_last_age_seconds = 0xFFFFFFFFUL;
+    nfc_ui_last_display_event = -1;
+
     scr3_cont = lv_obj_create(parent);
     lv_obj_set_size(scr3_cont, lv_pct(100), lv_pct(100));
     lv_obj_set_style_bg_color(scr3_cont, lv_color_hex(EMBED_COLOR_BG), LV_PART_MAIN);
@@ -1260,68 +1452,90 @@ void create3(lv_obj_t *parent){
     lv_obj_set_style_border_width(scr3_cont, 0, LV_PART_MAIN);
     lv_obj_set_style_pad_all(scr3_cont, 0, LV_PART_MAIN);
 
-    lv_obj_t *label = lv_label_create(scr3_cont);
-    lv_obj_set_style_text_color(label, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
-    lv_obj_set_style_text_font(label, FONT_BOLD_14, LV_PART_MAIN);
-    lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 10);
+    lv_obj_t *title = lv_label_create(scr3_cont);
+    lv_obj_set_style_text_color(title, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
+    lv_obj_set_style_text_font(title, FONT_BOLD_18, LV_PART_MAIN);
+    lv_label_set_text(title, "NFC Test");
+    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 10);
 
-    uint32_t verisondata = nfc_get_ver_data();
-    uint32_t chip = (verisondata >> 24) & 0xFF;
-    uint32_t verH = (verisondata >> 16) & 0xFF;
-    uint32_t verL = (verisondata >>  8) & 0xFF;
-    lv_label_set_text_fmt(label, "PN5%x  ver:%d.%d", chip, verH, verL);
+    lv_obj_t *check_card = nfc_create_card(scr3_cont, 12, 42, 136, 108, EMBED_COLOR_FOCUS_ON);
+    lv_obj_t *tag_card = nfc_create_card(scr3_cont, 156, 42, 152, 108, EMBED_COLOR_BORDER);
 
-    nfc_led  = lv_led_create(scr3_cont);
-    lv_obj_set_size(nfc_led, 16, 16);
-    lv_obj_align(nfc_led, LV_ALIGN_TOP_RIGHT, -15, 10);
-    lv_led_off(nfc_led);
+    nfc_create_card_title(check_card, "CHECK");
+    nfc_create_card_title(tag_card, "LATEST TAG");
 
-    nfc_ledlab = lv_label_create(scr3_cont);
-    lv_obj_set_style_text_color(nfc_ledlab, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
-    lv_obj_set_style_text_font(nfc_ledlab, FONT_BOLD_14, LV_PART_MAIN);
-    lv_obj_align_to(nfc_ledlab, nfc_led, LV_ALIGN_OUT_LEFT_MID, -6, 0);
-    lv_label_set_text(nfc_ledlab, "xx -");
+    nfc_status_chip = lv_label_create(check_card);
+    lv_obj_set_style_radius(nfc_status_chip, LV_RADIUS_CIRCLE, LV_PART_MAIN);
+    lv_obj_set_style_pad_hor(nfc_status_chip, 8, LV_PART_MAIN);
+    lv_obj_set_style_pad_ver(nfc_status_chip, 3, LV_PART_MAIN);
+    lv_obj_set_style_text_font(nfc_status_chip, FONT_BOLD_14, LV_PART_MAIN);
+    lv_obj_align(nfc_status_chip, LV_ALIGN_TOP_RIGHT, 0, -2);
 
-    nfc_list = lv_list_create(scr3_cont);
-    lv_obj_set_size(nfc_list, LV_HOR_RES, 135);
-    lv_obj_align(nfc_list, LV_ALIGN_BOTTOM_MID, 0, 0);
-    lv_obj_set_style_bg_color(nfc_list, lv_color_hex(EMBED_COLOR_BG), LV_PART_MAIN);
-    lv_obj_set_style_pad_row(nfc_list, 2, LV_PART_MAIN);
-    lv_obj_set_style_radius(nfc_list, 0, LV_PART_MAIN);
-    // lv_obj_set_style_outline_pad(nfc_list, 2, LV_PART_MAIN);
-    lv_obj_set_style_border_width(nfc_list, 0, LV_PART_MAIN);
-    lv_obj_set_style_shadow_width(nfc_list, 0, LV_PART_MAIN);
+    nfc_state_box = lv_obj_create(check_card);
+    lv_obj_set_size(nfc_state_box, 112, 40);
+    lv_obj_set_style_shadow_width(nfc_state_box, 0, LV_PART_MAIN);
+    lv_obj_set_style_border_width(nfc_state_box, 0, LV_PART_MAIN);
+    lv_obj_set_style_radius(nfc_state_box, 10, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(nfc_state_box, 0, LV_PART_MAIN);
+    lv_obj_set_scrollbar_mode(nfc_state_box, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_clear_flag(nfc_state_box, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_align(nfc_state_box, LV_ALIGN_TOP_MID, 0, 28);
 
-    for(int i = 0; i < nfc_recode_cnt; i++) {
-        char buf[33];
-        lv_snprintf(buf, 33, "%02d-UID-[%02X:%02X:%02X:%02X]-#%d", 
-                i + 1, 
-                (nfc_id[i] >> 24) & 0xFF, 
-                (nfc_id[i] >> 16) & 0xFF, 
-                (nfc_id[i] >> 8)  & 0xFF, 
-                nfc_id[i] & 0xFF, 
-                nfc_id[i]);
-        lv_obj_t *item = lv_list_add_btn(nfc_list, NULL, buf);
-        lv_obj_set_style_bg_color(item, lv_color_hex(EMBED_COLOR_FOCUS_ON), LV_STATE_FOCUS_KEY);
-        lv_obj_set_style_bg_color(item, lv_color_hex(EMBED_COLOR_BG), LV_PART_MAIN);
-        lv_obj_set_style_text_color(item, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
-        lv_obj_set_style_text_font(item, FONT_BOLD_14, LV_PART_MAIN);
-        // lv_obj_add_event_cb(item, list_item_event, LV_EVENT_CLICKED, (void *)i);
-    }
+    nfc_state_label = lv_label_create(nfc_state_box);
+    lv_obj_set_style_text_font(nfc_state_label, FONT_BOLD_16, LV_PART_MAIN);
+    lv_obj_center(nfc_state_label);
+
+    nfc_counter_label = lv_label_create(check_card);
+    lv_obj_set_width(nfc_counter_label, 112);
+    lv_obj_set_style_text_color(nfc_counter_label, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
+    lv_obj_set_style_text_font(nfc_counter_label, FONT_BOLD_14, LV_PART_MAIN);
+    lv_obj_set_style_text_align(nfc_counter_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+    lv_obj_set_style_text_line_space(nfc_counter_label, 0, LV_PART_MAIN);
+    lv_obj_align(nfc_counter_label, LV_ALIGN_BOTTOM_MID, 0, 0);
+
+    nfc_meta_label = lv_label_create(tag_card);
+    lv_obj_set_width(nfc_meta_label, 128);
+    lv_obj_set_style_text_color(nfc_meta_label, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
+    lv_obj_set_style_text_font(nfc_meta_label, FONT_BOLD_14, LV_PART_MAIN);
+    lv_obj_set_style_text_line_space(nfc_meta_label, 0, LV_PART_MAIN);
+    lv_label_set_long_mode(nfc_meta_label, LV_LABEL_LONG_WRAP);
+    lv_obj_align(nfc_meta_label, LV_ALIGN_TOP_LEFT, 0, 24);
+
+    nfc_activity_label = lv_label_create(tag_card);
+    lv_obj_set_width(nfc_activity_label, 128);
+    lv_obj_set_style_text_color(nfc_activity_label, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
+    lv_obj_set_style_text_font(nfc_activity_label, FONT_BOLD_14, LV_PART_MAIN);
+    lv_obj_set_style_text_line_space(nfc_activity_label, 0, LV_PART_MAIN);
+    lv_label_set_long_mode(nfc_activity_label, LV_LABEL_LONG_WRAP);
+    lv_obj_align(nfc_activity_label, LV_ALIGN_BOTTOM_LEFT, 0, 0);
+
+    nfc_hint_label = lv_label_create(scr3_cont);
+    lv_obj_set_style_text_color(nfc_hint_label, lv_color_hex(EMBED_COLOR_BORDER), LV_PART_MAIN);
+    lv_obj_set_style_text_font(nfc_hint_label, FONT_BOLD_14, LV_PART_MAIN);
+    lv_label_set_text(nfc_hint_label, "Tap ISO14443A card near antenna");
+    lv_obj_align(nfc_hint_label, LV_ALIGN_BOTTOM_MID, 0, -6);
 
     scr_back_btn_create(scr3_cont, scr3_btn_event_cb);
     entry3_anim(scr3_cont);
     nfc_chk_timer = lv_timer_create(nfc_chk_timer_event, 200, NULL);
     lv_timer_pause(nfc_chk_timer);
+    nfc_refresh_ui();
 }
 void entry3(void) {
+    nfc_ui_last_seq = 0xFFFFFFFFUL;
+    nfc_ui_last_age_seconds = 0xFFFFFFFFUL;
+    nfc_ui_last_display_event = -1;
+    ppm_set_recovery_enabled(false);
+    nfc_refresh_ui();
     lv_timer_resume(nfc_chk_timer);
     vTaskResume(nfc_handle);
 }
 void exit3(void) {
+    ppm_set_recovery_enabled(true);
     vTaskSuspend(nfc_handle);
 }
 void destroy3(void) {
+    ppm_set_recovery_enabled(true);
     if(nfc_chk_timer) {
         lv_timer_del(nfc_chk_timer);
         nfc_chk_timer = NULL;

@@ -21,10 +21,30 @@ void ws2812_pos_demo1(void);
 #include <Wire.h>
 #include <SPI.h>
 #include <Adafruit_PN532.h>
+
+#define NFC_UID_MAX_LEN 7
+
+#define NFC_EVENT_WAIT 0
+#define NFC_EVENT_PASS 1
+#define NFC_EVENT_FAIL 2
+
+typedef struct {
+    uint32_t scan_count;
+    uint32_t unique_count;
+    uint32_t last_tick_ms;
+    uint32_t update_seq;
+    uint32_t version_data;
+    uint8_t last_uid[NFC_UID_MAX_LEN];
+    uint8_t last_uid_len;
+    int last_event;
+    bool init_flag;
+} nfc_status_t;
+
 extern TaskHandle_t nfc_handle;
 void nfc_init(void);
 bool nfc_is_init(void);
 uint32_t nfc_get_ver_data(void);
+void nfc_get_status(nfc_status_t *status);
 void nfc_task(void *param);
 
 /**------------------------------ LORA -----------------------------------**/
@@ -86,6 +106,7 @@ void nrf24_get_status(nrf24_status_t *status);
 
 extern TaskHandle_t battery_handle;
 extern XPowersPPM PPM;
+void ppm_set_recovery_enabled(bool enabled);
 void battery_task(void *param);
 
 #include "bq27220.h"
