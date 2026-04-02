@@ -162,6 +162,7 @@ PN532是一个高度集成的收发模块，用于13.56 MHz的非接触式通信
 - ✅ tf_card_test ：SD 卡测试，在串口中显示读取到的的文件名。
 - ✅ record_test : 录制 15 秒钟的音频，并保存到 SD 卡中。
 - ✅ voice_test : 扬声器测试，从SD卡读取音频。
+- ✅ ble_uart_pairing : BLE UART 配对/状态显示示例，屏幕显示配对码、绑定和连接状态，并回显文本数据。该示例是 BLE GATT UART，不是 A2DP 蓝牙音频。
 - ✅ ws2812_test ：LED 灯测试；
 ~~~
 

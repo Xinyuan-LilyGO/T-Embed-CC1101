@@ -160,6 +160,7 @@ The PN532 only supports high-frequency cards at 13.56MHz, does not support low-f
 - ✅ tf_card_test ：SD card test, the file name is displayed in the serial port.
 - ✅ record_test : Record 15 seconds of audio and save it to your SD card.
 - ✅ voice_test : Loudspeaker test, read audio from SPIFFS.
+- ✅ ble_uart_pairing : BLE UART pairing/status demo with on-screen passkey, bonding, connection state, and text echo. This is BLE GATT UART, not A2DP audio.
 - ✅ ws2812_test ：LED light test;
 ~~~
 
