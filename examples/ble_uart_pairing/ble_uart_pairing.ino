@@ -23,7 +23,6 @@ constexpr char kTxUuid[] = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E";
 constexpr uint16_t kInvalidConnId = 0xFFFF;
 constexpr uint32_t kClearHoldMs = 2000;
 constexpr uint32_t kAdvertisingRestartDelayMs = 500;
-constexpr uint32_t kUiRefreshMs = 250;
 constexpr uint32_t kMaxEchoBytes = 120;
 
 constexpr size_t kStatusTextSize = 24;
@@ -50,15 +49,16 @@ struct AppState {
 portMUX_TYPE gStateMux = portMUX_INITIALIZER_UNLOCKED;
 
 TFT_eSPI gTft;
+TFT_eSprite gSprite(&gTft);
 BLEServer *gServer = nullptr;
 BLECharacteristic *gTxCharacteristic = nullptr;
 
 AppState gState = {};
 
 bool gDisplayDirty = true;
+bool gSpriteReady = false;
 bool gRestartAdvertisingPending = false;
 uint32_t gRestartAdvertisingAt = 0;
-uint32_t gLastUiDrawMs = 0;
 
 bool gKnobPressed = false;
 bool gKnobActionLatched = false;
@@ -173,11 +173,11 @@ AppState snapshotState(bool *dirty)
     return snapshot;
 }
 
-void drawLine(int16_t y, const char *text, uint16_t color)
+void drawLine(TFT_eSPI &canvas, int16_t y, const char *text, uint16_t color)
 {
-    gTft.setCursor(4, y);
-    gTft.setTextColor(color, TFT_BLACK);
-    gTft.print(text);
+    canvas.setCursor(4, y);
+    canvas.setTextColor(color, TFT_BLACK);
+    canvas.print(text);
 }
 
 uint16_t statusColor(const char *status)
@@ -206,31 +206,38 @@ uint16_t statusColor(const char *status)
 void renderScreen()
 {
     AppState snapshot = snapshotState(nullptr);
+    TFT_eSPI *canvas = &gTft;
 
-    gTft.fillScreen(TFT_BLACK);
-    gTft.setTextFont(4);
-    gTft.setTextColor(TFT_CYAN, TFT_BLACK);
-    gTft.setCursor(4, 4);
-    gTft.print("BLE UART");
+    if (gSpriteReady) {
+        gSprite.fillSprite(TFT_BLACK);
+        canvas = &gSprite;
+    } else {
+        gTft.fillScreen(TFT_BLACK);
+    }
 
-    gTft.setTextFont(2);
+    canvas->setTextFont(4);
+    canvas->setTextColor(TFT_CYAN, TFT_BLACK);
+    canvas->setCursor(4, 4);
+    canvas->print("BLE UART");
+
+    canvas->setTextFont(2);
 
     char line[96];
 
     snprintf(line, sizeof(line), "Name: %s", kDeviceName);
-    drawLine(34, line, TFT_WHITE);
+    drawLine(*canvas, 34, line, TFT_WHITE);
 
     snprintf(line, sizeof(line), "Status: %s", snapshot.status);
-    drawLine(50, line, statusColor(snapshot.status));
+    drawLine(*canvas, 50, line, statusColor(snapshot.status));
 
     snprintf(line, sizeof(line), "Passkey: %06lu", static_cast<unsigned long>(snapshot.passkey));
-    drawLine(66, line, snapshot.authInProgress ? TFT_YELLOW : TFT_WHITE);
+    drawLine(*canvas, 66, line, snapshot.authInProgress ? TFT_YELLOW : TFT_WHITE);
 
     snprintf(line, sizeof(line), "Local: %s", snapshot.localAddress);
-    drawLine(82, line, TFT_WHITE);
+    drawLine(*canvas, 82, line, TFT_WHITE);
 
     snprintf(line, sizeof(line), "Peer: %s", snapshot.peerAddress[0] ? snapshot.peerAddress : "-");
-    drawLine(98, line, snapshot.connected ? TFT_GREEN : TFT_LIGHTGREY);
+    drawLine(*canvas, 98, line, snapshot.connected ? TFT_GREEN : TFT_LIGHTGREY);
 
     snprintf(line,
              sizeof(line),
@@ -238,12 +245,16 @@ void renderScreen()
              snapshot.bondCount,
              static_cast<unsigned long>(snapshot.rxCount),
              static_cast<unsigned long>(snapshot.txCount));
-    drawLine(114, line, TFT_WHITE);
+    drawLine(*canvas, 114, line, TFT_WHITE);
 
     snprintf(line, sizeof(line), "Last RX: %s", snapshot.lastRx);
-    drawLine(130, line, TFT_WHITE);
+    drawLine(*canvas, 130, line, TFT_WHITE);
 
-    drawLine(146, "Hold knob to clear bonds", TFT_DARKGREY);
+    drawLine(*canvas, 146, "Hold knob to clear bonds", TFT_DARKGREY);
+
+    if (gSpriteReady) {
+        gSprite.pushSprite(0, 0);
+    }
 }
 
 void boardPrepareSpi()
@@ -537,6 +548,15 @@ void initDisplay()
     gTft.fillScreen(TFT_BLACK);
     gTft.setTextWrap(false);
 
+    gSprite.setColorDepth(16);
+    gSpriteReady = (gSprite.createSprite(gTft.width(), gTft.height()) != nullptr);
+    if (gSpriteReady) {
+        gSprite.setTextWrap(false);
+        gSprite.fillSprite(TFT_BLACK);
+    } else {
+        Serial.println("[UI] Sprite allocation failed, using direct draw.");
+    }
+
     digitalWrite(DISPLAY_BL, HIGH);
 }
 
@@ -631,14 +651,12 @@ void loop()
     serviceKnobHold();
     serviceAdvertisingRestart();
 
-    const uint32_t now = millis();
     bool dirty = false;
     {
         AppState unused = snapshotState(&dirty);
         (void)unused;
     }
-    if (dirty || (now - gLastUiDrawMs >= kUiRefreshMs)) {
-        gLastUiDrawMs = now;
+    if (dirty) {
         renderScreen();
     }
 
