@@ -15,6 +15,7 @@ jobs:
     strategy:
       matrix:
         example: 
+            - examples/ble_uart_pairing
             - examples/bq25896_test
             - examples/bq25896_shutdown
             - examples/bq27xxx_test
