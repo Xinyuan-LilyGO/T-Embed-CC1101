@@ -100,6 +100,45 @@ void nrf24_task(void *param);
 void nrf24_send(const char *str);
 void nrf24_get_status(nrf24_status_t *status);
 
+/**---------------------------- BLE UART ----------------------------------**/
+#define BLE_UART_STATUS_ADDRESS_MAX_LEN 18
+#define BLE_UART_STATUS_PAYLOAD_MAX_LEN 64
+
+enum {
+    BLE_UART_EVENT_IDLE = 0,
+    BLE_UART_EVENT_ADVERTISING,
+    BLE_UART_EVENT_PAIRING,
+    BLE_UART_EVENT_BONDED,
+    BLE_UART_EVENT_CONNECTED,
+    BLE_UART_EVENT_DISCONNECTED,
+    BLE_UART_EVENT_AUTH_FAILED,
+    BLE_UART_EVENT_CLEARING_BONDS,
+};
+
+typedef struct {
+    uint32_t last_tick_ms;
+    uint32_t update_seq;
+    uint32_t passkey;
+    uint32_t rx_count;
+    uint32_t tx_count;
+    uint8_t bond_count;
+    int last_event;
+    bool init_flag;
+    bool connected;
+    bool advertising;
+    bool auth_in_progress;
+    bool bonded;
+    char local_address[BLE_UART_STATUS_ADDRESS_MAX_LEN];
+    char peer_address[BLE_UART_STATUS_ADDRESS_MAX_LEN];
+    char last_payload[BLE_UART_STATUS_PAYLOAD_MAX_LEN + 1];
+} ble_uart_status_t;
+
+void ble_uart_init(void);
+void ble_uart_service(void);
+bool ble_uart_is_init(void);
+bool ble_uart_clear_bonds(void);
+void ble_uart_get_status(ble_uart_status_t *status);
+
 /**---------------------------- BATTERY ----------------------------------**/
 #define XPOWERS_CHIP_BQ25896
 #include "XPowersLib.h"

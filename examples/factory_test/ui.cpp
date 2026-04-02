@@ -369,7 +369,8 @@ const char *name_buf[] = {
     "<- Music"      ,
     "<- Infrared"   ,
     "<- Setting"    ,
-    "<- NRF24"
+    "<- NRF24"      ,
+    "<- BLE"        
 };
 
 void entry0_anim(void);
@@ -409,6 +410,7 @@ static void scr0_btn_event_cb(lv_event_t * e)
             case 6: switch_scr0_anim(SCREEN7_1_ID); break; // ID2 --- other
             case 7: switch_scr0_anim(SCREEN4_ID); break; // ID4 --- setting
             case 8: switch_scr0_anim(SCREEN9_ID); break; // ID9 --- nrf24
+            case 9: switch_scr0_anim(SCREEN10_ID); break; // ID10 --- ble
             default:
                 break;
         }
@@ -455,7 +457,11 @@ static void scr0_btn_event_cb(lv_event_t * e)
             case 8: 
                 lv_img_set_src(menu_icon, &img_setting_32); 
                 lv_obj_set_style_img_recolor_opa(menu_icon, LV_OPA_0, LV_PART_MAIN);
-                break;  
+                break;
+            case 9:
+                lv_img_set_src(menu_icon, &img_ble_32);
+                lv_obj_set_style_img_recolor_opa(menu_icon, LV_OPA_0, LV_PART_MAIN);
+                break;
             default:
                 break;
         }
@@ -3382,6 +3388,235 @@ static scr_lifecycle_t screen9 = {
     .destroy = destroy9,
 };
 #endif
+//************************************[ screen 10 ]***************************************** BLE UART
+#if 1
+static lv_obj_t *scr10_cont;
+static lv_obj_t *ble_info_label;
+static lv_timer_t *ble_uart_timer;
+static uint32_t ble_uart_ui_last_seq;
+static uint32_t ble_clear_pressed_at;
+static uint32_t ble_clear_ignore_click_until;
+static bool ble_clear_press_active;
+static bool ble_clear_action_latched;
+
+static constexpr uint32_t BLE_UI_REFRESH_INTERVAL_MS = 200;
+static constexpr uint32_t BLE_UI_CLEAR_HOLD_MS = 2000;
+static constexpr uint32_t BLE_UI_CLEAR_IGNORE_CLICK_MS = 500;
+static constexpr char BLE_UI_DEVICE_NAME[] = "T-Embed-BLE-UART";
+
+void entry10_anim(lv_obj_t *obj) { entry1_anim(obj); }
+void exit10_anim(int user_data, lv_obj_t *obj) { exit1_anim(user_data, obj); }
+
+static const char *ble_ui_event_text(int event)
+{
+    switch (event) {
+        case BLE_UART_EVENT_ADVERTISING:    return "Advertising";
+        case BLE_UART_EVENT_PAIRING:        return "Pairing";
+        case BLE_UART_EVENT_BONDED:         return "Bonded";
+        case BLE_UART_EVENT_CONNECTED:      return "Connected";
+        case BLE_UART_EVENT_DISCONNECTED:   return "Disconnected";
+        case BLE_UART_EVENT_AUTH_FAILED:    return "Auth Failed";
+        case BLE_UART_EVENT_CLEARING_BONDS: return "Clearing Bonds";
+        default:                            return "Idle";
+    }
+}
+
+static uint32_t ble_ui_status_color(int event)
+{
+    switch (event) {
+        case BLE_UART_EVENT_ADVERTISING:    return 0x35B8F1;
+        case BLE_UART_EVENT_PAIRING:        return 0xF2C14E;
+        case BLE_UART_EVENT_BONDED:         return 0x37B679;
+        case BLE_UART_EVENT_CONNECTED:      return 0x1FA463;
+        case BLE_UART_EVENT_DISCONNECTED:   return 0xF08A5D;
+        case BLE_UART_EVENT_AUTH_FAILED:    return 0xD9534F;
+        case BLE_UART_EVENT_CLEARING_BONDS: return 0xB46AE0;
+        default:                            return EMBED_COLOR_BORDER;
+    }
+}
+
+static void ble_service_knob_hold(void)
+{
+    bool pressed = (digitalRead(ENCODER_KEY) == LOW);
+
+    if (pressed && !ble_clear_press_active) {
+        ble_clear_press_active = true;
+        ble_clear_action_latched = false;
+        ble_clear_pressed_at = millis();
+    } else if (!pressed) {
+        ble_clear_press_active = false;
+        ble_clear_action_latched = false;
+    }
+
+    if (ble_clear_press_active && !ble_clear_action_latched &&
+        (millis() - ble_clear_pressed_at >= BLE_UI_CLEAR_HOLD_MS)) {
+        ble_clear_action_latched = true;
+        ble_clear_ignore_click_until = millis() + BLE_UI_CLEAR_IGNORE_CLICK_MS;
+        ble_uart_clear_bonds();
+    }
+}
+
+static void ble_refresh_ui(void)
+{
+    if (!ble_info_label) {
+        return;
+    }
+
+    ble_uart_status_t status;
+    ble_uart_get_status(&status);
+
+    if (status.init_flag && (status.update_seq == ble_uart_ui_last_seq)) {
+        return;
+    }
+
+    const char *peer = status.peer_address[0] ? status.peer_address : "-";
+    const char *payload = status.last_payload[0] ? status.last_payload : "-";
+    const char *status_text = status.init_flag ? ble_ui_event_text(status.last_event) : "BLE init unavailable";
+    uint32_t status_color = status.init_flag ? ble_ui_status_color(status.last_event) : EMBED_COLOR_BORDER;
+    uint32_t label_color = EMBED_COLOR_TEXT;
+    uint32_t passkey_color = EMBED_COLOR_FOCUS_ON;
+    uint32_t hint_color = EMBED_COLOR_BORDER;
+    char passkey_buf[16];
+    char info_buf[512];
+
+    if (status.init_flag) {
+        lv_snprintf(passkey_buf, sizeof(passkey_buf), "%06lu", (unsigned long)status.passkey);
+    } else {
+        lv_snprintf(passkey_buf, sizeof(passkey_buf), "------");
+    }
+
+    lv_snprintf(info_buf,
+                sizeof(info_buf),
+                "#%06X Name:# %s\n"
+                "#%06X Status:# #%06X %s#\n"
+                "#%06X Passkey:# #%06X %s#\n"
+                "#%06X Local:# %s\n"
+                "#%06X Peer:# %s\n"
+                "#%06X Last RX:# %s\n"
+                "#%06X Hold knob to clear bonds#",
+                label_color,
+                BLE_UI_DEVICE_NAME,
+                label_color,
+                status_color,
+                status_text,
+                label_color,
+                passkey_color,
+                passkey_buf,
+                label_color,
+                (status.init_flag && status.local_address[0]) ? status.local_address : "-",
+                label_color,
+                status.init_flag ? peer : "-",
+                label_color,
+                status.init_flag ? payload : "-",
+                hint_color);
+
+    lv_label_set_text(ble_info_label, info_buf);
+    ble_uart_ui_last_seq = status.init_flag ? status.update_seq : 0xFFFFFFFFUL;
+}
+
+static void ble_uart_timer_event(lv_timer_t *t)
+{
+    LV_UNUSED(t);
+    ble_service_knob_hold();
+    ble_refresh_ui();
+}
+
+static void scr10_btn_event_cb(lv_event_t * e)
+{
+    if(e->code == LV_EVENT_CLICKED){
+        if (millis() < ble_clear_ignore_click_until) {
+            return;
+        }
+        exit10_anim(SCREEN0_ID, scr10_cont);
+    }
+}
+
+static void create10(lv_obj_t *parent)
+{
+    scr10_cont = lv_obj_create(parent);
+    lv_obj_set_size(scr10_cont, lv_pct(100), lv_pct(100));
+    lv_obj_set_style_bg_color(scr10_cont, lv_color_hex(EMBED_COLOR_BG), LV_PART_MAIN);
+    lv_obj_set_scrollbar_mode(scr10_cont, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_set_style_border_width(scr10_cont, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(scr10_cont, 0, LV_PART_MAIN);
+
+    lv_obj_t *label = lv_label_create(scr10_cont);
+    lv_obj_set_style_text_color(label, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
+    lv_obj_set_style_text_font(label, FONT_BOLD_16, LV_PART_MAIN);
+    lv_label_set_text(label, "BLE UART");
+    lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 10);
+
+    ble_info_label = NULL;
+    ble_uart_timer = NULL;
+    ble_uart_ui_last_seq = 0xFFFFFFFFUL;
+    ble_clear_pressed_at = 0;
+    ble_clear_ignore_click_until = 0;
+    ble_clear_press_active = false;
+    ble_clear_action_latched = false;
+
+    ble_info_label = lv_label_create(scr10_cont);
+    lv_obj_set_width(ble_info_label, DISPALY_WIDTH - 24);
+    lv_obj_set_style_text_color(ble_info_label, lv_color_hex(EMBED_COLOR_TEXT), LV_PART_MAIN);
+    lv_obj_set_style_text_font(ble_info_label, FONT_BOLD_14, LV_PART_MAIN);
+    lv_obj_set_style_text_line_space(ble_info_label, 4, LV_PART_MAIN);
+    lv_label_set_recolor(ble_info_label, true);
+    lv_label_set_long_mode(ble_info_label, LV_LABEL_LONG_WRAP);
+    lv_obj_align(ble_info_label, LV_ALIGN_TOP_LEFT, 12, 36);
+
+    scr_back_btn_create(scr10_cont, scr10_btn_event_cb);
+    ble_uart_timer = lv_timer_create(ble_uart_timer_event, BLE_UI_REFRESH_INTERVAL_MS, NULL);
+    lv_timer_pause(ble_uart_timer);
+    ble_refresh_ui();
+}
+
+static void entry10(void)
+{
+    entry10_anim(scr10_cont);
+    lv_group_set_wrap(lv_group_get_default(), true);
+    ble_uart_ui_last_seq = 0xFFFFFFFFUL;
+    ble_clear_pressed_at = 0;
+    ble_clear_ignore_click_until = 0;
+    ble_clear_press_active = false;
+    ble_clear_action_latched = false;
+    ble_refresh_ui();
+
+    if(ble_uart_timer) {
+        lv_timer_resume(ble_uart_timer);
+    }
+}
+
+static void exit10(void)
+{
+    lv_group_set_wrap(lv_group_get_default(), false);
+    ble_clear_press_active = false;
+    ble_clear_action_latched = false;
+    if(ble_uart_timer) {
+        lv_timer_pause(ble_uart_timer);
+    }
+}
+
+static void destroy10(void)
+{
+    if(ble_uart_timer) {
+        lv_timer_del(ble_uart_timer);
+        ble_uart_timer = NULL;
+    }
+
+    ble_info_label = NULL;
+    ble_uart_ui_last_seq = 0xFFFFFFFFUL;
+    ble_clear_pressed_at = 0;
+    ble_clear_ignore_click_until = 0;
+    ble_clear_press_active = false;
+    ble_clear_action_latched = false;
+}
+
+static scr_lifecycle_t screen10 = {
+    .create = create10,
+    .entry = entry10,
+    .exit  = exit10,
+    .destroy = destroy10,
+};
+#endif
 //************************************[ UI ENTRY ]******************************************
 
 void charge_detection_timer_cb(lv_timer_t *t)
@@ -3445,6 +3680,7 @@ void ui_entry(void)
     scr_mgr_register(SCREEN7_3_ID, &screen7_3); //   -TF Card
     scr_mgr_register(SCREEN8_ID, &screen8);     // music
     scr_mgr_register(SCREEN9_ID, &screen9);     // nrf24
+    scr_mgr_register(SCREEN10_ID, &screen10);   // ble uart
 
     // printf("EMBED_COLOR_BG:0x%x\n", EMBED_COLOR_BG);
     // printf("EMBED_COLOR_FOCUS_ON:0x%x\n", EMBED_COLOR_FOCUS_ON);

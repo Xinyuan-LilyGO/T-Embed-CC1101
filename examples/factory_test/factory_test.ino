@@ -583,6 +583,8 @@ void setup(void)
 
     // audio.connecttoFS(SD, "/music/My Anata.mp3");
 
+    ble_uart_init();
+
     // init UI and display
     ui_entry(); 
     lv_timer_create(msg_send_event, 5000, NULL);
@@ -614,6 +616,7 @@ void loop(void)
     audio.loop();
 
     lv_timer_handler();
+    ble_uart_service();
 
     ppm_service_charge_recovery();
 

@@ -1,6 +1,7 @@
 #pragma once
 #include "lvgl.h"
 
+LV_IMG_DECLARE(img_ble_32);
 LV_IMG_DECLARE(img_battery_32);
 LV_IMG_DECLARE(img_light_32);
 LV_IMG_DECLARE(img_lora_32);
