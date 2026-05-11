@@ -48,7 +48,8 @@ Expansion module:
 ➡ Some interesting projects that support T-Embed-CC1101：
 
 |     name     |                                                      code                                                       |                                       web                                        |
-| :----------: | :-------------------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------: |
+|:------------:| :-------------------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------: |
+| Flipper Zero |        [github](https://github.com/Sor3nt/Flipper-Zero-ESP32-Port "https://github.com/Sor3nt/Flipper-Zero-ESP32-Port")        | [web](https://sor3nt.github.io/interface.html "https://sor3nt.github.io/interface.html") |
 |    Bruce     |        [github](https://github.com/pr3y/Bruce/tree/WebPage "https://github.com/pr3y/Bruce/tree/WebPage")        | [web](https://bruce.computer/flasher.html "https://bruce.computer/flasher.html") |
 |   Launcher   | [github](https://github.com/bmorcelli/M5Stick-Launcher.git "https://github.com/bmorcelli/M5Stick-Launcher.git") |             [web](https://bmorcelli.github.io/Launcher/catalog.html)             |
 | CapibaraZero |            [github](https://github.com/CapibaraZero/fw.git "https://github.com/CapibaraZero/fw.git")            |    [web](https://capibarazero.com/docs/esp32_s3/boards/LilyGo_T_Embed_CC1101)    |
