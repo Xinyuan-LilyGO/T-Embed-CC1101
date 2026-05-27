@@ -77,6 +77,7 @@ static constexpr uint32_t PPM_RECOVERY_RETRY_INTERVAL_MS = 1500;
 static constexpr int16_t PPM_RECOVERY_DISCHARGE_CURRENT_MA = -50;
 static constexpr uint32_t MIC_SAMPLE_PERIOD_MS = 5;
 static constexpr TickType_t MIC_SAMPLE_TIMEOUT_TICKS = 0;
+static constexpr uint32_t BOARD_USER_KEY_DEBOUNCE_MS = 30;
 
 static bool ppm_recovery_enabled = true;
 static bool ppm_recovery_usb_was_present = false;
@@ -455,6 +456,30 @@ void ppm_set_recovery_enabled(bool enabled)
     }
 }
 
+static bool board_user_key_pressed(void)
+{
+    static bool last_raw_state = HIGH;
+    static bool stable_state = HIGH;
+    static uint32_t last_change_ms = 0;
+
+    bool raw_state = digitalRead(BOARD_USER_KEY);
+    uint32_t now = millis();
+
+    if (raw_state != last_raw_state) {
+        last_raw_state = raw_state;
+        last_change_ms = now;
+    }
+
+    if ((now - last_change_ms) >= BOARD_USER_KEY_DEBOUNCE_MS && stable_state != raw_state) {
+        stable_state = raw_state;
+        if (stable_state == LOW) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 void setup(void)
 {
     bool pmu_ret = false;
@@ -619,6 +644,11 @@ void loop(void)
     ble_uart_service();
 
     ppm_service_charge_recovery();
+
+    if (board_user_key_pressed()) {
+        Serial.println("BOARD_USER_KEY pressed");
+        prompt_info("BOARD_USER_KEY pressed", 800);
+    }
 
     if(music_is_running == false) {
         if (irrecv.decode(&results)) {

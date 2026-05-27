@@ -54,3 +54,4 @@ enum{
 };
 
 void ui_entry(void);
+void prompt_info(const char *str, uint16_t time);
