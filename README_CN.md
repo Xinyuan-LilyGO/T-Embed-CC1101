@@ -196,11 +196,11 @@ PN532是一个高度集成的收发模块，用于13.56 MHz的非接触式通信
 
 #define DISPLAY_BL   21 
 #define DISPLAY_CS   41
-#define DISPLAY_MISO -1
+#define DISPLAY_MISO 10
 #define DISPLAY_MOSI  9
 #define DISPLAY_SCLK 11
 #define DISPLAY_DC   16
-#define DISPLAY_RST  40
+#define DISPLAY_RST  -1
 
 // --------- ENCODER ---------
 #define ENCODER_INA 4

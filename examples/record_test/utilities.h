@@ -21,23 +21,23 @@
 // #define TFT_HEIGHT 320
 
 // #define TFT_BL     21   // LED back-light
-// #define TFT_MISO   -1   
+// #define TFT_MISO   10
 // #define TFT_MOSI   9
 // #define TFT_SCLK   11
 // #define TFT_CS     41 
 // #define TFT_DC     16
-// #define TFT_RST    40 // Connect reset to ensure display initialises
+// #define TFT_RST    -1 // Connect reset to ensure display initialises
 
 #define DISPLAY_WIDTH  170
 #define DISPLAY_HEIGHT 320
 
 #define DISPLAY_BL   21 
 #define DISPLAY_CS   41
-#define DISPLAY_MISO -1
+#define DISPLAY_MISO 10
 #define DISPLAY_MOSI  9
 #define DISPLAY_SCLK 11
 #define DISPLAY_DC   16
-#define DISPLAY_RST  40
+#define DISPLAY_RST  -1
 
 // --------- ENCODER ---------
 #define ENCODER_INA 4

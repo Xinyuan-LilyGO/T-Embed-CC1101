@@ -194,11 +194,11 @@ The PN532 only supports high-frequency cards at 13.56MHz, does not support low-f
 
 #define DISPLAY_BL   21 
 #define DISPLAY_CS   41
-#define DISPLAY_MISO -1
+#define DISPLAY_MISO 10
 #define DISPLAY_MOSI  9
 #define DISPLAY_SCLK 11
 #define DISPLAY_DC   16
-#define DISPLAY_RST  40
+#define DISPLAY_RST  -1
 
 // --------- ENCODER ---------
 #define ENCODER_INA 4
