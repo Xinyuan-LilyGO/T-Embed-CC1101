@@ -220,8 +220,8 @@ void testFileIO(fs::FS &fs, const char * path){
 void setup(){
     // LORA、SD and LCD use the same spi, in order to avoid mutual influence; 
     // before powering on, all CS signals should be pulled high and in an unselected state;
-    pinMode(TFT_CS, OUTPUT);
-    digitalWrite(TFT_CS, HIGH);
+    pinMode(DISPLAY_CS, OUTPUT);
+    digitalWrite(DISPLAY_CS, HIGH);
     pinMode(BOARD_SD_CS, OUTPUT);
     digitalWrite(BOARD_SD_CS, HIGH);
     pinMode(BOARD_LORA_CS, OUTPUT);

@@ -504,8 +504,8 @@ void setup(void)
     board_spi_init_shared_bus();
 
     // Init system
-    pinMode(TFT_BL, OUTPUT);
-    digitalWrite(TFT_BL, LOW);
+    pinMode(DISPLAY_BL, OUTPUT);
+    digitalWrite(DISPLAY_BL, LOW);
 
     pinMode(BOARD_PWR_EN, OUTPUT);
     digitalWrite(BOARD_PWR_EN, HIGH);  // Power on CC1101 and LED
@@ -636,7 +636,7 @@ void setup(void)
     // spend the SD probe window showing a lit-but-empty panel.
     Serial.println("setup: first lv_timer_handler");
     lv_timer_handler();
-    digitalWrite(TFT_BL, HIGH);
+    digitalWrite(DISPLAY_BL, HIGH);
     delay(1);
 
     Serial.println("setup: sd_init");

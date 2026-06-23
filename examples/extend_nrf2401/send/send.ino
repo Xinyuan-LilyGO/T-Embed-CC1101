@@ -77,11 +77,11 @@ void setup()
     pinMode(BOARD_PWR_EN, OUTPUT);
     digitalWrite(BOARD_PWR_EN, HIGH); // Power on CC1101 and WS2812
 
-    pinMode(TFT_BL, OUTPUT);
-    digitalWrite(TFT_BL, LOW);
+    pinMode(DISPLAY_BL, OUTPUT);
+    digitalWrite(DISPLAY_BL, LOW);
 
-    pinMode(TFT_CS, OUTPUT);
-    digitalWrite(TFT_CS, HIGH);
+    pinMode(DISPLAY_CS, OUTPUT);
+    digitalWrite(DISPLAY_CS, HIGH);
     pinMode(BOARD_SD_CS, OUTPUT);
     digitalWrite(BOARD_SD_CS, HIGH);
     pinMode(BOARD_LORA_CS, OUTPUT);
@@ -299,18 +299,18 @@ void setup()
 {
     // LORA、SD and LCD use the same spi, in order to avoid mutual influence;
     // before powering on, all CS signals should be pulled high and in an unselected state;
-    pinMode(TFT_CS, OUTPUT);
+    pinMode(DISPLAY_CS, OUTPUT);
     pinMode(BOARD_SD_CS, OUTPUT);
     pinMode(BOARD_LORA_CS, OUTPUT);
     pinMode(BOARD_NRF24_CS, OUTPUT);
 
-    digitalWrite(TFT_CS, HIGH);
+    digitalWrite(DISPLAY_CS, HIGH);
     digitalWrite(BOARD_SD_CS, HIGH);
     digitalWrite(BOARD_LORA_CS, HIGH);
     digitalWrite(BOARD_NRF24_CS, HIGH);
 
-    // pinMode(TFT_BL, OUTPUT);
-    // digitalWrite(TFT_BL, LOW); // Power on CC1101 and WS2812
+    // pinMode(DISPLAY_BL, OUTPUT);
+    // digitalWrite(DISPLAY_BL, LOW); // Power on CC1101 and WS2812
 
     pinMode(BOARD_PWR_EN, OUTPUT);
     digitalWrite(BOARD_PWR_EN, HIGH); // Power on CC1101 and WS2812

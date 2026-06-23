@@ -9,7 +9,7 @@
  *      INCLUDES
  *********************/
 #include "port_disp.h"
-#include "../utilities.h"
+#include "utilities.h"
 #include <stdbool.h>
 
 /*********************

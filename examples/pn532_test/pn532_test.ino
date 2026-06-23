@@ -217,8 +217,8 @@ void cacheCard(const uint8_t *uid, uint8_t uidLength)
 
 void deselectSharedSpiDevices()
 {
-    pinMode(TFT_CS, OUTPUT);
-    digitalWrite(TFT_CS, HIGH);
+    pinMode(DISPLAY_CS, OUTPUT);
+    digitalWrite(DISPLAY_CS, HIGH);
 
     pinMode(BOARD_SD_CS, OUTPUT);
     digitalWrite(BOARD_SD_CS, HIGH);
@@ -231,8 +231,8 @@ bool initDisplay()
 {
     deselectSharedSpiDevices();
 
-    pinMode(TFT_BL, OUTPUT);
-    digitalWrite(TFT_BL, LOW);
+    pinMode(DISPLAY_BL, OUTPUT);
+    digitalWrite(DISPLAY_BL, LOW);
 
     tft.begin();
     tft.setRotation(kRotation);
@@ -244,7 +244,7 @@ bool initDisplay()
         Serial.println(F("[PN532] Sprite allocation failed, using direct TFT redraw."));
     }
 
-    digitalWrite(TFT_BL, HIGH);
+    digitalWrite(DISPLAY_BL, HIGH);
     return true;
 }
 

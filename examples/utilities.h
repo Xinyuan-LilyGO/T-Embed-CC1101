@@ -1,6 +1,6 @@
-
-
 #pragma once
+
+// Shared board definitions for the T-Embed PN532 examples.
 
 #define T_EMBED_CC1101_SF_VER "v1.6-260402"
 #define T_EMBED_CC1101_HD_VER "v1.0-240729"
@@ -26,26 +26,15 @@
 #define BOARD_VOICE_DIN   7
 
 // --------- DISPLAY ---------
-// About LCD definition in the file: lib/TFT_eSPI/User_Setups/Setup214_LilyGo_T_Embed_PN532.h
-// #define ST7789_DRIVER     // Configure all registers
-// #define TFT_WIDTH  170
-// #define TFT_HEIGHT 320
-
-// #define TFT_BL     21   // LED back-light
-// #define TFT_MISO   10   
-// #define TFT_MOSI   9
-// #define TFT_SCLK   11
-// #define TFT_CS     41 
-// #define TFT_DC     16
-// #define TFT_RST    -1 // Connect reset to ensure display initialises
-
+// About LCD definition in the file:
+// lib/TFT_eSPI/User_Setups/Setup214_LilyGo_T_Embed_PN532.h
 #define DISPLAY_WIDTH  170
 #define DISPLAY_HEIGHT 320
 
-#define DISPLAY_BL   21 
+#define DISPLAY_BL   21
 #define DISPLAY_CS   41
 #define DISPLAY_MISO 10
-#define DISPLAY_MOSI  9
+#define DISPLAY_MOSI 9
 #define DISPLAY_SCLK 11
 #define DISPLAY_DC   16
 #define DISPLAY_RST  -1
@@ -55,16 +44,20 @@
 #define ENCODER_INB 5
 #define ENCODER_KEY 0
 
-// --------- IIC ---------
-#define BOARD_I2C_SDA  8
-#define BOARD_I2C_SCL  18
+// --------- I2C ---------
+#define BOARD_I2C_SDA 8
+#define BOARD_I2C_SCL 18
 
-// IIC addr
+// Legacy names used by the CC1101 / Si4463 examples.
+#define BOARD_SDA_PIN 18
+#define BOARD_SCL_PIN 8
+
+// I2C addr
 #define BOARD_I2C_ADDR_1 0x24  // PN532
 #define BOARD_I2C_ADDR_2 0x55  // PMU
 #define BOARD_I2C_ADDR_3 0x6b  // BQ25896
 
-// NFC
+// PN532
 #define BOARD_PN532_SCL     BOARD_I2C_SCL
 #define BOARD_PN532_SDA     BOARD_I2C_SDA
 #define BOARD_PN532_RF_REST 45
@@ -89,7 +82,7 @@
 #define BOARD_SD_MOSI BOARD_SPI_MOSI
 #define BOARD_SD_MISO BOARD_SPI_MISO
 
-// LORA
+// LORA / CC1101 shared bus pins
 #define BOARD_LORA_CS   12
 #define BOARD_LORA_SCK  BOARD_SPI_SCK
 #define BOARD_LORA_MOSI BOARD_SPI_MOSI
@@ -98,6 +91,14 @@
 #define BOARD_LORA_IO0  3
 #define BOARD_LORA_SW1  47
 #define BOARD_LORA_SW0  48
+
+// Si4463
+#define BOARD_Si4463_CS   12
+#define BOARD_Si4463_SCK  BOARD_SPI_SCK
+#define BOARD_Si4463_MOSI BOARD_SPI_MOSI
+#define BOARD_Si4463_MISO BOARD_SPI_MISO
+#define BOARD_Si4463_IRQ  38
+#define BOARD_Si4463_SW1  48
 
 void board_spi_init_shared_bus(void);
 void board_spi_deselect_all(void);

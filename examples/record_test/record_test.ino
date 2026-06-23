@@ -122,15 +122,12 @@ void setup(){
 
     // LORA、SD and LCD use the same spi, in order to avoid mutual influence; 
     // before powering on, all CS signals should be pulled high and in an unselected state;
-#define TFT_CS 41 
-    pinMode(TFT_CS, OUTPUT);
-    digitalWrite(TFT_CS, HIGH);
+    pinMode(DISPLAY_CS, OUTPUT);
+    digitalWrite(DISPLAY_CS, HIGH);
     pinMode(BOARD_SD_CS, OUTPUT);
     digitalWrite(BOARD_SD_CS, HIGH);
     pinMode(BOARD_LORA_CS, OUTPUT);
     digitalWrite(BOARD_LORA_CS, HIGH);
-#undef TFT_CS
-
 #ifdef REASSIGN_PINS
     SPI.begin(sck, miso, mosi);
 #endif
