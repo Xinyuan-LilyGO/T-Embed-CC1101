@@ -10,6 +10,10 @@
 //#define TFT_RGB_ORDER TFT_RGB  // Colour order Red-Green-Blue
 //#define TFT_RGB_ORDER TFT_BGR  // Colour order Blue-Green-Red
 
+// ESP32-S3 + TFT_eSPI direct register writes are unstable on the default FSPI path
+// with newer Arduino-ESP32 packages; route the panel through HSPI instead.
+#define USE_HSPI_PORT
+
 #define TFT_INVERSION_ON
 //#define TFT_INVERSION_OFF
 // #define TFT_BACKLIGHT_ON 1
@@ -46,7 +50,7 @@
 
 
 // #define SPI_FREQUENCY  27000000
-#define SPI_FREQUENCY  80000000
+#define SPI_FREQUENCY  40000000
 
 #define SPI_READ_FREQUENCY  20000000
 
