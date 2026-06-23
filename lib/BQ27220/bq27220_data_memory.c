@@ -36,12 +36,42 @@ BQ27220DMData gauge_data_memory[] = {
     {
         .address = BQ27220DMAddressGasGaugingCEDVProfile1FullChargeCapacity,
         .type = BQ27220DMTypeU16,
-        .value.u16 = 1500,
+        .value.u16 = 1300,
     },
     {
         .address = BQ27220DMAddressGasGaugingCEDVProfile1DesignCapacity,
         .type = BQ27220DMTypeU16,
-        .value.u16 = 1500,
+        .value.u16 = 1300,
+    },
+    {
+        .address = BQ27220DMAddressChargingChargingCurrent,
+        .type = BQ27220DMTypeU16,
+        .value.u16 = 512,
+    },
+    {
+        .address = BQ27220DMAddressChargingChargingVoltage,
+        .type = BQ27220DMTypeU16,
+        .value.u16 = 4208,
+    },
+    {
+        .address = BQ27220DMAddressChargingTaperCurrent,
+        .type = BQ27220DMTypeU16,
+        .value.u16 = 128,
+    },
+    {
+        .address = BQ27220DMAddressGasGaugingCEDVProfile1ChargeTerminationVoltage,
+        .type = BQ27220DMTypeU16,
+        .value.u16 = 100,
+    },
+    {
+        .address = BQ27220DMAddressConfigurationCurrentThresholdsChargeDetectThreshold,
+        .type = BQ27220DMTypeU16,
+        .value.u16 = 75,
+    },
+    {
+        .address = BQ27220DMAddressConfigurationCurrentThresholdsQuitCurrent,
+        .type = BQ27220DMTypeU16,
+        .value.u16 = 40,
     },
     {
         .address = BQ27220DMAddressGasGaugingCEDVProfile1EMF,

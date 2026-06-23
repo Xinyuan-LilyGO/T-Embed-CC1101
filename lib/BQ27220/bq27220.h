@@ -8,8 +8,8 @@
 #include "bq27220_def.h"
 #include "bq27220_data_memory.h"
 
-#define DEFAULT_SCL  40
-#define DEFAULT_SDA  39
+#define DEFAULT_SCL  18
+#define DEFAULT_SDA  8
 
 typedef union BQ27220ControlStatusTag{
     struct __reg
@@ -112,7 +112,7 @@ public:
     bool getIsCharging(void){
         BQ27220BatteryStatus batt;
         if(getBatteryStatus(&batt)) {
-            return !batt.reg.DSG;
+            return (!batt.reg.DSG) && !batt.reg.CHGING && (getAverageCurrent() > 0);
         }
         return false;
     }
@@ -120,9 +120,18 @@ public:
     bool getCharingFinish(void)
     {
         BQ27220BatteryStatus batt;
-        getBatteryStatus(&batt);
-        if(!(batt.reg.DSG || getCurrent()) )
-            return true;
+        if(getBatteryStatus(&batt)) {
+            return batt.reg.FC || batt.reg.TCA;
+        }
+        return false;
+    }
+
+    bool getChargeInhibit(void)
+    {
+        BQ27220BatteryStatus batt;
+        if(getBatteryStatus(&batt)) {
+            return batt.reg.CHGING;
+        }
         return false;
     }
 
@@ -143,6 +152,7 @@ public:
     uint16_t getVoltage(void);
     int16_t getCurrent(void);
     int16_t getAverageCurrent(void);
+    uint16_t getChargeCurrent(void);
     bool getControlStatus(BQ27220ControlStatus *ctrl_sta);
     bool getBatteryStatus(BQ27220BatteryStatus *batt_sta);
     bool getOperationStatus(BQ27220OperationStatus *oper_sta);
@@ -154,6 +164,8 @@ public:
     uint16_t getStateOfCharge(void);
     uint16_t getStateOfHealth(void);
     uint16_t getChargeVoltageMax(void);
+    uint16_t getTimeToEmpty(void);
+    uint16_t getTimeToFull(void);
 
     // i2c
     uint16_t readRegU16(uint16_t reg) {

@@ -455,6 +455,10 @@ int16_t BQ27220::getAverageCurrent(void)
 {
     return readRegU16(CommandAverageCurrent);
 }
+uint16_t BQ27220::getChargeCurrent(void)
+{
+    return readRegU16(CommandChargeCurrent);
+}
 bool BQ27220::getControlStatus(BQ27220ControlStatus *ctrl_sta)
 {
     (*ctrl_sta).full = readRegU16(CommandControl);
@@ -507,4 +511,12 @@ uint16_t BQ27220::getStateOfHealth(void)
 uint16_t BQ27220::getChargeVoltageMax(void)
 {
     return readRegU16(CommandChargeVoltage);
+}
+uint16_t BQ27220::getTimeToEmpty(void)
+{
+    return readRegU16(CommandTimeToEmpty);
+}
+uint16_t BQ27220::getTimeToFull(void)
+{
+    return readRegU16(CommandTimeToFull);
 }
