@@ -60,7 +60,7 @@ void lv_port_disp_init(void)
     static lv_color_t *buf2 = (lv_color_t *)ps_malloc((width * height) * sizeof(lv_color_t));
     assert(buf2);
 
-    lv_disp_draw_buf_init(&draw_buf_dsc, buf1, NULL, width * height);
+    lv_disp_draw_buf_init(&draw_buf_dsc, buf1, buf2, width * height);
 
     /*-----------------------------------
      * Register the display in LVGL
@@ -96,10 +96,17 @@ void lv_port_disp_init(void)
 static void disp_init(void)
 {
     extern uint8_t display_rotation;
-    board_spi_prepare_display();
-    tft.begin();
-    tft.setRotation(display_rotation);
-    tft.fillScreen(TFT_BLACK);
+
+    // The LCD has no dedicated hardware reset pin on this board. A small
+    // settle delay plus a second init pass makes first boot after flashing
+    // much less sensitive to rail and bus timing.
+    for (uint8_t attempt = 0; attempt < 2; ++attempt) {
+        board_spi_prepare_display();
+        delay(attempt == 0 ? 120 : 20);
+        tft.begin();
+        tft.setRotation(display_rotation);
+        tft.fillScreen(TFT_BLACK);
+    }
 }
 
 volatile bool disp_flush_enabled = true;

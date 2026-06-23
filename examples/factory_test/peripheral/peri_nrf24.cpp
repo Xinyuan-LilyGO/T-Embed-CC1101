@@ -187,8 +187,6 @@ static bool nrf24_apply_mode_now(int mode)
 void nrf24_init(void)
 {
     board_spi_prepare_nrf24();
-    SPI.end();
-    SPI.begin(BOARD_NRF24_SCK, BOARD_NRF24_MISO, BOARD_NRF24_MOSI);
     board_spi_prepare_nrf24();
 
     // initialize nRF24 with default settings

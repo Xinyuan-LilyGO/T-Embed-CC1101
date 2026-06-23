@@ -102,4 +102,6 @@
 void board_spi_init_shared_bus(void);
 void board_spi_deselect_all(void);
 void board_spi_prepare_display(void);
+void board_spi_prepare_lora(void);
 void board_spi_prepare_nrf24(void);
+void board_spi_prepare_sd(void);

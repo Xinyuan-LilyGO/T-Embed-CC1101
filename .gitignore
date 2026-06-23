@@ -10,3 +10,6 @@ examples/bq27220_test
 firmware/T-Embed-PN532 测试/
 hardware/T-Embed-PN532 V1.0 24-03-15.pdf
 hardware/T-Embed-PN532 V1.0 24-04-29.pdf
+other/
+examples/Si4463/
+examples/extend_esp32c5

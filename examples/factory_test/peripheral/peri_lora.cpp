@@ -41,9 +41,7 @@ void lora_init(void)
     digitalWrite(BOARD_LORA_SW0, LOW);
     lora_freq = 315.0;
 
-    // 
-    SPI.end();
-    SPI.begin(BOARD_SPI_SCK, BOARD_SPI_MISO, BOARD_SPI_MOSI); 
+    board_spi_prepare_lora();
 
     // initialize CC1101
     Serial.print(F("[CC1101] Initializing ... "));
@@ -129,6 +127,8 @@ void lora_init(void)
 
 void lora_mode_sw(int m)
 {
+    board_spi_prepare_lora();
+
     if(m == LORA_MODE_RECV) {
         radio.setPacketReceivedAction(recvSetFlag);
         // start listening for packets
@@ -163,6 +163,8 @@ void lora_send(const char *str)
     if(xSemaphoreTake(radioLock, portMAX_DELAY) != pdTRUE){
         return;
     }
+
+    board_spi_prepare_lora();
 
     if(transmittedFlag) {
         // reset flag
@@ -217,6 +219,8 @@ void lora_recv(void)
     if(xSemaphoreTake(radioLock, portMAX_DELAY) != pdTRUE){
         return;
     }
+
+    board_spi_prepare_lora();
 
     if(receivedFlag) {
         // reset flag

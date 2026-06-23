@@ -115,7 +115,17 @@ void board_spi_prepare_display(void)
     board_spi_deselect_all();
 }
 
+void board_spi_prepare_lora(void)
+{
+    board_spi_deselect_all();
+}
+
 void board_spi_prepare_nrf24(void)
+{
+    board_spi_deselect_all();
+}
+
+void board_spi_prepare_sd(void)
 {
     board_spi_deselect_all();
 }
@@ -131,6 +141,7 @@ void board_spi_init_shared_bus(void)
     digitalWrite(BOARD_NRF24_CE, LOW);
 
     board_spi_deselect_all();
+    SPI.begin(BOARD_SPI_SCK, BOARD_SPI_MISO, BOARD_SPI_MOSI);
 }
 
 void eeprom_default_val(void)
@@ -340,6 +351,8 @@ extern char *music_list[20];
 
 void scr8_read_music_from_SD(void)
 {
+    board_spi_prepare_sd();
+
     File root = SD.open("/music");
     if(!root){
         Serial.println("Failed to open directory");
@@ -600,27 +613,40 @@ void setup(void)
 
     nrf24_init();
 
-    multi_thread_create();
-
     audio.setPinout(BOARD_VOICE_BCLK, BOARD_VOICE_LRCLK, BOARD_VOICE_DIN);
     audio.setVolume(21); // 0...21
     audio.connecttoFS(SPIFFS, "/001.mp3");
 
     // audio.connecttoFS(SD, "/music/My Anata.mp3");
 
+    Serial.println("setup: ble_uart_init");
     ble_uart_init();
+    delay(1);
 
     // init UI and display
-    ui_entry(); 
+    Serial.println("setup: ui_entry");
+    ui_entry();
+    delay(1);
     lv_timer_create(msg_send_event, 5000, NULL);
     // lvgl msg
     lv_msg_subsribe(MSG_UI_ROTATION_ST, msg_subsribe_event, NULL);
     lv_msg_subsribe(MSG_UI_THEME_MODE, msg_subsribe_event, NULL);
 
+    // Force the first frame out before enabling the backlight so we don't
+    // spend the SD probe window showing a lit-but-empty panel.
+    Serial.println("setup: first lv_timer_handler");
+    lv_timer_handler();
     digitalWrite(TFT_BL, HIGH);
+    delay(1);
 
+    Serial.println("setup: sd_init");
     sd_init();
+    Serial.println("setup: scr8_read_music_from_SD");
     scr8_read_music_from_SD();
+    delay(1);
+
+    Serial.println("setup: multi_thread_create");
+    multi_thread_create();
 
     // for(int i = 0; i < WS2812_NUM_LEDS*10; i++) {
     //     ws2812_pos_demo(i);
