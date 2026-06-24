@@ -154,6 +154,7 @@ void render()
         return;
     }
     board_prepare_display();
+    gSubPageGfx.beginFrame();
     tft.fillScreen(kUiBg);
     drawPageHeader("Settings", TFT_CYAN);
     drawPageFooter("ENC=select  BOOT=action", focus == Focus::Back);
@@ -164,6 +165,7 @@ void render()
     drawMenuItem(Focus::Back, 130);
     drawDetail();
     board_spi_deselect_all();
+    gSubPageGfx.endFrame();
     screenDirty = false;
     lastDrawMs = now;
 }

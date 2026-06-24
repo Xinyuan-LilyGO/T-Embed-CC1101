@@ -121,6 +121,7 @@ void render()
     }
 
     board_prepare_display();
+    gSubPageGfx.beginFrame();
     tft.fillScreen(kUiBg);
     drawPageHeader("WiFi", TFT_CYAN);
     drawPageFooter("BOOT=rescan", backFocused);
@@ -151,6 +152,7 @@ void render()
     }
 
     board_spi_deselect_all();
+    gSubPageGfx.endFrame();
     screenDirty = false;
     lastDrawMs = now;
 }

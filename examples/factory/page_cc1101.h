@@ -1171,7 +1171,9 @@ void render()
         return;
     }
 
+    gSubPageGfx.beginFrame();
     redrawAll();
+    gSubPageGfx.endFrame();
     screenDirty = false;
     lastDrawMs = now;
 }

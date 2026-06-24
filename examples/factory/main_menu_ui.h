@@ -38,7 +38,7 @@ static const MainMenuInsight kMainMenuInsights[kPageCount] = {
     {"Gauge and PMU",   "Charge and USB"},
     {"SPI and RF path", "Packet and RSSI"},
     {"IR TX and RX",    "Preset carrier"},
-    {"Audio self-test", "Mic, speaker"},
+    {"Audio self-test", "MIC & speaker"},
     {"PN532 detect",    "UID and state"},
     {"2.4 GHz radio",   "Burst and RX"},
     {"Mount and files", "Read/write test"},

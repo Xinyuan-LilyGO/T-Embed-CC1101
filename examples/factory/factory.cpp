@@ -108,6 +108,99 @@ struct FactoryState {
 
 TFT_eSPI tft;
 TFT_eSprite gMainMenuCanvas(&tft);
+class SubPageGfxProxy {
+public:
+    explicit SubPageGfxProxy(TFT_eSPI* display)
+        : display_(display), sprite_(display) {}
+
+    void beginFrame()
+    {
+        active_ = true;
+        if (ensureSprite()) {
+            usingSprite_ = true;
+        } else {
+            usingSprite_ = false;
+        }
+    }
+
+    void endFrame()
+    {
+        if (active_ && usingSprite_) {
+            sprite_.pushSprite(0, 0);
+        }
+        active_ = false;
+        usingSprite_ = false;
+    }
+
+    void invalidate()
+    {
+        sprite_.deleteSprite();
+        spriteReady_ = false;
+        spriteW_ = 0;
+        spriteH_ = 0;
+        active_ = false;
+        usingSprite_ = false;
+    }
+
+    int16_t width() { return usingSprite_ ? sprite_.width() : display_->width(); }
+    int16_t height() { return usingSprite_ ? sprite_.height() : display_->height(); }
+    uint16_t color565(uint8_t r, uint8_t g, uint8_t b) { return display_->color565(r, g, b); }
+    SPIClass& getSPIinstance() { return display_->getSPIinstance(); }
+
+    void fillScreen(uint32_t color) { if (usingSprite_) sprite_.fillScreen(color); else display_->fillScreen(color); }
+    void fillRect(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t color) { if (usingSprite_) sprite_.fillRect(x, y, w, h, color); else display_->fillRect(x, y, w, h, color); }
+    void drawRect(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t color) { if (usingSprite_) sprite_.drawRect(x, y, w, h, color); else display_->drawRect(x, y, w, h, color); }
+    void fillRoundRect(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint32_t color) { if (usingSprite_) sprite_.fillRoundRect(x, y, w, h, r, color); else display_->fillRoundRect(x, y, w, h, r, color); }
+    void drawRoundRect(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint32_t color) { if (usingSprite_) sprite_.drawRoundRect(x, y, w, h, r, color); else display_->drawRoundRect(x, y, w, h, r, color); }
+    void drawFastHLine(int32_t x, int32_t y, int32_t w, uint32_t color) { if (usingSprite_) sprite_.drawFastHLine(x, y, w, color); else display_->drawFastHLine(x, y, w, color); }
+    void drawFastVLine(int32_t x, int32_t y, int32_t h, uint32_t color) { if (usingSprite_) sprite_.drawFastVLine(x, y, h, color); else display_->drawFastVLine(x, y, h, color); }
+    void fillCircle(int32_t x, int32_t y, int32_t r, uint32_t color) { if (usingSprite_) sprite_.fillCircle(x, y, r, color); else display_->fillCircle(x, y, r, color); }
+    void drawCircle(int32_t x, int32_t y, int32_t r, uint32_t color) { if (usingSprite_) sprite_.drawCircle(x, y, r, color); else display_->drawCircle(x, y, r, color); }
+    void drawLine(int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint32_t color) { if (usingSprite_) sprite_.drawLine(x0, y0, x1, y1, color); else display_->drawLine(x0, y0, x1, y1, color); }
+
+    void setTextDatum(uint8_t datum) { if (usingSprite_) sprite_.setTextDatum(datum); else display_->setTextDatum(datum); }
+    void setTextPadding(uint16_t padding) { if (usingSprite_) sprite_.setTextPadding(padding); else display_->setTextPadding(padding); }
+    void setTextColor(uint16_t fg) { if (usingSprite_) sprite_.setTextColor(fg); else display_->setTextColor(fg); }
+    void setTextColor(uint16_t fg, uint16_t bg) { if (usingSprite_) sprite_.setTextColor(fg, bg); else display_->setTextColor(fg, bg); }
+
+    int16_t drawString(const String& text, int32_t x, int32_t y, uint8_t font = 1) { return usingSprite_ ? sprite_.drawString(text, x, y, font) : display_->drawString(text, x, y, font); }
+    int16_t drawString(const char* text, int32_t x, int32_t y, uint8_t font = 1) { return usingSprite_ ? sprite_.drawString(text, x, y, font) : display_->drawString(text, x, y, font); }
+    int16_t drawCentreString(const String& text, int32_t x, int32_t y, uint8_t font = 1) { return usingSprite_ ? sprite_.drawCentreString(text, x, y, font) : display_->drawCentreString(text, x, y, font); }
+    int16_t drawCentreString(const char* text, int32_t x, int32_t y, uint8_t font = 1) { return usingSprite_ ? sprite_.drawCentreString(text, x, y, font) : display_->drawCentreString(text, x, y, font); }
+    int16_t drawRightString(const String& text, int32_t x, int32_t y, uint8_t font = 1) { return usingSprite_ ? sprite_.drawRightString(text, x, y, font) : display_->drawRightString(text, x, y, font); }
+    int16_t drawRightString(const char* text, int32_t x, int32_t y, uint8_t font = 1) { return usingSprite_ ? sprite_.drawRightString(text, x, y, font) : display_->drawRightString(text, x, y, font); }
+
+private:
+    bool ensureSprite()
+    {
+        const int16_t w = display_->width();
+        const int16_t h = display_->height();
+        if (spriteReady_ && spriteW_ == w && spriteH_ == h) {
+            return true;
+        }
+
+        sprite_.deleteSprite();
+        sprite_.setColorDepth(16);
+        spriteReady_ = (sprite_.createSprite(w, h) != nullptr);
+        if (spriteReady_) {
+            spriteW_ = w;
+            spriteH_ = h;
+        } else {
+            spriteW_ = 0;
+            spriteH_ = 0;
+            Serial.println(F("[MAIN] Sub-page sprite allocation failed, using direct TFT redraw."));
+        }
+        return spriteReady_;
+    }
+
+    TFT_eSPI* display_;
+    TFT_eSprite sprite_;
+    bool active_ = false;
+    bool usingSprite_ = false;
+    bool spriteReady_ = false;
+    int16_t spriteW_ = 0;
+    int16_t spriteH_ = 0;
+} gSubPageGfx(&tft);
 Preferences gPrefs;
 FactorySettings gSettings;
 bool gPrefsReady = false;
@@ -118,7 +211,7 @@ static const PageDescriptor kPages[] = {
     { "Battery / PMU", page_battery::init, page_battery::update, page_battery::render, page_battery::deinit },
     { "CC1101 Radio",  page_cc1101::init,  page_cc1101::update,  page_cc1101::render,  page_cc1101::deinit  },
     { "IR TX / RX",    page_ir::init,      page_ir::update,      page_ir::render,      page_ir::deinit      },
-    { "MIC",           page_mic::init,     page_mic::update,     page_mic::render,     page_mic::deinit     },
+    { "MIC & Speaker", page_mic::init,     page_mic::update,     page_mic::render,     page_mic::deinit     },
     { "PN532 NFC",     page_nfc::init,     page_nfc::update,     page_nfc::render,     page_nfc::deinit     },
     { "nRF24 Tx/Rx",   page_nrf24::init,   page_nrf24::update,   page_nrf24::render,   page_nrf24::deinit   },
     { "SD Card",       page_sd::init,      page_sd::update,      page_sd::render,      page_sd::deinit      },
@@ -332,6 +425,7 @@ void setDisplayRotation(const uint8_t rotation)
     tft.setRotation(gSettings.rotation);
     tft.fillScreen(TFT_BLACK);
     board_spi_deselect_all();
+    gSubPageGfx.invalidate();
 
     if (g.activePage == PageId::MainMenu) {
         initMainMenuCanvas();
@@ -377,54 +471,54 @@ void drawBackButton(const bool selected)
     const uint16_t bg = selected ? TFT_WHITE : TFT_DARKGREY;
     const uint16_t fg = selected ? TFT_BLACK : TFT_LIGHTGREY;
 
-    tft.fillRoundRect(x, y, w, h, 5, bg);
-    tft.drawRoundRect(x, y, w, h, 5, selected ? TFT_YELLOW : 0x52AA);
-    tft.setTextColor(fg, bg);
-    tft.drawCentreString("BACK", x + w / 2, y + 3, 1);
+    gSubPageGfx.fillRoundRect(x, y, w, h, 5, bg);
+    gSubPageGfx.drawRoundRect(x, y, w, h, 5, selected ? TFT_YELLOW : 0x52AA);
+    gSubPageGfx.setTextColor(fg, bg);
+    gSubPageGfx.drawCentreString("BACK", x + w / 2, y + 3, 1);
 }
 
 void drawPageHeader(const char* title, const uint16_t accent)
 {
-    tft.fillRect(0, 0, tft.width(), kHeaderH, TFT_NAVY);
-    tft.setTextDatum(TL_DATUM);
-    tft.setTextColor(TFT_WHITE, TFT_NAVY);
-    tft.drawString(title, kMargin, 5, 2);
-    tft.setTextDatum(TR_DATUM);
-    tft.setTextColor(accent, TFT_NAVY);
-    tft.drawString("Factory", tft.width() - kMargin, 7, 1);
-    tft.setTextDatum(TL_DATUM);
+    gSubPageGfx.fillRect(0, 0, gSubPageGfx.width(), kHeaderH, TFT_NAVY);
+    gSubPageGfx.setTextDatum(TL_DATUM);
+    gSubPageGfx.setTextColor(TFT_WHITE, TFT_NAVY);
+    gSubPageGfx.drawString(title, kMargin, 5, 2);
+    gSubPageGfx.setTextDatum(TR_DATUM);
+    gSubPageGfx.setTextColor(accent, TFT_NAVY);
+    gSubPageGfx.drawString("Factory", gSubPageGfx.width() - kMargin, 7, 1);
+    gSubPageGfx.setTextDatum(TL_DATUM);
 }
 
 void drawPageFooter(const char* text, const bool backSelected = false)
 {
-    const int16_t y = tft.height() - kFooterH;
-    tft.fillRect(0, y, tft.width(), kFooterH, TFT_DARKGREY);
-    tft.setTextDatum(TL_DATUM);
-    tft.setTextColor(TFT_WHITE, TFT_DARKGREY);
-    tft.drawString(text, kMargin, y + 4, 1);
+    const int16_t y = gSubPageGfx.height() - kFooterH;
+    gSubPageGfx.fillRect(0, y, gSubPageGfx.width(), kFooterH, TFT_DARKGREY);
+    gSubPageGfx.setTextDatum(TL_DATUM);
+    gSubPageGfx.setTextColor(TFT_WHITE, TFT_DARKGREY);
+    gSubPageGfx.drawString(text, kMargin, y + 4, 1);
     drawBackButton(backSelected);
 }
 
 void drawCard(const int16_t x, const int16_t y, const int16_t w, const int16_t h,
               const char* label, const String& value, const uint16_t accent)
 {
-    tft.fillRoundRect(x, y, w, h, 6, kUiCard);
-    tft.drawRoundRect(x, y, w, h, 6, kUiEdge);
-    tft.setTextDatum(TL_DATUM);
-    tft.setTextColor(kUiMuted, kUiCard);
-    tft.drawString(label, x + 8, y + 5, 1);
-    tft.setTextColor(accent, kUiCard);
-    tft.drawString(value, x + 8, y + 18, 2);
+    gSubPageGfx.fillRoundRect(x, y, w, h, 6, kUiCard);
+    gSubPageGfx.drawRoundRect(x, y, w, h, 6, kUiEdge);
+    gSubPageGfx.setTextDatum(TL_DATUM);
+    gSubPageGfx.setTextColor(kUiMuted, kUiCard);
+    gSubPageGfx.drawString(label, x + 8, y + 5, 1);
+    gSubPageGfx.setTextColor(accent, kUiCard);
+    gSubPageGfx.drawString(value, x + 8, y + 18, 2);
 }
 
 void drawStatusPill(const char* label, const bool ok, const int16_t x, const int16_t y)
 {
     const uint16_t bg = ok ? kPassBg : kFailBg;
     const uint16_t fg = ok ? TFT_GREEN : TFT_RED;
-    tft.fillRoundRect(x, y, 72, 20, 6, bg);
-    tft.drawRoundRect(x, y, 72, 20, 6, ok ? TFT_DARKGREEN : TFT_MAROON);
-    tft.setTextColor(fg, bg);
-    tft.drawCentreString(label, x + 36, y + 5, 1);
+    gSubPageGfx.fillRoundRect(x, y, 72, 20, 6, bg);
+    gSubPageGfx.drawRoundRect(x, y, 72, 20, 6, ok ? TFT_DARKGREEN : TFT_MAROON);
+    gSubPageGfx.setTextColor(fg, bg);
+    gSubPageGfx.drawCentreString(label, x + 36, y + 5, 1);
 }
 
 void drawMeter(const int16_t x, const int16_t y, const int16_t w, const int16_t h,
@@ -432,9 +526,9 @@ void drawMeter(const int16_t x, const int16_t y, const int16_t w, const int16_t 
 {
     const uint16_t clipped = min<uint16_t>(value, maxValue);
     const int16_t fillW = maxValue == 0 ? 0 : static_cast<int16_t>((static_cast<uint32_t>(w - 4) * clipped) / maxValue);
-    tft.fillRoundRect(x, y, w, h, 5, 0x2104);
-    tft.drawRoundRect(x, y, w, h, 5, kUiEdge);
-    tft.fillRoundRect(x + 2, y + 2, fillW, h - 4, 4, color);
+    gSubPageGfx.fillRoundRect(x, y, w, h, 5, 0x2104);
+    gSubPageGfx.drawRoundRect(x, y, w, h, 5, kUiEdge);
+    gSubPageGfx.fillRoundRect(x + 2, y + 2, fillW, h - 4, 4, color);
 }
 
 int32_t takeEncoderDelta(int32_t& snapshot)
@@ -610,11 +704,9 @@ void enterSystemSleepNow()
     esp_deep_sleep_start();
 }
 
+#define tft gSubPageGfx
 #include "page_battery.h"
-
 #include "page_cc1101.h"
-#include "page_ir.h"
-#include "page_mic.h"
 #include "page_nfc.h"
 #include "page_nrf24.h"
 #include "page_sd.h"
@@ -622,6 +714,10 @@ void enterSystemSleepNow()
 #include "page_tft.h"
 #include "page_ws2812.h"
 #include "page_setting.h"
+#undef tft
+
+#include "page_ir.h"
+#include "page_mic.h"
 
 
 void setup()

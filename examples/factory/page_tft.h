@@ -67,6 +67,7 @@ void render()
     }
 
     board_prepare_display();
+    gSubPageGfx.beginFrame();
     tft.fillScreen(kUiBg);
     drawPageHeader("TFT Display", TFT_YELLOW);
     drawPageFooter("BOOT=next demo", backFocused);
@@ -116,6 +117,7 @@ void render()
     }
 
     board_spi_deselect_all();
+    gSubPageGfx.endFrame();
     screenDirty = false;
     lastDrawMs = now;
 }

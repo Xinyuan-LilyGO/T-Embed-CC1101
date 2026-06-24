@@ -1224,7 +1224,9 @@ void render()
     }
 
     board_prepare_display();
+    gSubPageGfx.beginFrame();
     redrawScreen();
+    gSubPageGfx.endFrame();
     screenDirty = false;
     lastDrawMs = now;
 }

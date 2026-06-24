@@ -21,6 +21,28 @@ enum class StageStatus : uint8_t {
     Fail,
 };
 
+struct StageStyle {
+    uint16_t fill;
+    uint16_t border;
+    uint16_t label;
+    uint16_t tag;
+    const char* tagText;
+};
+
+constexpr int16_t kUiMargin = 8;
+constexpr uint32_t kFrameMs = 33;
+constexpr int16_t kStageCardY = 32;
+constexpr int16_t kStageCardW = 96;
+constexpr int16_t kStageCardH = 28;
+constexpr int16_t kStageGap = 8;
+constexpr int16_t kPanelX = 8;
+constexpr int16_t kPanelY = 68;
+constexpr int16_t kPanelW = 304;
+constexpr int16_t kPanelH = 52;
+constexpr int16_t kMetricY = 128;
+constexpr int16_t kMetricW = 96;
+constexpr int16_t kMetricH = 20;
+
 constexpr i2s_port_t kMicPort = I2S_NUM_0;
 constexpr i2s_port_t kSpkPort = I2S_NUM_1;
 constexpr int kSampleRate = 16000;
@@ -35,12 +57,21 @@ constexpr int16_t kToneAmplitude = 12000;
 constexpr float kToneFreqs[] = {440.0f, 1000.0f, 880.0f};
 constexpr float kTwoPi = 6.28318530718f;
 constexpr size_t kLoopBufSamples = 8192;
-constexpr uint32_t kFrameMs = 33;
 
+constexpr uint16_t kColorBg = 0x0841;
+constexpr uint16_t kColorPanel = 0x1082;
+constexpr uint16_t kColorPanelEdge = 0x31A6;
+constexpr uint16_t kColorCard = 0x18C3;
+constexpr uint16_t kColorMeterBg = 0x2104;
+constexpr uint16_t kColorPassBg = 0x0A41;
+constexpr uint16_t kColorFailBg = 0x3006;
+
+TFT_eSprite canvas(&tft);
 State currentState = State::InitMic;
 uint32_t stateEnteredAtMs = 0;
 bool screenDirty = true;
 bool backFocused = false;
+bool canvasReady = false;
 uint32_t lastDrawMs = 0;
 int32_t encSnapshot = 0;
 
@@ -252,11 +283,11 @@ void updateStateMachine()
             vuRms = 0;
             vuPeak = 0;
             vuPeakDecayMs = now;
+            Serial.println(F("[AUD] Starting mic test (5 s - make some noise)..."));
             if (!initMic()) {
-                Serial.println(F("[MIC] Mic I2S init failed."));
+                Serial.println(F("[AUD] Mic I2S init failed."));
                 setState(State::DoneFail);
             } else {
-                Serial.println(F("[MIC] Starting microphone test."));
                 setState(State::MicTest);
             }
             break;
@@ -283,7 +314,8 @@ void updateStateMachine()
             }
             if ((now - stateEnteredAtMs) >= kMicTestDurationMs) {
                 deinitMic();
-                Serial.println(micOk ? F("[MIC] Mic test PASS") : F("[MIC] Mic test FAIL"));
+                Serial.print(F("[AUD] Mic test "));
+                Serial.println(micOk ? F("PASS") : F("FAIL (no signal)"));
                 setState(State::InitSpeaker);
             }
             break;
@@ -297,8 +329,9 @@ void updateStateMachine()
             freqIndex = 0;
             tonePhase = 0;
             freqLastChangeMs = now;
+            Serial.println(F("[AUD] Starting speaker test (3 tones)..."));
             if (!initSpeaker()) {
-                Serial.println(F("[MIC] Speaker I2S init failed."));
+                Serial.println(F("[AUD] Speaker I2S init failed."));
                 spkOk = false;
                 setState(State::InitLoopback);
             } else {
@@ -306,7 +339,6 @@ void updateStateMachine()
                 for (uint8_t i = 0; i < kSpeakerWarmupChunks; ++i) {
                     writeToneChunk();
                 }
-                Serial.println(F("[MIC] Starting speaker tone sweep."));
                 setState(State::SpeakerTest);
             }
             break;
@@ -317,10 +349,13 @@ void updateStateMachine()
                 freqIndex = static_cast<uint8_t>((freqIndex + 1U) % 3U);
                 freqLastChangeMs = now;
                 screenDirty = true;
+                Serial.print(F("[AUD] Tone -> "));
+                Serial.print(kToneFreqs[freqIndex]);
+                Serial.println(F(" Hz"));
             }
-            if ((now - stateEnteredAtMs) >= kSpkFreqDwellMs * 3U) {
+            if ((now - stateEnteredAtMs) >= (kSpkFreqDwellMs * 3U)) {
                 deinitSpeaker();
-                Serial.println(F("[MIC] Speaker test done."));
+                Serial.println(F("[AUD] Speaker test done."));
                 setState(State::InitLoopback);
             }
             break;
@@ -333,18 +368,18 @@ void updateStateMachine()
             vuRms = 0;
             vuPeak = 0;
             vuPeakDecayMs = now;
+            Serial.println(F("[AUD] Starting loopback test (8 s - speak into mic)..."));
             if (!initMic()) {
-                Serial.println(F("[MIC] Loopback mic init failed."));
+                Serial.println(F("[AUD] Loopback mic init failed."));
                 setState(State::DoneFail);
                 break;
             }
             if (!initSpeaker()) {
-                Serial.println(F("[MIC] Loopback speaker init failed."));
+                Serial.println(F("[AUD] Loopback speaker init failed."));
                 deinitMic();
                 setState(State::DoneFail);
                 break;
             }
-            Serial.println(F("[MIC] Starting loopback test."));
             setState(State::LoopbackTest);
             break;
 
@@ -389,9 +424,9 @@ void updateStateMachine()
             if ((now - stateEnteredAtMs) >= kLoopbackDurationMs) {
                 deinitMic();
                 deinitSpeaker();
-                const bool allPass = micOk && spkOk && loopOk;
-                Serial.println(allPass ? F("[MIC] Loopback PASS") : F("[MIC] Loopback FAIL"));
-                setState(allPass ? State::DonePass : State::DoneFail);
+                Serial.print(F("[AUD] Loopback test "));
+                Serial.println(loopOk ? F("PASS") : F("FAIL (no mic signal)"));
+                setState((micOk && spkOk && loopOk) ? State::DonePass : State::DoneFail);
             }
             break;
         }
@@ -403,19 +438,9 @@ void updateStateMachine()
     }
 }
 
-const char* stateLabel()
+bool testDone()
 {
-    switch (currentState) {
-        case State::InitMic:      return "INIT MIC";
-        case State::MicTest:      return "MIC TEST";
-        case State::InitSpeaker:  return "INIT SPK";
-        case State::SpeakerTest:  return "SPK TEST";
-        case State::InitLoopback: return "INIT LOOP";
-        case State::LoopbackTest: return "LOOP TEST";
-        case State::DonePass:     return "PASS";
-        case State::DoneFail:     return "FAIL";
-        default:                  return "?";
-    }
+    return currentState == State::DonePass || currentState == State::DoneFail;
 }
 
 uint16_t stateAccent()
@@ -435,45 +460,66 @@ uint16_t stateAccent()
         case State::DoneFail:
             return TFT_RED;
         default:
-            return TFT_WHITE;
+            return TFT_DARKGREY;
     }
 }
 
-String stateHint()
+const char* stateTitle()
 {
     switch (currentState) {
-        case State::InitMic:      return "Starting PDM microphone";
-        case State::MicTest:      return "Make some noise near MIC";
-        case State::InitSpeaker:  return "Preparing I2S speaker";
-        case State::SpeakerTest:  return String("Tone ") + String(kToneFreqs[freqIndex], 0) + " Hz";
-        case State::InitLoopback: return "Preparing loopback path";
-        case State::LoopbackTest: return "Speak to hear delayed playback";
-        case State::DonePass:     return "Audio self-test passed";
-        case State::DoneFail:     return "Check MIC / speaker path";
+        case State::InitMic:      return "Initializing microphone";
+        case State::MicTest:      return "Microphone capture test";
+        case State::InitSpeaker:  return "Preparing speaker output";
+        case State::SpeakerTest:  return "Speaker tone sweep";
+        case State::InitLoopback: return "Configuring loopback";
+        case State::LoopbackTest: return "Mic to speaker loopback";
+        case State::DonePass:     return "Audio self-check passed";
+        case State::DoneFail:     return "Audio self-check failed";
+        default:                  return "Audio self-check";
+    }
+}
+
+const char* stateHint()
+{
+    switch (currentState) {
+        case State::InitMic:      return "Starting the PDM mic path...";
+        case State::MicTest:      return "Make some noise close to the microphone.";
+        case State::InitSpeaker:  return "Enabling I2S speaker output...";
+        case State::SpeakerTest:  return "Listen for the three test tones.";
+        case State::InitLoopback: return "Bringing mic and speaker online together...";
+        case State::LoopbackTest: return "Speak now. You should hear delayed playback.";
+        case State::DonePass:     return "All three stages completed successfully.";
+        case State::DoneFail:     return "Check mic, speaker and power path, then rerun.";
         default:                  return "";
     }
 }
 
-const char* stageText(const StageStatus status)
+uint32_t activeStageDurationMs()
 {
-    switch (status) {
-        case StageStatus::Active: return "RUN";
-        case StageStatus::Pass:   return "PASS";
-        case StageStatus::Fail:   return "FAIL";
-        case StageStatus::Pending:
-        default:                  return "WAIT";
+    switch (currentState) {
+        case State::MicTest:      return kMicTestDurationMs;
+        case State::SpeakerTest:  return kSpkFreqDwellMs * 3U;
+        case State::LoopbackTest: return kLoopbackDurationMs;
+        default:                  return 0;
     }
 }
 
-uint16_t stageColor(const StageStatus status)
+uint32_t activeStageElapsedMs()
 {
-    switch (status) {
-        case StageStatus::Active: return TFT_YELLOW;
-        case StageStatus::Pass:   return TFT_GREEN;
-        case StageStatus::Fail:   return TFT_RED;
-        case StageStatus::Pending:
-        default:                  return TFT_DARKGREY;
+    const uint32_t duration = activeStageDurationMs();
+    if (duration == 0) {
+        return 0;
     }
+    const uint32_t elapsed = millis() - stateEnteredAtMs;
+    return elapsed > duration ? duration : elapsed;
+}
+
+bool hasInputMeter()
+{
+    return currentState == State::MicTest ||
+           currentState == State::LoopbackTest ||
+           currentState == State::DonePass ||
+           currentState == State::DoneFail;
 }
 
 StageStatus micStage()
@@ -508,14 +554,300 @@ StageStatus loopStage()
     }
     return loopOk ? StageStatus::Pass : StageStatus::Fail;
 }
+
+StageStyle stageStyle(const StageStatus status, const uint16_t accent)
+{
+    switch (status) {
+        case StageStatus::Active:
+            return {kColorCard, accent, TFT_WHITE, accent, "RUN"};
+        case StageStatus::Pass:
+            return {kColorPassBg, TFT_GREEN, TFT_WHITE, TFT_GREEN, "PASS"};
+        case StageStatus::Fail:
+            return {kColorFailBg, TFT_RED, TFT_WHITE, TFT_RED, "FAIL"};
+        case StageStatus::Pending:
+        default:
+            return {kColorCard, kColorPanelEdge, TFT_LIGHTGREY, TFT_DARKGREY, "WAIT"};
+    }
+}
+
+uint16_t meterBarColor(const uint16_t width, const uint16_t fullWidth)
+{
+    if (width < (fullWidth * 60U / 100U)) {
+        return TFT_GREEN;
+    }
+    if (width < (fullWidth * 85U / 100U)) {
+        return TFT_YELLOW;
+    }
+    return TFT_RED;
+}
+
+const char* levelLabel(const uint16_t rms)
+{
+    if (rms < 100) {
+        return "SILENT";
+    }
+    if (rms < 500) {
+        return "LOW";
+    }
+    if (rms < 2000) {
+        return "MED";
+    }
+    return "LOUD";
+}
+
+uint16_t levelColor(const uint16_t rms)
+{
+    if (rms < 100) {
+        return TFT_DARKGREY;
+    }
+    if (rms < 500) {
+        return TFT_CYAN;
+    }
+    if (rms < 2000) {
+        return TFT_GREEN;
+    }
+    return TFT_RED;
+}
+
+template <typename Canvas>
+void drawHeader(Canvas& gfx)
+{
+    gfx.fillRect(0, 0, gfx.width(), kHeaderH, TFT_NAVY);
+    gfx.setTextDatum(TL_DATUM);
+    gfx.setTextColor(TFT_WHITE, TFT_NAVY);
+    gfx.drawString("Mic & Speaker Test", kUiMargin, 5, 2);
+    gfx.setTextDatum(TR_DATUM);
+    gfx.setTextColor(TFT_CYAN, TFT_NAVY);
+    gfx.drawString("16 kHz audio", gfx.width() - kUiMargin, 7, 1);
+    gfx.setTextDatum(TL_DATUM);
+}
+
+template <typename Canvas>
+void drawFooter(Canvas& gfx)
+{
+    const int16_t y = gfx.height() - kFooterH;
+    gfx.fillRect(0, y, gfx.width(), kFooterH, TFT_DARKGREY);
+    gfx.setTextDatum(TL_DATUM);
+    gfx.setTextColor(TFT_WHITE, TFT_DARKGREY);
+    if (backFocused) {
+        gfx.drawString("BOOT back", kUiMargin, y + 4, 1);
+    } else if (testDone()) {
+        gfx.drawString("USER/BOOT rerun", kUiMargin, y + 4, 1);
+    } else {
+        gfx.drawString("Audio self-test running", kUiMargin, y + 4, 1);
+    }
+}
+
+template <typename Canvas>
+void drawBackButton(Canvas& gfx, const bool selected)
+{
+    const int16_t w = 58;
+    const int16_t h = 14;
+    const int16_t x = gfx.width() - w - 6;
+    const int16_t y = gfx.height() - kFooterH + 2;
+    const uint16_t bg = selected ? TFT_WHITE : TFT_DARKGREY;
+    const uint16_t fg = selected ? TFT_BLACK : TFT_LIGHTGREY;
+
+    gfx.fillRoundRect(x, y, w, h, 5, bg);
+    gfx.drawRoundRect(x, y, w, h, 5, selected ? TFT_YELLOW : 0x52AA);
+    gfx.setTextColor(fg, bg);
+    gfx.drawCentreString("BACK", x + w / 2, y + 3, 1);
+}
+
+template <typename Canvas>
+void drawStageCard(Canvas& gfx, const int16_t x, const char* label, const StageStatus status, const uint16_t accent)
+{
+    const StageStyle style = stageStyle(status, accent);
+    gfx.fillRoundRect(x, kStageCardY, kStageCardW, kStageCardH, 6, style.fill);
+    gfx.drawRoundRect(x, kStageCardY, kStageCardW, kStageCardH, 6, style.border);
+    gfx.setTextDatum(TL_DATUM);
+    gfx.setTextColor(style.label, style.fill);
+    gfx.drawString(label, x + 8, kStageCardY + 6, 2);
+    gfx.setTextDatum(TR_DATUM);
+    gfx.setTextColor(style.tag, style.fill);
+    gfx.drawString(style.tagText, x + kStageCardW - 8, kStageCardY + 9, 1);
+    gfx.setTextDatum(TL_DATUM);
+}
+
+template <typename Canvas>
+void drawStageRow(Canvas& gfx)
+{
+    drawStageCard(gfx, kUiMargin, "MIC", micStage(), TFT_CYAN);
+    drawStageCard(gfx, kUiMargin + kStageCardW + kStageGap, "SPK", spkStage(), TFT_YELLOW);
+    drawStageCard(gfx, kUiMargin + (kStageCardW + kStageGap) * 2, "LOOP", loopStage(), TFT_ORANGE);
+}
+
+template <typename Canvas>
+void drawProgressBar(Canvas& gfx, const int16_t x, const int16_t y, const int16_t w, const int16_t h)
+{
+    gfx.drawRect(x, y, w, h, kColorPanelEdge);
+    gfx.fillRect(x + 1, y + 1, w - 2, h - 2, kColorMeterBg);
+
+    const uint32_t duration = activeStageDurationMs();
+    if (duration == 0 || w <= 2 || h <= 2) {
+        return;
+    }
+
+    const int16_t fillW = static_cast<int16_t>((static_cast<uint32_t>(w - 2) * activeStageElapsedMs()) / duration);
+    if (fillW > 0) {
+        gfx.fillRect(x + 1, y + 1, fillW, h - 2, stateAccent());
+    }
+}
+
+template <typename Canvas>
+void drawVuBar(Canvas& gfx, const int16_t x, const int16_t y, const int16_t w, const int16_t h)
+{
+    gfx.drawRect(x - 1, y - 1, w + 2, h + 2, kColorPanelEdge);
+    gfx.fillRect(x, y, w, h, kColorMeterBg);
+
+    int16_t fillW = static_cast<int16_t>((static_cast<uint32_t>(vuRms) * w) / 8000U);
+    if (fillW > w) {
+        fillW = w;
+    }
+    if (fillW > 0) {
+        gfx.fillRect(x, y, fillW, h, meterBarColor(fillW, w));
+    }
+
+    int16_t peakX = static_cast<int16_t>((static_cast<uint32_t>(vuPeak) * w) / 8000U);
+    if (peakX > w) {
+        peakX = w;
+    }
+    if (peakX > 0) {
+        gfx.drawFastVLine(x + peakX - 1, y, h, TFT_WHITE);
+    }
+}
+
+template <typename Canvas>
+void drawActivePanel(Canvas& gfx)
+{
+    gfx.fillRoundRect(kPanelX, kPanelY, kPanelW, kPanelH, 8, kColorPanel);
+    gfx.drawRoundRect(kPanelX, kPanelY, kPanelW, kPanelH, 8, stateAccent());
+
+    gfx.setTextDatum(TL_DATUM);
+    gfx.setTextColor(TFT_WHITE, kColorPanel);
+    gfx.drawString(stateTitle(), kPanelX + 10, kPanelY + 7, 2);
+    drawProgressBar(gfx, kPanelX + kPanelW - 108, kPanelY + 10, 96, 8);
+
+    gfx.setTextColor(TFT_LIGHTGREY, kColorPanel);
+    gfx.drawString(stateHint(), kPanelX + 10, kPanelY + 24, 1);
+
+    if (currentState == State::MicTest || currentState == State::LoopbackTest) {
+        drawVuBar(gfx, kPanelX + 12, kPanelY + 36, kPanelW - 24, 10);
+        return;
+    }
+
+    if (currentState == State::SpeakerTest) {
+        char freqBuf[16];
+        snprintf(freqBuf, sizeof(freqBuf), "%.0f Hz", kToneFreqs[freqIndex]);
+        gfx.setTextDatum(MC_DATUM);
+        gfx.setTextColor(TFT_YELLOW, kColorPanel);
+        gfx.drawString(freqBuf, kPanelX + kPanelW / 2, kPanelY + 35, 4);
+        gfx.setTextDatum(TL_DATUM);
+        return;
+    }
+
+    if (testDone()) {
+        gfx.setTextDatum(MC_DATUM);
+        gfx.setTextColor(stateAccent(), kColorPanel);
+        gfx.drawString(currentState == State::DonePass ? "PASS" : "FAIL",
+                       kPanelX + kPanelW / 2,
+                       kPanelY + 35,
+                       4);
+        gfx.setTextDatum(TL_DATUM);
+    }
+}
+
+template <typename Canvas>
+void drawMetricCard(Canvas& gfx, const int16_t x, const char* title, const char* value,
+                    const uint16_t valueColor, const uint16_t borderColor)
+{
+    gfx.fillRoundRect(x, kMetricY, kMetricW, kMetricH, 6, kColorCard);
+    gfx.drawRoundRect(x, kMetricY, kMetricW, kMetricH, 6, borderColor);
+
+    gfx.setTextDatum(TL_DATUM);
+    gfx.setTextColor(TFT_LIGHTGREY, kColorCard);
+    gfx.drawString(title, x + 6, kMetricY + 5, 1);
+
+    gfx.setTextDatum(TR_DATUM);
+    gfx.setTextColor(valueColor, kColorCard);
+    gfx.drawString(value, x + kMetricW - 6, kMetricY + 4, 1);
+    gfx.setTextDatum(TL_DATUM);
+}
+
+template <typename Canvas>
+void drawMetricRow(Canvas& gfx)
+{
+    char rmsBuf[12];
+    char peakBuf[12];
+    char infoBuf[16];
+
+    if (hasInputMeter()) {
+        snprintf(rmsBuf, sizeof(rmsBuf), "%u", vuRms);
+        snprintf(peakBuf, sizeof(peakBuf), "%u", vuPeak);
+    } else {
+        snprintf(rmsBuf, sizeof(rmsBuf), "--");
+        snprintf(peakBuf, sizeof(peakBuf), "--");
+    }
+
+    uint16_t infoColor = TFT_DARKGREY;
+    if (currentState == State::SpeakerTest) {
+        snprintf(infoBuf, sizeof(infoBuf), "%.0fHz", kToneFreqs[freqIndex]);
+        infoColor = TFT_YELLOW;
+    } else if (currentState == State::DonePass) {
+        snprintf(infoBuf, sizeof(infoBuf), "OK");
+        infoColor = TFT_GREEN;
+    } else if (currentState == State::DoneFail) {
+        snprintf(infoBuf, sizeof(infoBuf), "CHECK");
+        infoColor = TFT_RED;
+    } else if (hasInputMeter()) {
+        snprintf(infoBuf, sizeof(infoBuf), "%s", levelLabel(vuRms));
+        infoColor = levelColor(vuRms);
+    } else {
+        snprintf(infoBuf, sizeof(infoBuf), "WAIT");
+    }
+
+    drawMetricCard(gfx, kUiMargin, "RMS", rmsBuf, TFT_WHITE, kColorPanelEdge);
+    drawMetricCard(gfx, kUiMargin + kMetricW + kStageGap, "PEAK", peakBuf, TFT_WHITE, kColorPanelEdge);
+    drawMetricCard(gfx, kUiMargin + (kMetricW + kStageGap) * 2, "INFO", infoBuf, infoColor, stateAccent());
+}
+
+template <typename Canvas>
+void drawUi(Canvas& gfx)
+{
+    gfx.fillRect(0, 0, gfx.width(), gfx.height(), kColorBg);
+    drawHeader(gfx);
+    drawStageRow(gfx);
+    drawActivePanel(gfx);
+    drawMetricRow(gfx);
+    drawFooter(gfx);
+    drawBackButton(gfx, backFocused);
+}
+
+void redrawAll()
+{
+    board_prepare_display();
+    if (canvasReady) {
+        drawUi(canvas);
+        canvas.pushSprite(0, 0);
+    } else {
+        drawUi(tft);
+    }
+    board_spi_deselect_all();
+}
 }  // namespace
 
 void init()
 {
     backFocused = false;
     screenDirty = true;
+    canvasReady = false;
     lastDrawMs = 0;
     encSnapshot = g.encRaw;
+    canvas.setColorDepth(16);
+    canvasReady = (canvas.createSprite(tft.width(), tft.height()) != nullptr);
+    if (!canvasReady) {
+        Serial.println(F("[AUD] Sprite allocation failed, using direct TFT redraw."));
+    }
     resetTestState();
 }
 
@@ -527,7 +859,7 @@ void update()
 
     const bool userPressed = takeUserButton();
     const bool bootPressed = takeEncoderButton();
-    const bool done = currentState == State::DonePass || currentState == State::DoneFail;
+    const bool done = testDone();
 
     if (bootPressed) {
         if (backFocused) {
@@ -535,11 +867,13 @@ void update()
             return;
         }
         if (done) {
+            Serial.println(F("[AUD] Restarting test..."));
             resetTestState();
         }
     }
 
     if (userPressed && done && !backFocused) {
+        Serial.println(F("[AUD] Restarting test..."));
         resetTestState();
     }
 
@@ -549,35 +883,19 @@ void update()
 void render()
 {
     const uint32_t now = millis();
-    if (!screenDirty || (lastDrawMs != 0 && (now - lastDrawMs) < kFrameMs)) {
+    if (!screenDirty || (lastDrawMs != 0U && (now - lastDrawMs) < kFrameMs)) {
         return;
     }
 
-    board_prepare_display();
-    tft.fillScreen(kUiBg);
-    drawPageHeader("MIC", stateAccent());
-    drawPageFooter("BOOT rerun after done", backFocused);
-
-    drawCard(8, 34, 96, 30, "MIC", stageText(micStage()), stageColor(micStage()));
-    drawCard(112, 34, 96, 30, "SPK", stageText(spkStage()), stageColor(spkStage()));
-    drawCard(216, 34, 96, 30, "LOOP", stageText(loopStage()), stageColor(loopStage()));
-    drawCard(8, 72, 304, 42, stateLabel(), stateHint(), stateAccent());
-    drawCard(8, 122, 96, 30, "RMS", String(vuRms), TFT_WHITE);
-    drawCard(112, 122, 96, 30, "Peak", String(vuPeak), TFT_CYAN);
-    drawCard(216, 122, 96, 30, "Info",
-             currentState == State::SpeakerTest ? String(kToneFreqs[freqIndex], 0) + "Hz"
-             : (currentState == State::DonePass ? "OK"
-             : (currentState == State::DoneFail ? "CHECK"
-             : (vuRms > kMicSignalThreshold ? "LIVE" : "WAIT"))),
-             stateAccent());
-
-    board_spi_deselect_all();
+    redrawAll();
     screenDirty = false;
     lastDrawMs = now;
 }
 
 void deinit()
 {
+    canvas.deleteSprite();
+    canvasReady = false;
     deinitMic();
     deinitSpeaker();
 }
