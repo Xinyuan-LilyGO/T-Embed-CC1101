@@ -14,6 +14,7 @@
 
 // IR
 #define BOARD_IR_EN 2
+#define BOARD_IR_TX BOARD_IR_EN
 #define BOARD_IR_RX 1
 
 // MIC
