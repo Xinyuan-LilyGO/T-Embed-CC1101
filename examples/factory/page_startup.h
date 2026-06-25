@@ -65,7 +65,7 @@ const char* supportBadgeText()
             return "CHECK HW";
         case HardwareProfile::Unknown:
         default:
-            return "I2C PROBE";
+            return "NO I2C";
     }
 }
 
@@ -80,7 +80,7 @@ uint16_t supportBadgeColor()
             return TFT_YELLOW;
         case HardwareProfile::Unknown:
         default:
-            return TFT_CYAN;
+            return TFT_RED;
     }
 }
 
@@ -95,7 +95,7 @@ uint16_t supportBadgeBg()
             return 0x6320;
         case HardwareProfile::Unknown:
         default:
-            return 0x0C51;
+            return kFailBg;
     }
 }
 
@@ -110,8 +110,22 @@ String supportText()
             return "Probe is mixed. Continue with caution.";
         case HardwareProfile::Unknown:
         default:
-            return "No known hardware fingerprint found.";
+            return "No I2C devices found. Main menu is blocked.";
     }
+}
+
+String footerText()
+{
+    if (allowMenuEntry) {
+        return "USER/BOOT/ENC to enter main menu";
+    }
+    if (detectedProfile == HardwareProfile::V11) {
+        return "V1.1 blocked. Firmware is for V1.0.";
+    }
+    if (detectedProfile == HardwareProfile::Unknown) {
+        return "No I2C found. Main menu is blocked.";
+    }
+    return "Hardware check required before menu entry.";
 }
 
 void preparePn532ForProbe()
@@ -160,7 +174,8 @@ void detectHardwareProfile()
         detectedProfile = HardwareProfile::Unknown;
     }
 
-    allowMenuEntry = detectedProfile != HardwareProfile::V11;
+    allowMenuEntry = (detectedProfile != HardwareProfile::V11) &&
+                     (detectedProfile != HardwareProfile::Unknown);
 
     Serial.printf("[BOOT] I2C probe 22=%d 24=%d 55=%d 6A=%d 6B=%d\n",
                   hasAddr22 ? 1 : 0,
@@ -192,11 +207,7 @@ void drawFooter(Canvas& gfx)
     const int16_t y = gfx.height() - kFooterH;
     gfx.fillRect(0, y, gfx.width(), kFooterH, TFT_DARKGREY);
     gfx.setTextColor(TFT_WHITE, TFT_DARKGREY);
-    if (allowMenuEntry) {
-        gfx.drawString("Press USER / BOOT or rotate ENC to enter", kMargin, y + 4, 1);
-    } else {
-        gfx.drawString("V1.1 blocked. This firmware is for V1.0 only.", kMargin, y + 4, 1);
-    }
+    gfx.drawString(clipText(footerText(), 38), kMargin, y + 4, 1);
 }
 
 template <typename Canvas>
