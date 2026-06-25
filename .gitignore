@@ -1,7 +1,7 @@
 .pio
 .vscode
 *.xlsx
-script
+# script
 build
 新建文件夹
 lib/BQ27441
@@ -14,3 +14,4 @@ other/
 examples/Si4463/
 examples/extend_esp32c5
 firmware/examples
+script/__pycache__/

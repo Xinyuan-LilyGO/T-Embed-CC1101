@@ -1,0 +1,5 @@
+python esptool.py -c esp32 merge_bin -o output.bin --flash_size 4MB 0x1000 bootloader_dio_40m.bin 0xe000 boot_app0.bin 0x8000 partitions.bin 0x10000 firmware.bin
+pause
+
+
+esptool.py.exe --chip esp32 merge_bin -o output.bin --flash_size 4MB 0x1000 system-info.bin 0x2B0000 littlefs-1.3.41.80ddb81.bin 0x10000 firmware-tbeam-1.3.41.80ddb81.bin

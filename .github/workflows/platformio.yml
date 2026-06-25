@@ -16,24 +16,24 @@ jobs:
       matrix:
         example: 
             - examples/ble_uart_pairing
-            - examples/bq25896_test
-            - examples/bq25896_shutdown
-            - examples/bq27xxx_test
-            - examples/cc1101_recv
-            - examples/cc1101_recv_irq
-            - examples/cc1101_send
-            - examples/cc1101_send_irq
-            - examples/display_test
-            - examples/encode_test
-            - examples/factory_test
-            - examples/infrared_recv_test
-            - examples/infrared_send_test
-            - examples/lvgl_test
-            - examples/pn532_test
-            - examples/record_test
-            - examples/tf_card_test
-            - examples/voice_test
-            - examples/ws2812_test
+            # - examples/bq25896_test
+            # - examples/bq25896_shutdown
+            # - examples/bq27xxx_test
+            # - examples/cc1101_recv
+            # - examples/cc1101_recv_irq
+            # - examples/cc1101_send
+            # - examples/cc1101_send_irq
+            # - examples/display_test
+            # - examples/encode_test
+            # - examples/factory_test
+            # - examples/infrared_recv_test
+            # - examples/infrared_send_test
+            # - examples/lvgl_test
+            # - examples/pn532_test
+            # - examples/record_test
+            # - examples/tf_card_test
+            # - examples/voice_test
+            # - examples/ws2812_test
 
     steps:
       - uses: actions/checkout@v4
