@@ -6,6 +6,8 @@ import subprocess
 
 
 PROJECT_DIR = Path(env["PROJECT_DIR"])
+FACTORY_DIR = PROJECT_DIR / "examples" / "factory"
+GENERATED_CPP = FACTORY_DIR / "factory_build_info_autogen.cpp"
 sw_version = env.GetProjectOption("custom_sw_version", "dev")
 
 
@@ -41,10 +43,26 @@ if git_hash != "unknown" and is_dirty():
 
 build_stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-env.Append(
-    CPPDEFINES=[
-        ("T_EMBED_CC1101_SF_VER", '\\"{}\\"'.format(sw_version)),
-        ("FACTORY_GIT_HASH", '\\"{}\\"'.format(git_hash)),
-        ("FACTORY_BUILD_STAMP", '\\"{}\\"'.format(build_stamp)),
-    ]
+
+def c_string_literal(value):
+    return (
+        value.replace("\\", "\\\\")
+        .replace('"', '\\"')
+        .replace("\r", "\\r")
+        .replace("\n", "\\n")
+    )
+
+
+generated_cpp = """#include "factory_build_info.h"
+
+const char kFactorySoftwareVersion[] = "{sw_version}";
+const char kFactoryGitHash[] = "{git_hash}";
+const char kFactoryBuildStamp[] = "{build_stamp}";
+""".format(
+    sw_version=c_string_literal(sw_version),
+    git_hash=c_string_literal(git_hash),
+    build_stamp=c_string_literal(build_stamp),
 )
+
+if not GENERATED_CPP.exists() or GENERATED_CPP.read_text(encoding="utf-8") != generated_cpp:
+    GENERATED_CPP.write_text(generated_cpp, encoding="utf-8")

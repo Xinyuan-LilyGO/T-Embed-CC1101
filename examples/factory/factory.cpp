@@ -43,11 +43,11 @@ String menuPreviewLine2();
 uint16_t menuPreviewLine1Color();
 uint16_t menuPreviewLine2Color();
 }
-namespace page_cc1101  { void init(); void update(); void render(); void deinit(); }
+namespace page_cc1101  { void init(); void update(); void render(); void deinit(); bool probeHardware(String& reason); }
 namespace page_ir      { void init(); void update(); void render(); void deinit(); }
 namespace page_mic     { void init(); void update(); void render(); void deinit(); }
-namespace page_nfc     { void init(); void update(); void render(); void deinit(); }
-namespace page_nrf24   { void init(); void update(); void render(); void deinit(); }
+namespace page_nfc     { void init(); void update(); void render(); void deinit(); bool probeHardware(String& reason); }
+namespace page_nrf24   { void init(); void update(); void render(); void deinit(); bool probeHardware(String& reason); }
 namespace page_sd      { void init(); void update(); void render(); void deinit(); }
 namespace page_wifi    { void init(); void update(); void render(); void deinit(); }
 namespace page_tft     { void init(); void update(); void render(); void deinit(); }
@@ -105,6 +105,7 @@ struct FactoryState {
     bool startupVisible = true;
     int8_t menuCursor = 0;
     bool menuDirty = true;
+    bool menuAlertVisible = false;
     bool subPageExitRequested = false;
     bool systemSleepRequested = false;
     bool backlightDimmed = false;
@@ -116,6 +117,9 @@ struct FactoryState {
     Btn encBtn;
     Btn usrBtn;
 } g;
+String gMenuAlertTitle;
+String gMenuAlertDetail;
+uint32_t gMenuAlertUntilMs = 0;
 
 TFT_eSPI tft;
 TFT_eSprite gMainMenuCanvas(&tft);
@@ -406,6 +410,33 @@ String autoDimTimeoutLabel()
     return formatDurationLabel(autoDimTimeoutMs());
 }
 
+bool isMenuAlertActive()
+{
+    return g.menuAlertVisible && static_cast<int32_t>(gMenuAlertUntilMs - millis()) > 0;
+}
+
+void clearMenuAlert()
+{
+    if (!g.menuAlertVisible) {
+        return;
+    }
+
+    g.menuAlertVisible = false;
+    gMenuAlertTitle = "";
+    gMenuAlertDetail = "";
+    gMenuAlertUntilMs = 0;
+    g.menuDirty = true;
+}
+
+void showMenuAlert(const String& title, const String& detail, const uint32_t durationMs = 1800U)
+{
+    g.menuAlertVisible = true;
+    gMenuAlertTitle = title;
+    gMenuAlertDetail = detail;
+    gMenuAlertUntilMs = millis() + durationMs;
+    g.menuDirty = true;
+}
+
 void releaseMainMenuCanvas()
 {
     gMainMenuCanvas.deleteSprite();
@@ -636,6 +667,30 @@ void handleIdlePowerState()
 #include "main_menu_ui.h"
 #include "page_startup.h"
 
+template <typename Canvas>
+void drawMenuAlert(Canvas& gfx)
+{
+    if (!isMenuAlertActive()) {
+        return;
+    }
+
+    const int16_t w = gfx.width() - 16;
+    const int16_t h = 60;
+    const int16_t x = (gfx.width() - w) / 2;
+    const int16_t y = 52;
+
+    gfx.fillRoundRect(x, y, w, h, 8, kMenuPanel);
+    gfx.drawRoundRect(x, y, w, h, 8, TFT_ORANGE);
+    gfx.drawFastHLine(x + 10, y + 24, w - 20, kMenuPanelEdge);
+
+    gfx.setTextDatum(MC_DATUM);
+    gfx.setTextColor(TFT_ORANGE, kMenuPanel);
+    gfx.drawString(clipMenuText(gMenuAlertTitle, 36).c_str(), x + w / 2, y + 9, 1);
+    gfx.setTextColor(kMenuText, kMenuPanel);
+    gfx.drawString(clipMenuText(gMenuAlertDetail, 48).c_str(), x + w / 2, y + 32, 1);
+    gfx.setTextDatum(TL_DATUM);
+}
+
 void renderMenu()
 {
     const uint32_t now = millis();
@@ -646,9 +701,11 @@ void renderMenu()
     board_prepare_display();
     if (gMainMenuCanvasReady) {
         drawMenuUi(gMainMenuCanvas);
+        drawMenuAlert(gMainMenuCanvas);
         gMainMenuCanvas.pushSprite(0, 0);
     } else {
         drawMenuUi(tft);
+        drawMenuAlert(tft);
     }
     board_spi_deselect_all();
 
@@ -666,6 +723,40 @@ void enterMainMenu()
     noteUserActivity();
     initMainMenuCanvas();
     renderMenu();
+}
+
+bool probeOptionalSubPage(const PageId id)
+{
+    String reason;
+    bool ok = true;
+
+    switch (id) {
+        case PageId::CC1101:
+            ok = page_cc1101::probeHardware(reason);
+            break;
+        case PageId::NFC:
+            ok = page_nfc::probeHardware(reason);
+            break;
+        case PageId::Nrf24:
+            ok = page_nrf24::probeHardware(reason);
+            break;
+        default:
+            return true;
+    }
+
+    if (ok) {
+        clearMenuAlert();
+        return true;
+    }
+
+    const uint8_t idx = static_cast<uint8_t>(id) - 1;
+    const String title = idx < kPageCount ? String(kPages[idx].label) + " not found" : String("Module not found");
+    if (reason.isEmpty()) {
+        reason = "Optional module missing or comm failed";
+    }
+    showMenuAlert(title, reason);
+    Serial.printf("[MAIN] Skip %s: %s\n", title.c_str(), reason.c_str());
+    return false;
 }
 
 void enterSubPage(const PageId id)
@@ -819,6 +910,10 @@ void loop()
     }
 
     if (g.activePage == PageId::MainMenu) {
+        if (g.menuAlertVisible && !isMenuAlertActive()) {
+            clearMenuAlert();
+        }
+
         const int32_t cur = g.encRaw;
         const int32_t delta = (cur - g.encLast) / 2;
         if (delta != 0) {
@@ -834,8 +929,11 @@ void loop()
 
         if (g.encBtn.event) {
             g.encBtn.event = false;
-            enterSubPage(static_cast<PageId>(g.menuCursor + 1));
-            return;
+            const PageId target = static_cast<PageId>(g.menuCursor + 1);
+            if (probeOptionalSubPage(target)) {
+                enterSubPage(target);
+                return;
+            }
         }
 
         if (g.usrBtn.event) {

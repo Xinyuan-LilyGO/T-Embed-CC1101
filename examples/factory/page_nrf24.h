@@ -962,4 +962,22 @@ void deinit()
     board_spi_deselect_all();
 }
 
+bool probeHardware(String& reason)
+{
+    reason = "";
+    const bool ok = initRadio();
+
+    (void)radio.finishReceive();
+    (void)radio.finishTransmit();
+    (void)radio.sleep();
+    pinMode(BOARD_NRF24_CE, OUTPUT);
+    digitalWrite(BOARD_NRF24_CE, LOW);
+    board_spi_deselect_all();
+
+    if (!ok) {
+        reason = "Optional module missing or SPI comm failed";
+    }
+    return ok;
+}
+
 }  // namespace page_nrf24

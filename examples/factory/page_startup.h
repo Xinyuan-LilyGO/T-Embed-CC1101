@@ -1,12 +1,6 @@
 #pragma once
 
-#ifndef FACTORY_BUILD_STAMP
-#define FACTORY_BUILD_STAMP __DATE__ " " __TIME__
-#endif
-
-#ifndef FACTORY_GIT_HASH
-#define FACTORY_GIT_HASH "unknown"
-#endif
+#include "factory_build_info.h"
 
 namespace page_startup {
 
@@ -247,9 +241,9 @@ void drawInfoCard(Canvas& gfx)
     gfx.drawString("Git:", labelX, row3Y, 1);
 
     gfx.setTextColor(TFT_WHITE, kUiCard);
-    gfx.drawString(T_EMBED_CC1101_SF_VER, valueX, row1Y, 1);
-    gfx.drawString(FACTORY_BUILD_STAMP, valueX, row2Y, 1);
-    gfx.drawString(FACTORY_GIT_HASH, valueX, row3Y, 1);
+    gfx.drawString(kFactorySoftwareVersion, valueX, row1Y, 1);
+    gfx.drawString(kFactoryBuildStamp, valueX, row2Y, 1);
+    gfx.drawString(kFactoryGitHash, valueX, row3Y, 1);
 }
 
 template <typename Canvas>

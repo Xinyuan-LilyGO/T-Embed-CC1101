@@ -425,6 +425,16 @@ bool initReader()
     return armPassiveDetection();
 }
 
+void shutdownProbeState()
+{
+    readerReady = false;
+    detectionArmed = false;
+    cardPresent = false;
+    pinMode(BOARD_PN532_RF_REST, OUTPUT);
+    digitalWrite(BOARD_PN532_RF_REST, LOW);
+    board_spi_deselect_all();
+}
+
 void pollNfc()
 {
     const unsigned long now = millis();
@@ -645,6 +655,50 @@ void deinit()
     currentCard.clear();
     pinMode(BOARD_PN532_RF_REST, OUTPUT);
     digitalWrite(BOARD_PN532_RF_REST, LOW);
+}
+
+bool probeHardware(String& reason)
+{
+    reason = "";
+
+    pinMode(BOARD_PN532_RF_REST, OUTPUT);
+    digitalWrite(BOARD_PN532_RF_REST, LOW);
+    delay(10);
+    digitalWrite(BOARD_PN532_RF_REST, HIGH);
+    pinMode(BOARD_PN532_IRQ, INPUT_PULLUP);
+    Wire.setClock(100000U);
+    Wire.setTimeOut(20);
+    delay(25);
+
+    if (!i2cDevicePresent(kPn532I2cAddress)) {
+        delay(5);
+        if (!i2cDevicePresent(kPn532I2cAddress)) {
+            reason = "Optional module missing or I2C no response";
+            shutdownProbeState();
+            return false;
+        }
+    }
+
+    if (!nfc.begin()) {
+        reason = "PN532 begin() failed";
+        shutdownProbeState();
+        return false;
+    }
+
+    if (!nfc.getFirmwareVersion()) {
+        reason = "PN532 no firmware response";
+        shutdownProbeState();
+        return false;
+    }
+
+    if (!nfc.SAMConfig()) {
+        reason = "PN532 SAMConfig failed";
+        shutdownProbeState();
+        return false;
+    }
+
+    shutdownProbeState();
+    return true;
 }
 
 }  // namespace page_nfc

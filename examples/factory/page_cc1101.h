@@ -1191,4 +1191,24 @@ void deinit()
     board_spi_deselect_all();
 }
 
+bool probeHardware(String& reason)
+{
+    reason = "";
+    const bool ok = initRadio();
+
+    detachInterrupt(digitalPinToInterrupt(BOARD_LORA_IO0));
+    detachInterrupt(digitalPinToInterrupt(BOARD_LORA_IO2));
+    radio.clearPacketReceivedAction();
+    radio.clearPacketSentAction();
+    (void)radio.finishReceive();
+    (void)radio.finishTransmit();
+    (void)radio.sleep();
+    board_spi_deselect_all();
+
+    if (!ok) {
+        reason = "Optional module missing or SPI comm failed";
+    }
+    return ok;
+}
+
 }  // namespace page_cc1101
