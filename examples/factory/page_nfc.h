@@ -637,6 +637,14 @@ void render()
     lastDrawMs = now;
 }
 
-void deinit() {}
+void deinit()
+{
+    readerReady = false;
+    detectionArmed = false;
+    cardPresent = false;
+    currentCard.clear();
+    pinMode(BOARD_PN532_RF_REST, OUTPUT);
+    digitalWrite(BOARD_PN532_RF_REST, LOW);
+}
 
 }  // namespace page_nfc

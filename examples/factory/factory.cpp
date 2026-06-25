@@ -694,6 +694,7 @@ void exitSubPage()
     if (idx < kPageCount) {
         kPages[idx].deinit();
     }
+    gSubPageGfx.invalidate();
     g.activePage = PageId::MainMenu;
     g.subPageExitRequested = false;
     g.menuDirty = true;
