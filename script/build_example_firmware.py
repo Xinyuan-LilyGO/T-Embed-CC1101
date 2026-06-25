@@ -2,12 +2,12 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import configparser
 import json
 import shutil
 import subprocess
 import sys
-from datetime import datetime
 from pathlib import Path
 import re
 
@@ -18,28 +18,29 @@ PLATFORMIO_INI = ROOT / "platformio.ini"
 FIRMWARE_EXAMPLES_DIR = ROOT / "firmware" / "examples"
 DEFAULT_ENV = "T_Embed_CC1101"
 DEFAULT_CHIP = "esp32s3"
-MERGED_COMMAND_NAME = "esptool_merged_command.txt"
-BUILD_OFFSETS = {
-    "bootloader.bin": "0x0",
-    "partitions.bin": "0x8000",
-    "firmware.bin": "0x10000",
-}
-BUILD_FILES = (
-    "bootloader.bin",
-    "partitions.bin",
-    "firmware.bin",
-    "firmware.elf",
-    "firmware.map",
-)
+SOURCE_EXTENSIONS = (".ino", ".cpp", ".c", ".cc", ".cxx")
 
 
 def discover_examples() -> list[str]:
-    examples: set[str] = set()
-    for ino_path in EXAMPLES_DIR.rglob("*.ino"):
-        rel_dir = ino_path.parent.relative_to(EXAMPLES_DIR).as_posix()
+    candidate_dirs: set[str] = set()
+    for source_path in EXAMPLES_DIR.rglob("*"):
+        if not source_path.is_file():
+            continue
+        if source_path.suffix.lower() not in SOURCE_EXTENSIONS:
+            continue
+
+        rel_dir = source_path.parent.relative_to(EXAMPLES_DIR).as_posix()
         if rel_dir:
-            examples.add(rel_dir)
-    return sorted(examples)
+            candidate_dirs.add(rel_dir)
+
+    examples: list[str] = []
+    for rel_dir in sorted(candidate_dirs, key=lambda item: (item.count("/"), item)):
+        parent = Path(rel_dir).parent.as_posix()
+        if parent != "." and parent in candidate_dirs:
+            continue
+        examples.append(rel_dir)
+
+    return examples
 
 
 def normalize_example_name(raw_name: str, available: list[str]) -> str:
@@ -112,6 +113,19 @@ def run_command(command: list[str], cwd: Path) -> None:
     subprocess.run(command, cwd=cwd, check=True)
 
 
+def capture_command(command: list[str], cwd: Path) -> str:
+    print(f"$ {' '.join(command)}", flush=True)
+    completed = subprocess.run(
+        command,
+        cwd=cwd,
+        check=True,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+    return completed.stdout
+
+
 def load_env_board_settings(env_name: str) -> dict[str, str]:
     parser = configparser.ConfigParser(interpolation=None)
     parser.optionxform = str
@@ -164,6 +178,90 @@ def normalize_flash_freq(value: object) -> str:
     return f"{number}m"
 
 
+def _offset_as_int(offset: str) -> int:
+    return int(str(offset).strip(), 0)
+
+
+def extract_envdump_literal(text: str, key: str) -> str:
+    marker = f"'{key}':"
+    start = text.find(marker)
+    if start < 0:
+        raise RuntimeError(f"Could not find {key} in PlatformIO envdump output")
+
+    pos = start + len(marker)
+    while pos < len(text) and text[pos].isspace():
+        pos += 1
+    if pos >= len(text):
+        raise RuntimeError(f"Missing value for {key} in PlatformIO envdump output")
+
+    first = text[pos]
+    if first in ("'", '"'):
+        end = pos + 1
+        while end < len(text):
+            if text[end] == first and text[end - 1] != "\\":
+                return text[pos : end + 1]
+            end += 1
+        raise RuntimeError(f"Unterminated string value for {key} in envdump output")
+
+    if first not in "[{(":
+        end = pos
+        while end < len(text) and text[end] not in ",\r\n":
+            end += 1
+        return text[pos:end].strip()
+
+    pairs = {"[": "]", "{": "}", "(": ")"}
+    close_char = pairs[first]
+    depth = 0
+    end = pos
+    while end < len(text):
+        ch = text[end]
+        if ch == first:
+            depth += 1
+        elif ch == close_char:
+            depth -= 1
+            if depth == 0:
+                return text[pos : end + 1]
+        end += 1
+
+    raise RuntimeError(f"Unterminated container value for {key} in envdump output")
+
+
+def load_build_flash_layout(env_name: str, project_conf: Path) -> list[tuple[str, Path]]:
+    pio = shutil.which("pio") or "pio"
+    envdump_output = capture_command(
+        [pio, "run", "-e", env_name, "-t", "envdump", "--project-conf", str(project_conf)],
+        ROOT,
+    )
+
+    flash_extra_images = ast.literal_eval(
+        extract_envdump_literal(envdump_output, "FLASH_EXTRA_IMAGES")
+    )
+    app_offset = str(ast.literal_eval(
+        extract_envdump_literal(envdump_output, "ESP32_APP_OFFSET")
+    )).strip()
+
+    if not flash_extra_images:
+        raise RuntimeError("FLASH_EXTRA_IMAGES is empty in PlatformIO envdump output")
+    if not app_offset:
+        raise RuntimeError("ESP32_APP_OFFSET is empty in PlatformIO envdump output")
+
+    build_dir = ROOT / ".pio" / "build" / env_name
+    firmware_path = build_dir / "firmware.bin"
+    if not firmware_path.exists():
+        raise FileNotFoundError(f"Missing build artifact: {firmware_path}")
+
+    layout: list[tuple[str, Path]] = []
+    for offset, path_text in flash_extra_images:
+        image_path = Path(str(path_text))
+        if not image_path.exists():
+            raise FileNotFoundError(f"Flash image not found: {image_path}")
+        layout.append((str(offset).strip(), image_path))
+
+    layout.append((app_offset, firmware_path))
+    layout.sort(key=lambda item: _offset_as_int(item[0]))
+    return layout
+
+
 def remove_build_dir(env_name: str) -> None:
     build_root = (ROOT / ".pio" / "build").resolve()
     target_dir = (build_root / env_name).resolve()
@@ -180,14 +278,32 @@ def make_merged_bin_name(example_name: str) -> str:
     return f"{safe_name}.bin"
 
 
+def remove_legacy_output(example_name: str) -> None:
+    legacy_dir = (FIRMWARE_EXAMPLES_DIR / Path(example_name)).resolve()
+    output_root = FIRMWARE_EXAMPLES_DIR.resolve()
+
+    if output_root != legacy_dir and output_root not in legacy_dir.parents:
+        raise RuntimeError(f"Refusing to remove unexpected output directory: {legacy_dir}")
+
+    if legacy_dir.exists():
+        shutil.rmtree(legacy_dir)
+
+    parent = legacy_dir.parent
+    while parent != output_root and parent.exists() and not any(parent.iterdir()):
+        parent.rmdir()
+        parent = parent.parent
+
+
 def merge_artifacts(
     example_name: str,
-    output_dir: Path,
     chip: str,
     board_settings: dict[str, str],
-) -> list[str]:
-    merged_bin_name = make_merged_bin_name(example_name)
-    merged_bin = output_dir / merged_bin_name
+    flash_layout: list[tuple[str, Path]],
+) -> Path:
+    FIRMWARE_EXAMPLES_DIR.mkdir(parents=True, exist_ok=True)
+    remove_legacy_output(example_name)
+
+    merged_bin = FIRMWARE_EXAMPLES_DIR / make_merged_bin_name(example_name)
     command = [
         sys.executable,
         str(ROOT / "script" / "esptool.py"),
@@ -195,97 +311,32 @@ def merge_artifacts(
         chip,
         "merge_bin",
         "-o",
-        merged_bin_name,
-        "--flash_mode",
-        board_settings["flash_mode"],
-        "--flash_freq",
-        board_settings["flash_freq"],
+        str(merged_bin),
         "--flash_size",
         board_settings["flash_size"],
+        "--flash_freq",
+        board_settings["flash_freq"],
     ]
-    for filename, offset in BUILD_OFFSETS.items():
-        command.extend([offset, filename])
+    for offset, source_path in flash_layout:
+        command.extend([offset, str(source_path)])
 
-    run_command(command, output_dir)
-
-    merged_cmd = output_dir / MERGED_COMMAND_NAME
-    merged_cmd.write_text(
-        (
-            f"python script/esptool.py --chip {chip} --baud 921600 write_flash -z "
-            f"0x0 {merged_bin_name}\n"
-        ),
-        encoding="utf-8",
-    )
-    return [merged_bin.name, MERGED_COMMAND_NAME]
+    run_command(command, ROOT)
+    return merged_bin
 
 
 def export_artifacts(
     example_name: str,
-    env_name: str,
     chip: str,
     merge: bool,
     board_settings: dict[str, str],
+    flash_layout: list[tuple[str, Path]],
 ) -> Path:
-    build_dir = ROOT / ".pio" / "build" / env_name
-    if not build_dir.exists():
-        raise FileNotFoundError(f"Build directory not found: {build_dir}")
-
-    output_dir = FIRMWARE_EXAMPLES_DIR / Path(example_name) / "bin"
-    if output_dir.exists():
-        shutil.rmtree(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    copied_files: list[str] = []
-    for filename in BUILD_FILES:
-        source = build_dir / filename
-        if not source.exists():
-            if filename.endswith((".elf", ".map")):
-                continue
-            raise FileNotFoundError(f"Missing build artifact: {source}")
-        shutil.copy2(source, output_dir / filename)
-        copied_files.append(filename)
-
-    flash_args = output_dir / "flash_args.txt"
-    flash_args.write_text(
-        "\n".join(f"{offset} {name}" for name, offset in BUILD_OFFSETS.items()) + "\n",
-        encoding="utf-8",
-    )
-
-    esptool_cmd = output_dir / "esptool_command.txt"
-    esptool_cmd.write_text(
-        (
-            f"python script/esptool.py --chip {chip} --baud 921600 write_flash -z "
-            "0x0 bootloader.bin 0x8000 partitions.bin 0x10000 firmware.bin\n"
-        ),
-        encoding="utf-8",
-    )
-
-    extra_files = ["flash_args.txt", "esptool_command.txt"]
-    if merge:
-        extra_files.extend(
-            merge_artifacts(example_name, output_dir, chip, board_settings)
+    if not merge:
+        raise RuntimeError(
+            "This script now only exports merged example bin files. Remove --no-merge."
         )
 
-    build_info = {
-        "example": example_name,
-        "env": env_name,
-        "chip": chip,
-        "board": board_settings["board_name"],
-        "generated_at": datetime.now().isoformat(timespec="seconds"),
-        "source_dir": f"examples/{example_name}",
-        "files": copied_files + extra_files,
-        "offsets": BUILD_OFFSETS,
-        "flash_mode": board_settings["flash_mode"],
-        "flash_freq": board_settings["flash_freq"],
-        "flash_size": board_settings["flash_size"],
-        "merged_bin": make_merged_bin_name(example_name) if merge else None,
-    }
-    (output_dir / "build_info.json").write_text(
-        json.dumps(build_info, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-
-    return output_dir
+    return merge_artifacts(example_name, chip, board_settings, flash_layout)
 
 
 def build_example(
@@ -307,10 +358,10 @@ def build_example(
             [pio, "run", "-e", env_name, "--project-conf", str(temp_conf)],
             ROOT,
         )
+        flash_layout = load_build_flash_layout(env_name, temp_conf)
+        return export_artifacts(example_name, chip, merge, board_settings, flash_layout)
     finally:
         temp_conf.unlink(missing_ok=True)
-
-    return export_artifacts(example_name, env_name, chip, merge, board_settings)
 
 
 def unique_in_order(items: list[str]) -> list[str]:
@@ -327,8 +378,8 @@ def unique_in_order(items: list[str]) -> list[str]:
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Build one or more examples from examples/ and export flashable bin files to "
-            "firmware/examples/<example>/bin/"
+            "Build one or more examples from examples/ and export only the merged "
+            "example-named bin file to firmware/examples/"
         )
     )
     parser.add_argument(
@@ -344,7 +395,7 @@ def main() -> int:
     parser.add_argument(
         "--chip",
         default=DEFAULT_CHIP,
-        help=f"Chip name used in esptool_command.txt. Default: {DEFAULT_CHIP}",
+        help=f"Chip name used when merging the output bin. Default: {DEFAULT_CHIP}",
     )
     parser.add_argument(
         "--list",
@@ -364,7 +415,7 @@ def main() -> int:
     parser.add_argument(
         "--no-merge",
         action="store_true",
-        help="Skip generating the example-named merged bin",
+        help="Deprecated. This script now always exports only the merged example bin.",
     )
     parser.add_argument(
         "--continue-on-error",
@@ -400,7 +451,7 @@ def main() -> int:
         print("=" * 80)
 
         try:
-            output_dir = build_example(
+            output_path = build_example(
                 example_name=example_name,
                 env_name=args.env,
                 chip=args.chip,
@@ -414,19 +465,15 @@ def main() -> int:
                 break
             continue
 
-        successes.append((example_name, output_dir))
+        successes.append((example_name, output_path))
         print()
         print(f"Build complete: {example_name}")
-        print(f"Output folder: {output_dir}")
-        print("Files:")
-        for path in sorted(output_dir.iterdir()):
-            if path.is_file():
-                print(f"  - {path.name}")
+        print(f"Output file: {output_path}")
 
     print()
     print("Summary:")
-    for example_name, output_dir in successes:
-        print(f"  [OK]   {example_name} -> {output_dir}")
+    for example_name, output_path in successes:
+        print(f"  [OK]   {example_name} -> {output_path}")
     for example_name, error_text in failures:
         print(f"  [FAIL] {example_name} -> {error_text}")
 
