@@ -124,6 +124,12 @@ int16_t appliedInputCurrentMa = -1;
 uint8_t latchedInputBusStatus = static_cast<uint8_t>(XPowersPPM::BUS_STATE_NOINPUT);
 bool chargeRecoveryUsbWasPresent = false;
 int32_t encSnapshot = 0;
+uint8_t previewSoc = 0;
+bool previewSocValid = false;
+uint8_t previewChargeStatus = static_cast<uint8_t>(XPowersPPM::CHARGE_STATE_UNKOWN);
+bool previewChargeValid = false;
+bool previewVbusPresent = false;
+uint32_t lastPreviewRefreshMs = 0;
 
 BQ27220DMData makeDmU16Entry(const uint16_t address, const uint16_t value)
 {
@@ -264,6 +270,35 @@ const char* chargeStatusLabel(const uint8_t status)
         case XPowersPPM::CHARGE_STATE_DONE:        return "Done";
         case XPowersPPM::CHARGE_STATE_UNKOWN:
         default:                                   return "Unknown";
+    }
+}
+
+const char* menuChargeStatusLabel(const uint8_t status, const bool vbusPresent)
+{
+    switch (static_cast<XPowersPPM::ChargeStatus>(status)) {
+        case XPowersPPM::CHARGE_STATE_PRE_CHARGE:  return "Pre-charge";
+        case XPowersPPM::CHARGE_STATE_FAST_CHARGE: return "Charging";
+        case XPowersPPM::CHARGE_STATE_DONE:        return "Charge Done";
+        case XPowersPPM::CHARGE_STATE_NO_CHARGE:   return vbusPresent ? "Idle" : "Discharging";
+        case XPowersPPM::CHARGE_STATE_UNKOWN:
+        default:                                   return "Unknown";
+    }
+}
+
+uint16_t menuChargeStatusColor(const uint8_t status, const bool vbusPresent)
+{
+    switch (static_cast<XPowersPPM::ChargeStatus>(status)) {
+        case XPowersPPM::CHARGE_STATE_PRE_CHARGE:
+            return TFT_ORANGE;
+        case XPowersPPM::CHARGE_STATE_FAST_CHARGE:
+            return TFT_GREEN;
+        case XPowersPPM::CHARGE_STATE_DONE:
+            return TFT_YELLOW;
+        case XPowersPPM::CHARGE_STATE_NO_CHARGE:
+            return vbusPresent ? TFT_CYAN : TFT_ORANGE;
+        case XPowersPPM::CHARGE_STATE_UNKOWN:
+        default:
+            return TFT_LIGHTGREY;
     }
 }
 
@@ -1051,6 +1086,36 @@ void printStatus()
     Serial.println(chargeStatusLabel(metrics.chargeStatus));
 }
 
+void refreshMenuPreviewCache()
+{
+    const uint32_t now = millis();
+    if (lastPreviewRefreshMs != 0 && (now - lastPreviewRefreshMs) < 1500U) {
+        return;
+    }
+    lastPreviewRefreshMs = now;
+
+    previewSocValid = false;
+    previewChargeValid = false;
+    previewVbusPresent = false;
+    previewChargeStatus = static_cast<uint8_t>(XPowersPPM::CHARGE_STATE_UNKOWN);
+
+    if (!i2cDevicePresent(BOARD_I2C_ADDR_2) || !i2cDevicePresent(BOARD_I2C_ADDR_3)) {
+        return;
+    }
+
+    gauge.setDefaultCapacity(kBatteryCapacityMah);
+    if (gauge.init()) {
+        previewSoc = gauge.getStateOfCharge();
+        previewSocValid = true;
+    }
+
+    if (pmu.init(Wire, BOARD_I2C_SDA, BOARD_I2C_SCL, BQ25896_SLAVE_ADDRESS)) {
+        previewChargeStatus = static_cast<uint8_t>(pmu.chargeStatus());
+        previewVbusPresent = pmu.isVbusIn() || (pmu.getVbusVoltage() >= kVbusPresentThresholdMv);
+        previewChargeValid = true;
+    }
+}
+
 void updateUserButton()
 {
     const bool rawPressed = (digitalRead(BOARD_USER_KEY) == LOW);
@@ -1232,5 +1297,48 @@ void render()
 }
 
 void deinit() {}
+
+String menuPreviewLine1()
+{
+    if (hasMetrics) {
+        return String("SOC: ") + metrics.soc + "%";
+    }
+
+    refreshMenuPreviewCache();
+    return previewSocValid ? String("SOC: ") + previewSoc + "%" : String("SOC: --");
+}
+
+String menuPreviewLine2()
+{
+    if (hasMetrics) {
+        return String("CHG: ") + menuChargeStatusLabel(metrics.chargeStatus, metrics.vbusPresent);
+    }
+
+    refreshMenuPreviewCache();
+    return previewChargeValid
+        ? String("CHG: ") + menuChargeStatusLabel(previewChargeStatus, previewVbusPresent)
+        : String("CHG: --");
+}
+
+uint16_t menuPreviewLine1Color()
+{
+    if (hasMetrics || previewSocValid) {
+        return TFT_GREEN;
+    }
+    return TFT_LIGHTGREY;
+}
+
+uint16_t menuPreviewLine2Color()
+{
+    if (hasMetrics) {
+        return menuChargeStatusColor(metrics.chargeStatus, metrics.vbusPresent);
+    }
+
+    refreshMenuPreviewCache();
+    if (previewChargeValid) {
+        return menuChargeStatusColor(previewChargeStatus, previewVbusPresent);
+    }
+    return TFT_LIGHTGREY;
+}
 
 }  // namespace page_battery

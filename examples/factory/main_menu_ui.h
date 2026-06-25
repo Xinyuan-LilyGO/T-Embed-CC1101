@@ -162,6 +162,16 @@ void drawMenuDetail(Canvas& gfx)
 {
     const uint8_t idx = selectedMenuIndex();
     const MainMenuInsight& info = kMainMenuInsights[idx];
+    String line1 = info.line1;
+    String line2 = info.line2;
+    uint16_t line1Color = kMenuSubText;
+    uint16_t line2Color = kMenuSubText;
+    if (idx == 0) {
+        line1 = page_battery::menuPreviewLine1();
+        line2 = page_battery::menuPreviewLine2();
+        line1Color = page_battery::menuPreviewLine1Color();
+        line2Color = page_battery::menuPreviewLine2Color();
+    }
     const int16_t x = kMenuDetailX;
     const int16_t y = kMenuDetailY;
     const int16_t w = kMenuDetailW;
@@ -175,9 +185,10 @@ void drawMenuDetail(Canvas& gfx)
     gfx.setTextColor(kMenuText, kMenuPanel);
     gfx.drawString(clipMenuText(String(kPages[idx].label), 16).c_str(), x + 8, y + 20, 1);
 
-    gfx.setTextColor(kMenuSubText, kMenuPanel);
-    gfx.drawString(info.line1, x + 8, y + 34, 1);
-    gfx.drawString(info.line2, x + 8, y + 44, 1);
+    gfx.setTextColor(line1Color, kMenuPanel);
+    gfx.drawString(clipMenuText(line1, 16).c_str(), x + 8, y + 34, 1);
+    gfx.setTextColor(line2Color, kMenuPanel);
+    gfx.drawString(clipMenuText(line2, 16).c_str(), x + 8, y + 44, 1);
 
     gfx.drawFastHLine(x + 8, y + 58, w - 16, kMenuPanelEdge);
 

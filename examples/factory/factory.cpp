@@ -32,7 +32,17 @@ String autoDimTimeoutLabel();
 void cycleDisplayRotation();
 void cycleAutoSleepPreset();
 
-namespace page_battery { void init(); void update(); void render(); void deinit(); }
+namespace page_startup { void init(); void update(); void render(); void deinit(); bool shouldEnterMainMenu(); }
+namespace page_battery {
+void init();
+void update();
+void render();
+void deinit();
+String menuPreviewLine1();
+String menuPreviewLine2();
+uint16_t menuPreviewLine1Color();
+uint16_t menuPreviewLine2Color();
+}
 namespace page_cc1101  { void init(); void update(); void render(); void deinit(); }
 namespace page_ir      { void init(); void update(); void render(); void deinit(); }
 namespace page_mic     { void init(); void update(); void render(); void deinit(); }
@@ -92,6 +102,7 @@ struct Btn {
 
 struct FactoryState {
     PageId activePage = PageId::MainMenu;
+    bool startupVisible = true;
     int8_t menuCursor = 0;
     bool menuDirty = true;
     bool subPageExitRequested = false;
@@ -210,7 +221,7 @@ uint32_t gMainMenuLastDrawMs = 0;
 static const PageDescriptor kPages[] = {
     { "Battery / PMU", page_battery::init, page_battery::update, page_battery::render, page_battery::deinit },
     { "CC1101 Radio",  page_cc1101::init,  page_cc1101::update,  page_cc1101::render,  page_cc1101::deinit  },
-    { "IR TX / RX",    page_ir::init,      page_ir::update,      page_ir::render,      page_ir::deinit      },
+    { "IR TX/RX",      page_ir::init,      page_ir::update,      page_ir::render,      page_ir::deinit      },
     { "MIC & Speaker", page_mic::init,     page_mic::update,     page_mic::render,     page_mic::deinit     },
     { "PN532 NFC",     page_nfc::init,     page_nfc::update,     page_nfc::render,     page_nfc::deinit     },
     { "nRF24 Tx/Rx",   page_nrf24::init,   page_nrf24::update,   page_nrf24::render,   page_nrf24::deinit   },
@@ -623,6 +634,7 @@ void handleIdlePowerState()
 }
 
 #include "main_menu_ui.h"
+#include "page_startup.h"
 
 void renderMenu()
 {
@@ -642,6 +654,18 @@ void renderMenu()
 
     g.menuDirty = false;
     gMainMenuLastDrawMs = now;
+}
+
+void enterMainMenu()
+{
+    page_startup::deinit();
+    g.startupVisible = false;
+    g.menuDirty = true;
+    g.encLast = g.encRaw;
+    g.encActivitySnapshot = g.encRaw;
+    noteUserActivity();
+    initMainMenuCanvas();
+    renderMenu();
 }
 
 void enterSubPage(const PageId id)
@@ -684,7 +708,9 @@ void enterSystemSleepNow()
     Serial.println(F("[MAIN] Entering deep sleep. Wake with USER key."));
     g.systemSleepRequested = false;
 
-    if (g.activePage != PageId::MainMenu) {
+    if (g.startupVisible) {
+        page_startup::deinit();
+    } else if (g.activePage != PageId::MainMenu) {
         const uint8_t idx = static_cast<uint8_t>(g.activePage) - 1;
         if (idx < kPageCount) {
             kPages[idx].deinit();
@@ -759,11 +785,12 @@ void setup()
     board_spi_deselect_all();
     setBacklightBrightness(255);
 
-    initMainMenuCanvas();
+    noteUserActivity();
     g.encLast = g.encRaw;
     g.encActivitySnapshot = g.encRaw;
-    noteUserActivity();
-    renderMenu();
+    g.startupVisible = true;
+    page_startup::init();
+    page_startup::render();
 }
 
 void loop()
@@ -771,6 +798,24 @@ void loop()
     pollButton(g.encBtn);
     pollButton(g.usrBtn);
     trackUserActivity();
+
+    if (g.startupVisible) {
+        page_startup::update();
+        if (page_startup::shouldEnterMainMenu()) {
+            enterMainMenu();
+            return;
+        }
+        page_startup::render();
+
+        handleIdlePowerState();
+        if (g.systemSleepRequested) {
+            enterSystemSleepNow();
+            return;
+        }
+
+        delay(5);
+        return;
+    }
 
     if (g.activePage == PageId::MainMenu) {
         const int32_t cur = g.encRaw;
