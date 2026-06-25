@@ -1,5 +1,7 @@
 #pragma once
 
+extern SPIClass spi;
+
 namespace page_nrf24 {
 
 namespace {
@@ -71,7 +73,10 @@ constexpr uint8_t kLedBrightness = 10;
 constexpr uint32_t kLedFlashMs = 200;
 constexpr uint32_t kFrameMs = 60;
 
-SPIClass& radioSpi = SPI;
+// The panel setup routes TFT_eSPI through HSPI on ESP32-S3.
+// nRF24 must share that same SPI controller instance, otherwise RadioLib
+// talks to the wrong bus and radio.begin() fails with SPI write errors.
+SPIClass& radioSpi = spi;
 nRF24 radio = new Module(BOARD_NRF24_CS, BOARD_NRF24_IRQ, BOARD_NRF24_CE, RADIOLIB_NC, radioSpi);
 Adafruit_NeoPixel strip(WS2812_NUM_LEDS, WS2812_DATA_PIN, NEO_GRB + NEO_KHZ800);
 
@@ -951,6 +956,8 @@ void deinit()
     (void)radio.finishReceive();
     (void)radio.finishTransmit();
     (void)radio.standby();
+    pinMode(BOARD_NRF24_CE, OUTPUT);
+    digitalWrite(BOARD_NRF24_CE, LOW);
     setStripColor(0, 0, 0);
     board_spi_deselect_all();
 }

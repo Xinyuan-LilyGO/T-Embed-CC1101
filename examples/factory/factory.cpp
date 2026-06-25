@@ -259,14 +259,13 @@ void board_spi_deselect_all()
     digitalWrite(BOARD_SD_CS, HIGH);
     digitalWrite(BOARD_LORA_CS, HIGH);
     digitalWrite(BOARD_NRF24_CS, HIGH);
-
-    pinMode(BOARD_NRF24_CE, OUTPUT);
-    digitalWrite(BOARD_NRF24_CE, LOW);
 }
 
 void board_spi_init_shared_bus()
 {
     board_spi_deselect_all();
+    pinMode(BOARD_NRF24_CE, OUTPUT);
+    digitalWrite(BOARD_NRF24_CE, LOW);
     SPI.begin(BOARD_SPI_SCK, BOARD_SPI_MISO, BOARD_SPI_MOSI);
 }
 
@@ -710,14 +709,14 @@ void enterSystemSleepNow()
 #include "page_nfc.h"
 #include "page_nrf24.h"
 #include "page_sd.h"
-#include "page_wifi.h"
-#include "page_tft.h"
 #include "page_ws2812.h"
 #include "page_setting.h"
 #undef tft
 
 #include "page_ir.h"
 #include "page_mic.h"
+#include "page_wifi.h"
+#include "page_tft.h"
 
 
 void setup()
