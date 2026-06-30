@@ -75,6 +75,17 @@ T-Embed-CC1101 has a built-in Sub-GHz module based on a `CC1101` transceiver and
 
 The Sub-GHz application supports external radio modules based on the CC1101 transceiver.
 
+Notice : The frequency selection of CC1101 is configured through `SW0` and `SW1`.
+~~~c
+// SW1:1  SW0:0 --- 315MHz
+// SW1:0  SW0:1 --- 868/915MHz
+// SW1:1  SW0:1 --- 434MHz
+#define BOARD_LORA_SW1  47
+#define BOARD_LORA_SW0  48
+~~~
+![](./docs/README_img/cc1101_switch.png)
+
+
 ### 2、PN532
 
 The PN532 only supports high-frequency cards at 13.56MHz, does not support low-frequency cards at 125K, does not support CPU cards, and does not support encryption cards.

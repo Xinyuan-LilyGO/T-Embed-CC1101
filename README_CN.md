@@ -73,6 +73,16 @@ t- embedded -CC1101有一个内置的Sub-GHz模块，基于“CC1101”收发器
 
 Sub-GHz应用支持基于CC1101收发器的外部无线电模块。
 
+注意: CC1101 的频率选择通过 SW0、SW1 配置，如下
+~~~c
+// SW1:1  SW0:0 --- 315MHz
+// SW1:0  SW0:1 --- 868/915MHz
+// SW1:1  SW0:1 --- 434MHz
+#define BOARD_LORA_SW1  47
+#define BOARD_LORA_SW0  48
+~~~
+![](./docs/README_img/cc1101_switch.png)
+
 ### 2、PN532 (NFC)
 
 PN532是一个高度集成的收发模块，用于13.56 MHz的非接触式通信，基于80C51微控制器核心。支持6种不同的工作模式：
