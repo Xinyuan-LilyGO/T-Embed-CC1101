@@ -37,6 +37,8 @@ Video about T-Embed-CC1101 :  [youtube](https://www.youtube.com/watch?v=U06XI1wt
 |   Battery Chip   |                  BQ25896 (0x6B), BQ27220 (0x55)                  |
 |    LED Driver    |                              WS2812                              |
 
+The charging current should ideally not exceed half of the battery capacity, and for the `T-Embed-CC1101`, it should not exceed `600mA`
+
 Expansion module:
 
 | -            | NRF24                                                                                       |

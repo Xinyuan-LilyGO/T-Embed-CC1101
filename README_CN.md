@@ -38,6 +38,8 @@
 |   Battery Chip   |                  BQ25896 (0x6B), BQ27220 (0x55)                  |
 |    LED Driver    |                              WS2812                              |
 
+充电电流最好不要超过电池容量的一半，对于 T-Embed-CC1101 来说就是不要超过600mA
+
 下面是一下关于 T-Embed-CC1101 的开源项目：
 
 |     name     |                                                      code                                                       |                                                            web                                                             |
