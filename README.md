@@ -39,6 +39,8 @@ Video about T-Embed-CC1101 :  [youtube](https://www.youtube.com/watch?v=U06XI1wt
 
 The charging current should ideally not exceed half of the battery capacity, and for the `T-Embed-CC1101`, it should not exceed `600mA`
 
+External antenna 2.4G gains 1.5dBi, Sub1G antenna gain: -0.57dBi
+
 Expansion module:
 
 | -            | NRF24                                                                                       |
