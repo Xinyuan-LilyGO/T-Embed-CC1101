@@ -97,6 +97,7 @@ size_t lastRxLength = 0;
 bool hasLastRx = false;
 bool radioReady = false;
 bool screenDirty = true;
+bool needFullRedraw = true;
 bool backFocused = false;
 uint32_t lastDrawMs = 0;
 int32_t encSnapshot = 0;
@@ -344,17 +345,29 @@ void drawTransmitRows()
 void redrawAll()
 {
     board_prepare_display();
-    tft.fillRect(0, 0, tft.width(), tft.height(), TFT_BLACK);
-    drawHeader();
-    drawChannelRow();
-    drawModeRow();
-    drawDivider();
+
+    if (needFullRedraw) {
+        needFullRedraw = false;
+        tft.fillRect(0, 0, tft.width(), tft.height(), TFT_BLACK);
+        drawHeader();
+        drawChannelRow();
+        drawModeRow();
+        drawDivider();
+        if (currentMode == RadioMode::Receive) {
+            drawReceiveRows();
+        } else {
+            drawTransmitRows();
+        }
+        drawFooter();
+        board_spi_deselect_all();
+        return;
+    }
+
     if (currentMode == RadioMode::Receive) {
         drawReceiveRows();
     } else {
         drawTransmitRows();
     }
-    drawFooter();
     board_spi_deselect_all();
 }
 
@@ -491,6 +504,7 @@ bool initRadio()
 bool enterReceiveMode()
 {
     currentMode = RadioMode::Receive;
+    needFullRedraw = true;
     screenDirty = true;
 
     board_spi_deselect_all();
@@ -514,6 +528,7 @@ void enterBurstTransmitMode()
 {
     currentMode = RadioMode::BurstTransmit;
     lastBurstAtMs = 0;
+    needFullRedraw = true;
     screenDirty = true;
 
     board_spi_deselect_all();
@@ -590,6 +605,7 @@ bool reinitializeRadioForCurrentMode()
 
     if (!initRadio()) {
         radioReady = false;
+        needFullRedraw = true;
         screenDirty = true;
         return false;
     }
@@ -885,6 +901,7 @@ void init()
     hasLastRx = false;
     radioReady = false;
     screenDirty = true;
+    needFullRedraw = true;
     backFocused = false;
     lastDrawMs = 0;
     encSnapshot = g.encRaw;
@@ -911,6 +928,7 @@ void init()
 void update()
 {
     if (updateBinaryBackFocus(encSnapshot, backFocused)) {
+        needFullRedraw = true;
         screenDirty = true;
     }
 

@@ -43,6 +43,7 @@ static const MainMenuInsight kMainMenuInsights[kPageCount] = {
     {"2.4 GHz radio",   "Burst and RX"},
     {"Mount and files", "Read/write test"},
     {"Scan AP list",    "Signal detail"},
+    {"BLE UART",        "Pair and echo"},
     {"Pixels and demo", "Colors and motion"},
     {"Color preview",   "Brightness step"},
     {"Rotation sleep",  "Info and timer"},

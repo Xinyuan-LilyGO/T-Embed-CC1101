@@ -50,6 +50,7 @@ namespace page_nfc     { void init(); void update(); void render(); void deinit(
 namespace page_nrf24   { void init(); void update(); void render(); void deinit(); bool probeHardware(String& reason); }
 namespace page_sd      { void init(); void update(); void render(); void deinit(); }
 namespace page_wifi    { void init(); void update(); void render(); void deinit(); }
+namespace page_ble     { void init(); void update(); void render(); void deinit(); }
 namespace page_tft     { void init(); void update(); void render(); void deinit(); }
 namespace page_ws2812  { void init(); void update(); void render(); void deinit(); }
 namespace page_setting { void init(); void update(); void render(); void deinit(); }
@@ -64,6 +65,7 @@ enum class PageId : uint8_t {
     Nrf24,
     SD,
     WiFi,
+    BLE,
     TFT,
     WS2812,
     Setting,
@@ -123,6 +125,8 @@ uint32_t gMenuAlertUntilMs = 0;
 
 TFT_eSPI tft;
 TFT_eSprite gMainMenuCanvas(&tft);
+void board_spi_deselect_all();
+
 class SubPageGfxProxy {
 public:
     explicit SubPageGfxProxy(TFT_eSPI* display)
@@ -131,6 +135,7 @@ public:
     void beginFrame()
     {
         active_ = true;
+        dirtyCount_ = 0;
         if (ensureSprite()) {
             usingSprite_ = true;
         } else {
@@ -141,10 +146,20 @@ public:
     void endFrame()
     {
         if (active_ && usingSprite_) {
-            sprite_.pushSprite(0, 0);
+            display_->startWrite();
+            for (uint8_t i = 0; i < dirtyCount_; ++i) {
+                const DirtyRect& dirty = dirtyRects_[i];
+                sprite_.pushSprite(dirty.x1, dirty.y1,
+                                   dirty.x1, dirty.y1,
+                                   dirty.x2 - dirty.x1 + 1,
+                                   dirty.y2 - dirty.y1 + 1);
+            }
+            display_->endWrite();
         }
+        board_spi_deselect_all();
         active_ = false;
         usingSprite_ = false;
+        dirtyCount_ = 0;
     }
 
     void invalidate()
@@ -155,6 +170,7 @@ public:
         spriteH_ = 0;
         active_ = false;
         usingSprite_ = false;
+        dirtyCount_ = 0;
     }
 
     int16_t width() { return usingSprite_ ? sprite_.width() : display_->width(); }
@@ -162,30 +178,104 @@ public:
     uint16_t color565(uint8_t r, uint8_t g, uint8_t b) { return display_->color565(r, g, b); }
     SPIClass& getSPIinstance() { return display_->getSPIinstance(); }
 
-    void fillScreen(uint32_t color) { if (usingSprite_) sprite_.fillScreen(color); else display_->fillScreen(color); }
-    void fillRect(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t color) { if (usingSprite_) sprite_.fillRect(x, y, w, h, color); else display_->fillRect(x, y, w, h, color); }
-    void drawRect(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t color) { if (usingSprite_) sprite_.drawRect(x, y, w, h, color); else display_->drawRect(x, y, w, h, color); }
-    void fillRoundRect(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint32_t color) { if (usingSprite_) sprite_.fillRoundRect(x, y, w, h, r, color); else display_->fillRoundRect(x, y, w, h, r, color); }
-    void drawRoundRect(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint32_t color) { if (usingSprite_) sprite_.drawRoundRect(x, y, w, h, r, color); else display_->drawRoundRect(x, y, w, h, r, color); }
-    void drawFastHLine(int32_t x, int32_t y, int32_t w, uint32_t color) { if (usingSprite_) sprite_.drawFastHLine(x, y, w, color); else display_->drawFastHLine(x, y, w, color); }
-    void drawFastVLine(int32_t x, int32_t y, int32_t h, uint32_t color) { if (usingSprite_) sprite_.drawFastVLine(x, y, h, color); else display_->drawFastVLine(x, y, h, color); }
-    void fillCircle(int32_t x, int32_t y, int32_t r, uint32_t color) { if (usingSprite_) sprite_.fillCircle(x, y, r, color); else display_->fillCircle(x, y, r, color); }
-    void drawCircle(int32_t x, int32_t y, int32_t r, uint32_t color) { if (usingSprite_) sprite_.drawCircle(x, y, r, color); else display_->drawCircle(x, y, r, color); }
-    void drawLine(int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint32_t color) { if (usingSprite_) sprite_.drawLine(x0, y0, x1, y1, color); else display_->drawLine(x0, y0, x1, y1, color); }
+    void fillScreen(uint32_t color) { if (usingSprite_) { sprite_.fillScreen(color); markDirty(0, 0, spriteW_, spriteH_); } else display_->fillScreen(color); }
+    void fillRect(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t color) { if (usingSprite_) { sprite_.fillRect(x, y, w, h, color); markDirty(x, y, w, h); } else display_->fillRect(x, y, w, h, color); }
+    void drawRect(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t color) { if (usingSprite_) { sprite_.drawRect(x, y, w, h, color); markDirty(x, y, w, h); } else display_->drawRect(x, y, w, h, color); }
+    void fillRoundRect(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint32_t color) { if (usingSprite_) { sprite_.fillRoundRect(x, y, w, h, r, color); markDirty(x, y, w, h); } else display_->fillRoundRect(x, y, w, h, r, color); }
+    void drawRoundRect(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint32_t color) { if (usingSprite_) { sprite_.drawRoundRect(x, y, w, h, r, color); markDirty(x, y, w, h); } else display_->drawRoundRect(x, y, w, h, r, color); }
+    void drawFastHLine(int32_t x, int32_t y, int32_t w, uint32_t color) { if (usingSprite_) { sprite_.drawFastHLine(x, y, w, color); markDirty(x, y, w, 1); } else display_->drawFastHLine(x, y, w, color); }
+    void drawFastVLine(int32_t x, int32_t y, int32_t h, uint32_t color) { if (usingSprite_) { sprite_.drawFastVLine(x, y, h, color); markDirty(x, y, 1, h); } else display_->drawFastVLine(x, y, h, color); }
+    void fillCircle(int32_t x, int32_t y, int32_t r, uint32_t color) { if (usingSprite_) { sprite_.fillCircle(x, y, r, color); markDirty(x - r, y - r, r * 2 + 1, r * 2 + 1); } else display_->fillCircle(x, y, r, color); }
+    void drawCircle(int32_t x, int32_t y, int32_t r, uint32_t color) { if (usingSprite_) { sprite_.drawCircle(x, y, r, color); markDirty(x - r, y - r, r * 2 + 1, r * 2 + 1); } else display_->drawCircle(x, y, r, color); }
+    void drawLine(int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint32_t color) { if (usingSprite_) { sprite_.drawLine(x0, y0, x1, y1, color); markDirty(min(x0, x1), min(y0, y1), abs(x1 - x0) + 1, abs(y1 - y0) + 1); } else display_->drawLine(x0, y0, x1, y1, color); }
 
-    void setTextDatum(uint8_t datum) { if (usingSprite_) sprite_.setTextDatum(datum); else display_->setTextDatum(datum); }
-    void setTextPadding(uint16_t padding) { if (usingSprite_) sprite_.setTextPadding(padding); else display_->setTextPadding(padding); }
+    void setTextDatum(uint8_t datum) { textDatum_ = datum; if (usingSprite_) sprite_.setTextDatum(datum); else display_->setTextDatum(datum); }
+    void setTextPadding(uint16_t padding) { textPadding_ = padding; if (usingSprite_) sprite_.setTextPadding(padding); else display_->setTextPadding(padding); }
     void setTextColor(uint16_t fg) { if (usingSprite_) sprite_.setTextColor(fg); else display_->setTextColor(fg); }
     void setTextColor(uint16_t fg, uint16_t bg) { if (usingSprite_) sprite_.setTextColor(fg, bg); else display_->setTextColor(fg, bg); }
 
-    int16_t drawString(const String& text, int32_t x, int32_t y, uint8_t font = 1) { return usingSprite_ ? sprite_.drawString(text, x, y, font) : display_->drawString(text, x, y, font); }
-    int16_t drawString(const char* text, int32_t x, int32_t y, uint8_t font = 1) { return usingSprite_ ? sprite_.drawString(text, x, y, font) : display_->drawString(text, x, y, font); }
-    int16_t drawCentreString(const String& text, int32_t x, int32_t y, uint8_t font = 1) { return usingSprite_ ? sprite_.drawCentreString(text, x, y, font) : display_->drawCentreString(text, x, y, font); }
-    int16_t drawCentreString(const char* text, int32_t x, int32_t y, uint8_t font = 1) { return usingSprite_ ? sprite_.drawCentreString(text, x, y, font) : display_->drawCentreString(text, x, y, font); }
-    int16_t drawRightString(const String& text, int32_t x, int32_t y, uint8_t font = 1) { return usingSprite_ ? sprite_.drawRightString(text, x, y, font) : display_->drawRightString(text, x, y, font); }
-    int16_t drawRightString(const char* text, int32_t x, int32_t y, uint8_t font = 1) { return usingSprite_ ? sprite_.drawRightString(text, x, y, font) : display_->drawRightString(text, x, y, font); }
+    int16_t drawString(const String& text, int32_t x, int32_t y, uint8_t font = 1) { if (!usingSprite_) return display_->drawString(text, x, y, font); const int16_t w = sprite_.drawString(text, x, y, font); markText(x, y, w, font, textDatum_); return w; }
+    int16_t drawString(const char* text, int32_t x, int32_t y, uint8_t font = 1) { if (!usingSprite_) return display_->drawString(text, x, y, font); const int16_t w = sprite_.drawString(text, x, y, font); markText(x, y, w, font, textDatum_); return w; }
+    int16_t drawCentreString(const String& text, int32_t x, int32_t y, uint8_t font = 1) { if (!usingSprite_) return display_->drawCentreString(text, x, y, font); const int16_t w = sprite_.drawCentreString(text, x, y, font); markText(x, y, w, font, TC_DATUM); return w; }
+    int16_t drawCentreString(const char* text, int32_t x, int32_t y, uint8_t font = 1) { if (!usingSprite_) return display_->drawCentreString(text, x, y, font); const int16_t w = sprite_.drawCentreString(text, x, y, font); markText(x, y, w, font, TC_DATUM); return w; }
+    int16_t drawRightString(const String& text, int32_t x, int32_t y, uint8_t font = 1) { if (!usingSprite_) return display_->drawRightString(text, x, y, font); const int16_t w = sprite_.drawRightString(text, x, y, font); markText(x, y, w, font, TR_DATUM); return w; }
+    int16_t drawRightString(const char* text, int32_t x, int32_t y, uint8_t font = 1) { if (!usingSprite_) return display_->drawRightString(text, x, y, font); const int16_t w = sprite_.drawRightString(text, x, y, font); markText(x, y, w, font, TR_DATUM); return w; }
 
 private:
+    struct DirtyRect {
+        int16_t x1;
+        int16_t y1;
+        int16_t x2;
+        int16_t y2;
+    };
+
+    static constexpr uint8_t kMaxDirtyRects = 20;
+
+    static bool touches(const DirtyRect& a, const DirtyRect& b)
+    {
+        return a.x1 <= b.x2 + 1 && a.x2 + 1 >= b.x1 &&
+               a.y1 <= b.y2 + 1 && a.y2 + 1 >= b.y1;
+    }
+
+    void markDirty(int32_t x, int32_t y, int32_t w, int32_t h)
+    {
+        if (!usingSprite_ || w <= 0 || h <= 0 || spriteW_ <= 0 || spriteH_ <= 0) {
+            return;
+        }
+
+        DirtyRect pending = {
+            static_cast<int16_t>(max<int32_t>(0, x)),
+            static_cast<int16_t>(max<int32_t>(0, y)),
+            static_cast<int16_t>(min<int32_t>(spriteW_ - 1, x + w - 1)),
+            static_cast<int16_t>(min<int32_t>(spriteH_ - 1, y + h - 1)),
+        };
+        if (pending.x1 > pending.x2 || pending.y1 > pending.y2) {
+            return;
+        }
+
+        for (uint8_t i = 0; i < dirtyCount_;) {
+            if (!touches(pending, dirtyRects_[i])) {
+                ++i;
+                continue;
+            }
+            pending.x1 = min(pending.x1, dirtyRects_[i].x1);
+            pending.y1 = min(pending.y1, dirtyRects_[i].y1);
+            pending.x2 = max(pending.x2, dirtyRects_[i].x2);
+            pending.y2 = max(pending.y2, dirtyRects_[i].y2);
+            dirtyRects_[i] = dirtyRects_[--dirtyCount_];
+            i = 0;
+        }
+
+        if (dirtyCount_ >= kMaxDirtyRects) {
+            for (uint8_t i = 0; i < dirtyCount_; ++i) {
+                pending.x1 = min(pending.x1, dirtyRects_[i].x1);
+                pending.y1 = min(pending.y1, dirtyRects_[i].y1);
+                pending.x2 = max(pending.x2, dirtyRects_[i].x2);
+                pending.y2 = max(pending.y2, dirtyRects_[i].y2);
+            }
+            dirtyCount_ = 0;
+        }
+        dirtyRects_[dirtyCount_++] = pending;
+    }
+
+    void markText(int32_t x, int32_t y, int16_t textWidth, uint8_t font, uint8_t datum)
+    {
+        int32_t w = max<int32_t>(textWidth, textPadding_);
+        const int32_t h = sprite_.fontHeight(font);
+
+        if (datum == TC_DATUM || datum == MC_DATUM || datum == BC_DATUM) {
+            x -= w / 2;
+        } else if (datum == TR_DATUM || datum == MR_DATUM || datum == BR_DATUM) {
+            x -= w;
+        }
+        if (datum == ML_DATUM || datum == MC_DATUM || datum == MR_DATUM) {
+            y -= h / 2;
+        } else if (datum == BL_DATUM || datum == BC_DATUM || datum == BR_DATUM) {
+            y -= h;
+        }
+        markDirty(x, y, w, h);
+    }
+
     bool ensureSprite()
     {
         const int16_t w = display_->width();
@@ -215,6 +305,10 @@ private:
     bool spriteReady_ = false;
     int16_t spriteW_ = 0;
     int16_t spriteH_ = 0;
+    DirtyRect dirtyRects_[kMaxDirtyRects] = {};
+    uint8_t dirtyCount_ = 0;
+    uint8_t textDatum_ = TL_DATUM;
+    uint16_t textPadding_ = 0;
 } gSubPageGfx(&tft);
 Preferences gPrefs;
 FactorySettings gSettings;
@@ -231,6 +325,7 @@ static const PageDescriptor kPages[] = {
     { "nRF24 Tx/Rx",   page_nrf24::init,   page_nrf24::update,   page_nrf24::render,   page_nrf24::deinit   },
     { "SD Card",       page_sd::init,      page_sd::update,      page_sd::render,      page_sd::deinit      },
     { "WiFi",          page_wifi::init,    page_wifi::update,    page_wifi::render,    page_wifi::deinit    },
+    { "BLE UART",      page_ble::init,     page_ble::update,     page_ble::render,     page_ble::deinit     },
     { "TFT Display",   page_tft::init,     page_tft::update,     page_tft::render,     page_tft::deinit     },
     { "WS2812 LEDs",   page_ws2812::init,  page_ws2812::update,  page_ws2812::render,  page_ws2812::deinit  },
     { "Settings",      page_setting::init, page_setting::update, page_setting::render, page_setting::deinit },
@@ -829,11 +924,12 @@ void enterSystemSleepNow()
 #include "page_sd.h"
 #include "page_ws2812.h"
 #include "page_setting.h"
+#include "page_wifi.h"
+#include "page_ble.h"
 #undef tft
 
 #include "page_ir.h"
 #include "page_mic.h"
-#include "page_wifi.h"
 #include "page_tft.h"
 
 

@@ -184,7 +184,10 @@ void startScan()
     WiFi.disconnect(true);
     WiFi.mode(WIFI_STA);
     WiFi.persistent(false);
-    WiFi.setSleep(false);
+    // BLE remains initialized after leaving the BLE page. Keep Wi-Fi modem
+    // sleep enabled so the ESP32-S3 coexistence driver does not abort when
+    // Wi-Fi and Bluetooth are both active.
+    WiFi.setSleep(true);
     delay(80);
 
     scanCount = 0;
@@ -447,8 +450,9 @@ void render()
     }
 
     board_prepare_display();
+    gSubPageGfx.beginFrame();
     drawUi(tft);
-    board_spi_deselect_all();
+    gSubPageGfx.endFrame();
     screenDirty = false;
     lastDrawMs = now;
 }

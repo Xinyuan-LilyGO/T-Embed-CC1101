@@ -37,14 +37,21 @@ constexpr int16_t kRecoveryDischargeCurrentMa = -50;
 
 constexpr int16_t kLeftX = 8;
 constexpr int16_t kLeftValueX = 62;
+constexpr int16_t kLeftValueW = 96;
 constexpr int16_t kRightX = 162;
 constexpr int16_t kRightValueX = 222;
+constexpr int16_t kRightValueW = 94;
 constexpr int16_t kRow0 = 80;
 constexpr int16_t kRowGap = 14;
 constexpr int16_t kStateX = 8;
 constexpr int16_t kStateY = 30;
+constexpr int16_t kStateW = 220;
+constexpr int16_t kStateH = 26;
 constexpr int16_t kDetailX = 8;
 constexpr int16_t kDetailY = 64;
+constexpr int16_t kDetailW = 304;
+constexpr int16_t kDetailH = 10;
+constexpr int16_t kValueFieldH = 10;
 
 enum class UiState : uint8_t {
     Init = 0,
@@ -108,10 +115,12 @@ bool pmuReady = false;
 bool bqConfigWarning = false;
 bool screenDirty = true;
 bool frameDrawn = false;
+bool hasDrawnMetrics = false;
 String bqConfigDetail = "BQ cfg pending";
 String transientDetail;
 String lastDrawnDetail;
 UiState lastDrawnUiState = UiState::Init;
+FocusItem lastDrawnFocus = FocusItem::Metrics;
 unsigned long detailExpiresAtMs = 0;
 unsigned long lastPollAtMs = 0;
 unsigned long pendingUiStateSinceMs = 0;
@@ -366,8 +375,34 @@ void drawHeader()
     drawPageHeader("Battery Charge/Discharge Test", TFT_GREEN);
 }
 
-void drawFooter()
+void clearField(const int16_t x, const int16_t y, const int16_t w, const int16_t h)
 {
+    tft.fillRect(x, y, w, h, TFT_BLACK);
+}
+
+void updateTextField(const bool force,
+                     const String& value,
+                     const String& lastValue,
+                     const int16_t x,
+                     const int16_t y,
+                     const int16_t w,
+                     const uint16_t color = TFT_WHITE)
+{
+    if (!force && value == lastValue) {
+        return;
+    }
+    clearField(x, y, w, kValueFieldH);
+    tft.setTextDatum(TL_DATUM);
+    tft.setTextColor(color, TFT_BLACK);
+    tft.drawString(value, x, y, 1);
+}
+
+void drawFooter(const bool force)
+{
+    if (!force && focus == lastDrawnFocus) {
+        return;
+    }
+
     const int16_t footerY = tft.height() - kFooterH;
     tft.fillRect(0, footerY, tft.width(), kFooterH, TFT_DARKGREY);
     tft.setTextDatum(TL_DATUM);
@@ -383,7 +418,6 @@ void drawStaticFrame()
 {
     tft.fillScreen(TFT_BLACK);
     drawHeader();
-    drawFooter();
 
     tft.setTextColor(TFT_CYAN, TFT_BLACK);
     tft.drawString("SOC", kLeftX, kRow0, 1);
@@ -401,55 +435,90 @@ void drawStaticFrame()
     frameDrawn = true;
 }
 
-void drawStatusArea()
+void drawStatusArea(const bool force)
 {
-    tft.fillRect(kStateX, kStateY, 220, 26, TFT_BLACK);
-    tft.setTextColor(stateColor(uiState), TFT_BLACK);
-    tft.drawString(stateLabel(uiState), kStateX, kStateY, 4);
-    lastDrawnUiState = uiState;
+    if (force || uiState != lastDrawnUiState) {
+        clearField(kStateX, kStateY, kStateW, kStateH);
+        tft.setTextDatum(TL_DATUM);
+        tft.setTextColor(stateColor(uiState), TFT_BLACK);
+        tft.drawString(stateLabel(uiState), kStateX, kStateY, 4);
+        lastDrawnUiState = uiState;
+    }
 
     const String detail = currentDetail();
-    tft.fillRect(kDetailX, kDetailY, 304, 10, TFT_BLACK);
-    tft.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
-    tft.drawString(detail, kDetailX, kDetailY, 1);
-    lastDrawnDetail = detail;
+    if (force || detail != lastDrawnDetail) {
+        clearField(kDetailX, kDetailY, kDetailW, kDetailH);
+        tft.setTextDatum(TL_DATUM);
+        tft.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+        tft.drawString(detail, kDetailX, kDetailY, 1);
+        lastDrawnDetail = detail;
+    }
 }
 
-void drawMetricValues()
+void drawMetricValues(const bool force)
 {
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
-    tft.drawString(String(metrics.soc) + "%   ", kLeftValueX, kRow0, 1);
-    tft.drawString(formatVoltage(metrics.bqVoltageMv) + "   ", kLeftValueX, kRow0 + kRowGap, 1);
-    tft.drawString(formatSignedMilliamp(metrics.ibatMa) + "   ", kLeftValueX, kRow0 + kRowGap * 2, 1);
-    tft.drawString(formatCapacityTriplet(metrics) + "   ", kLeftValueX, kRow0 + kRowGap * 3, 1);
-    tft.drawString(String(metrics.soh) + "% / " + formatTemp(metrics.tempDeciC) + "   ",
-                   kLeftValueX, kRow0 + kRowGap * 4, 1);
+    updateTextField(force,
+                    String(metrics.soc) + "%",
+                    String(lastDrawnMetrics.soc) + "%",
+                    kLeftValueX, kRow0, kLeftValueW);
+    updateTextField(force,
+                    formatVoltage(metrics.bqVoltageMv),
+                    formatVoltage(lastDrawnMetrics.bqVoltageMv),
+                    kLeftValueX, kRow0 + kRowGap, kLeftValueW);
+    updateTextField(force,
+                    formatSignedMilliamp(metrics.ibatMa),
+                    formatSignedMilliamp(lastDrawnMetrics.ibatMa),
+                    kLeftValueX, kRow0 + kRowGap * 2, kLeftValueW);
+    updateTextField(force,
+                    formatCapacityTriplet(metrics),
+                    formatCapacityTriplet(lastDrawnMetrics),
+                    kLeftValueX, kRow0 + kRowGap * 3, kLeftValueW);
+    updateTextField(force,
+                    String(metrics.soh) + "% / " + formatTemp(metrics.tempDeciC),
+                    String(lastDrawnMetrics.soh) + "% / " + formatTemp(lastDrawnMetrics.tempDeciC),
+                    kLeftValueX, kRow0 + kRowGap * 4, kLeftValueW);
 
-    tft.drawString(formatVoltage(metrics.vbusMv) + " / " + formatVoltage(metrics.vsysMv) + "   ",
-                   kRightValueX, kRow0, 1);
-    tft.drawString(String(busStatusLabel(metrics.busStatus)) + "   ", kRightValueX, kRow0 + kRowGap, 1);
-    tft.drawString(String(chargeStatusLabel(metrics.chargeStatus)) + " " + String(metrics.chargeCurrentMa) + "mA   ",
-                   kRightValueX, kRow0 + kRowGap * 2, 1);
-    tft.drawString(String(kChargeTargetVoltageMv) + "/" + String(kPrechargeCurrentMa) + "/" +
-                   String(kFastChargeCurrentMa) + "   ",
-                   kRightValueX, kRow0 + kRowGap * 3, 1);
-    tft.drawString(formatTimePair(metrics.tteMin, metrics.ttfMin) + "   ",
-                   kRightValueX, kRow0 + kRowGap * 4, 1);
+    updateTextField(force,
+                    formatVoltage(metrics.vbusMv) + " / " + formatVoltage(metrics.vsysMv),
+                    formatVoltage(lastDrawnMetrics.vbusMv) + " / " + formatVoltage(lastDrawnMetrics.vsysMv),
+                    kRightValueX, kRow0, kRightValueW);
+    updateTextField(force,
+                    String(busStatusLabel(metrics.busStatus)),
+                    String(busStatusLabel(lastDrawnMetrics.busStatus)),
+                    kRightValueX, kRow0 + kRowGap, kRightValueW);
+    updateTextField(force,
+                    String(chargeStatusLabel(metrics.chargeStatus)) + " " + String(metrics.chargeCurrentMa) + "mA",
+                    String(chargeStatusLabel(lastDrawnMetrics.chargeStatus)) + " " +
+                        String(lastDrawnMetrics.chargeCurrentMa) + "mA",
+                    kRightValueX, kRow0 + kRowGap * 2, kRightValueW);
+    updateTextField(force,
+                    String(kChargeTargetVoltageMv) + "/" + String(kPrechargeCurrentMa) + "/" +
+                        String(kFastChargeCurrentMa),
+                    String(kChargeTargetVoltageMv) + "/" + String(kPrechargeCurrentMa) + "/" +
+                        String(kFastChargeCurrentMa),
+                    kRightValueX, kRow0 + kRowGap * 3, kRightValueW);
+    updateTextField(force,
+                    formatTimePair(metrics.tteMin, metrics.ttfMin),
+                    formatTimePair(lastDrawnMetrics.tteMin, lastDrawnMetrics.ttfMin),
+                    kRightValueX, kRow0 + kRowGap * 4, kRightValueW);
 }
 
 void redrawScreen()
 {
-    if (!frameDrawn) {
+    const bool frameChanged = !frameDrawn;
+    if (frameChanged) {
         drawStaticFrame();
-    } else {
-        drawFooter();
     }
-    drawStatusArea();
+
+    drawStatusArea(frameChanged);
     if (hasMetrics) {
-        drawMetricValues();
+        drawMetricValues(frameChanged || !hasDrawnMetrics);
+        hasDrawnMetrics = true;
     }
+    drawFooter(frameChanged || focus != lastDrawnFocus);
     board_spi_deselect_all();
     lastDrawnMetrics = metrics;
+    lastDrawnFocus = focus;
 }
 
 void setErrorState(const String& detail)
@@ -1216,6 +1285,10 @@ void init()
     encSnapshot = g.encRaw;
     screenDirty = true;
     frameDrawn = false;
+    hasDrawnMetrics = false;
+    lastDrawnFocus = FocusItem::Metrics;
+    lastDrawnDetail = "";
+    lastDrawnUiState = UiState::Init;
     lastPollAtMs = 0;
     lastDrawMs = 0;
     detailExpiresAtMs = 0;
